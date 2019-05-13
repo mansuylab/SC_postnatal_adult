@@ -1,5 +1,5 @@
 ---
-title: "RNA-Seq: NMF analysis of controls on genes with FDR <= 0.05"
+title: "RNA-Seq: NMF analysis of controls on all genes with FDR <= 0.05"
 author: "Deepak Tanwar"
 date: "<b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> `r Sys.Date()`"
 output:

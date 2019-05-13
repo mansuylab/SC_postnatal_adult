@@ -7,4 +7,4 @@
 
 all: task1
 task1:
-	Rscript -e 'rmarkdown::render("20190513-NMF_analysis.Rmd")' 2> log >> log
+	Rscript -e 'rmarkdown::render("20190513-NMF_analysis_all_genes.Rmd")' 2> log >> log
