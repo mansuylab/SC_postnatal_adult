@@ -40,11 +40,31 @@ library(plyr)
 library(miceadds)
 ```
 
+# Function to change names of PND data
+```{r}
+change_names <- function(names) {
+  names <- gsub(pattern = "PND7", replacement = "PND8", x = names)
+  names <- gsub(pattern = "PND14", replacement = "PND15", x = names)
+  names <- gsub(pattern = "_C", replacement = "_CTRL_", x = names)
+  names <- as.character(sapply(names, function(x) {
+    r <- NULL
+    if (substr(x = x, 1, 4) == "mRNA") {
+      r <- paste(substr(x, 6, 20), substr(x, 1, 4), sep = "_")
+    } else {
+      r <- x
+    }
+    return(r)
+  }))
+  return(names)
+}
+```
+
 # Salmon data objects
 
 ```{r}
 pnd <- load.Rdata2("input/salmon_msus27_SSC.tds.RData")
 pnd <- pnd[pnd@phenoData$group == "C"]
+colnames(pnd@gene.counts) <- change_names(names = colnames(pnd@gene.counts))
 
 adult <- load.Rdata2("input/salmon_msus30_SC_adult.tds.RData")
 adult <- adult[adult@phenoData$Group == "CTRL"]
@@ -56,6 +76,7 @@ colnames(pData.pnd) <- c("Age", "Batch", "Cage.ID")
 pData.pnd$Age[pData.pnd$Age == 7] <- 8
 pData.pnd$Age[pData.pnd$Age == 14] <- 15
 pData.pnd$Group <- paste0("PND", pData.pnd$Age)
+rownames(pData.pnd) <- change_names(names = rownames(pData.pnd))
 
 pData.adult <- adult@phenoData[3]
 pData.adult$Age <- 21
@@ -149,6 +170,15 @@ pnd8.adult <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", grou
 pnd15.adult <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", group1 = "PND15", group2 = "Adult")
 ```
 
+# `cpm` Counts data and pData
+```{r}
+dge <- DGEList(counts = counts.filt, group = pData[colnames(counts.filt), "Group"])
+dge <- calcNormFactors(object = dge, method = "TMM")
+cpm <- cpm(dge)
+
+data <- list(cpm = cpm, pData = pData[colnames(cpm), ])
+```
+
 
 ## Save RData files
 ```{r}
@@ -166,10 +196,15 @@ save(pnd15.adult,
   file = "./output/dea_PND15_Adult.RData", compress = T,
   compression_level = 3
 )
+
+save(data,
+  file = "./output/cpm_pData.RData", compress = T,
+  compression_level = 3
+)
 ```
 
 
 # SessionInfo
 ```{r}
-xfun::session_info()
+devtools::session_info()
 ```
