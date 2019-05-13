@@ -1,0 +1,175 @@
+---
+title: "RNA-Seq: differential expression analysis of controls"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(rmarkdown)
+library(limma)
+library(edgeR)
+library(knitr)
+library(plgINS)
+library(fdrtool)
+library(plyr)
+library(miceadds)
+```
+
+# Salmon data objects
+
+```{r}
+pnd <- load.Rdata2("input/salmon_msus27_SSC.tds.RData")
+pnd <- pnd[pnd@phenoData$group == "C"]
+
+adult <- load.Rdata2("input/salmon_msus30_SC_adult.tds.RData")
+adult <- adult[adult@phenoData$Group == "CTRL"]
+
+counts <- data.matrix(data.frame(pnd@gene.counts, adult@gene.counts[rownames(pnd@gene.counts), ]))
+
+pData.pnd <- pnd@phenoData[, c(1, 2, 4)]
+colnames(pData.pnd) <- c("Age", "Batch", "Cage.ID")
+pData.pnd$Age[pData.pnd$Age == 7] <- 8
+pData.pnd$Age[pData.pnd$Age == 14] <- 15
+pData.pnd$Group <- paste0("PND", pData.pnd$Age)
+
+pData.adult <- adult@phenoData[3]
+pData.adult$Age <- 21
+pData.adult$Batch <- "D"
+pData.adult$Group <- "Adult"
+
+pData <- rbind.data.frame(pData.pnd, pData.adult, stringsAsFactors = F)
+```
+
+# Filtering gene counts
+
+## Function
+```{r}
+counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
+  counts2 <- counts[apply(counts, 1, FUN = function(x) {
+    sum(x >= 15) >= floor(length(x) * 0.4)
+  }), ]
+  return(counts2)
+}
+```
+
+## Counts from all data
+```{r}
+counts.filt <- counts_filter(counts = counts)
+```
+
+
+# Differeitial analysis using `limma`
+
+## Function for differential analysis using limma
+```{r}
+voomDupCor <- function(counts, mm, individuals, tcoefs = NULL) {
+  ## model matrix = model.matrix(~batch+group, data = desc)
+  ## individuals = sample/cage column from desc
+  if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)]
+  dds <- calcNormFactors(DGEList(counts))
+  v <- voom(dds, mm)
+  dc <- duplicateCorrelation(v, mm, block = individuals)
+  v <- voom(dds, mm, block = individuals, correlation = dc$consensus.correlation)
+  fit <- eBayes(lmFit(v, mm, block = individuals, correlation = dc$consensus.correlation))
+  tags <- as.data.frame(topTable(fit, tcoefs, 60000))
+  tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F)
+  return(list(DEA = tags, voom.norm.counts = v$E, EList = v))
+}
+
+voomDupCor.s <- function(counts, mm, tcoefs = NULL) {
+  if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)]
+  dds <- calcNormFactors(DGEList(counts))
+  v <- voom(dds, mm)
+  fit <- eBayes(lmFit(v, mm))
+  tags <- as.data.frame(topTable(fit, tcoefs, 60000))
+  tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F)
+  return(list(DEA = tags, voom.norm.counts = v$E, EList = v))
+}
+```
+
+## Function for running differential analysis
+```{r}
+run_DEA <- function(mat, pData, groupCol = "Group", group1, group2, batch = NULL, cage = NULL) {
+  pheno <- pData[pData[, groupCol] %in% c(group1, group2), ]
+  tab <- mat[, rownames(pheno)]
+
+  dea <- NULL
+
+  if (!is.null(cage)) {
+    if (!is.null(batch)) {
+      mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol])
+      dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage])
+    } else {
+      mm <- model.matrix(~ pheno[, groupCol])
+      dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage])
+    }
+  } else {
+    if (!is.null(batch)) {
+      mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol])
+      dea <- voomDupCor.s(counts = tab, mm = mm)
+    } else {
+      mm <- model.matrix(~ pheno[, groupCol])
+      dea <- voomDupCor.s(counts = tab, mm = mm)
+    }
+  }
+  dea$pData <- pheno
+  return(dea)
+}
+```
+
+## DEA analysis
+```{r}
+pnd8.pnd15 <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", group1 = "PND8", group2 = "PND15")
+pnd8.adult <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", group1 = "PND8", group2 = "Adult")
+pnd15.adult <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", group1 = "PND15", group2 = "Adult")
+```
+
+
+## Save RData files
+```{r}
+save(pnd8.pnd15,
+  file = "./output/dea_PND8_PND15.RData", compress = T,
+  compression_level = 3
+)
+
+save(pnd8.adult,
+  file = "./output/dea_PND8_Adult.RData", compress = T,
+  compression_level = 3
+)
+
+save(pnd15.adult,
+  file = "./output/dea_PND15_Adult.RData", compress = T,
+  compression_level = 3
+)
+```
+
+
+# SessionInfo
+```{r}
+xfun::session_info()
+```
