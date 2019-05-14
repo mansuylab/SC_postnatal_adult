@@ -1,0 +1,121 @@
+---
+title: "RNA-Seq: NMF analysis of controls on common genes with FDR <= 0.05"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(rmarkdown)
+library(NMF)
+library(viridis)
+```
+
+# DEA objects and Counts
+```{r}
+load("./input/dea_PND15_Adult.RData")
+load("./input/dea_PND8_Adult.RData")
+load("./input/dea_PND8_PND15.RData")
+load("./input/cpm_pData.RData")
+```
+
+
+# Data preparation
+```{r}
+genes <- Reduce(intersect, list(pnd8.pnd15$DEA$Genes[pnd8.pnd15$DEA$adj.P.Val <= 0.05],
+                                pnd8.adult$DEA$Genes[pnd8.adult$DEA$adj.P.Val <= 0.05],
+                                pnd15.adult$DEA$Genes[pnd15.adult$DEA$adj.P.Val <= 0.05]))
+
+matrix <- data$cpm[genes, ]
+```
+
+
+# NMF
+
+## NMF for ranks 2 to 10
+```{r}
+res.nmf <- NULL
+if (file.exists("./output/20190513-nmd_SC_controls_fdr05.rds")) {
+  res.nmf <- readRDS("./output/20190513-nmd_SC_controls_fdr05.rds")
+} else {
+  res.nmf <- nmf(x = matrix, rank = 2:10, nrun = 1000, seed = 100000, .opt = "vp16")
+  saveRDS(res.nmf, "./output/20190513-nmd_SC_controls_fdr05.rds")
+}
+```
+
+## Rank and consensus plot
+```{r, message=F, warning=F, fig.align='center', fig.height=11, fig.width=8.5}
+pdf("./output/20190513-SC_control_NMF_rank_plot.pdf", onefile = F, width = 8.5, height = 11)
+plot(res.nmf)
+dev.off()
+
+pdf("./output/20190513-SC_control_NMF_consensus.pdf", onefile = F, width = 8.5, height = 11)
+consensusmap(res.nmf, info = T)
+dev.off()
+```
+
+
+## Consensus maps for all ranks
+```{r}
+system("mkdir -p ./output/consensus_heatmap")
+system("mkdir -p ./output/coef_basis_plots")
+
+file <- res.nmf
+
+for (i in 2:10) {
+  res <- file$fit[[i - 1]]
+  consensus.file <- paste0("./output/consensus_heatmap/20190513-SC_control_NMF_consensus_rank_", i, ".pdf")
+
+  if (!file.exists(consensus.file)) {
+    pdf(consensus.file, width = 11, height = 8.5, onefile = F)
+    par(pty = "s")
+    consensusmap(
+      object = res, col = viridis(1000),
+      main = paste0("SC controls consensusmap of Rank ", i),
+      annCol = data$pData, annRow = data$pData
+    )
+    z <- dev.off()
+  }
+
+
+  bc.file <- paste0("./output/coef_basis_plots/20190513-SC_control_NMF_basis_coef_rank_", i, ".pdf")
+
+  if (!file.exists(bc.file)) {
+    pdf(bc.file, width = 11, height = 8.5, onefile = F)
+    layout(cbind(1, 2))
+    basismap(res)
+    coefmap(res)
+    z <- dev.off()
+  }
+}
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
