@@ -1,0 +1,85 @@
+---
+title: "RNA-Seq: Heatmap of controls on all genes with FDR <= 0.05"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-05-14 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(rmarkdown)
+library(viridis)
+library(pheatmap)
+```
+
+# DEA objects and Counts
+```{r}
+load("./input/dea_PND15_Adult.RData")
+load("./input/dea_PND8_Adult.RData")
+load("./input/dea_PND8_PND15.RData")
+load("./input/cpm_pData.RData")
+```
+
+
+# Data preparation
+```{r}
+genes <- unique(c(
+  pnd8.pnd15$DEA$Genes[pnd8.pnd15$DEA$adj.P.Val <= 0.05],
+  pnd8.adult$DEA$Genes[pnd8.adult$DEA$adj.P.Val <= 0.05],
+  pnd15.adult$DEA$Genes[pnd15.adult$DEA$adj.P.Val <= 0.05]
+))
+
+matrix <- data$cpm[genes, ]
+matrix.log <- log2(matrix)
+matrix.log[is.na(matrix.log)] <- 0
+matrix.log[is.nan(matrix.log)] <- 0
+matrix.log[is.infinite(matrix.log)] <- 0
+```
+
+
+# Heatmap
+```{r, warning=F, message=F, fig.align='center', fig.height=11, fig.width=8.5}
+pheatmap(
+  mat = matrix.log, color = viridis(100), border_color = NA, annotation_col = data$pData,
+  show_rownames = F, show_colnames = T, main = "SC controls all DGE FDR <= 0.05",
+  scale = "row", treeheight_row = 15, treeheight_col = 15
+)
+```
+
+```{r, warning=F, message=F, echo=FALSE}
+pheatmap(
+  mat = matrix.log, color = viridis(100), border_color = NA, annotation_col = data$pData,
+  show_rownames = F, show_colnames = T, main = "SC controls all DGE FDR <= 0.05",
+  scale = "row", treeheight_row = 15, treeheight_col = 15, height = 11, width = 8.5,
+  filename = "./output/20190514-SC_controls_all_DEG_fdr05.pdf"
+)
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
