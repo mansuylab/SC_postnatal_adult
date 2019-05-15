@@ -59,11 +59,11 @@ matrix <- data$cpm[genes, ]
 ## NMF for ranks 2 to 10
 ```{r}
 res.nmf <- NULL
-if (file.exists("./output/20190513-nmd_SC_controls_fdr05.rds")) {
-  res.nmf <- readRDS("./output/20190513-nmd_SC_controls_fdr05.rds")
+if (file.exists("./output/nmf_SC_controls_fdr05.rds")) {
+  res.nmf <- readRDS("./output/nmf_SC_controls_fdr05.rds")
 } else {
   res.nmf <- nmf(x = matrix, rank = 2:10, nrun = 1000, seed = 100000, .opt = "vp16")
-  saveRDS(res.nmf, "./output/20190513-nmd_SC_controls_fdr05.rds")
+  saveRDS(res.nmf, "./output/nmf_SC_controls_fdr05.rds")
 }
 ```
 

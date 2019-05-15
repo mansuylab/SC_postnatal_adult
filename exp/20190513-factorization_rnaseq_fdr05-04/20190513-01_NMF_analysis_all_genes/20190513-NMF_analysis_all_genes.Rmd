@@ -1,5 +1,5 @@
 ---
-title: "RNA-Seq: NMF analysis of controls on all genes with FDR <= 0.05"
+title: "RNA-Seq: NMF analysis of controls on all genes with FDR <= 0.05 and abs(LFC) >= 1"
 author: "Deepak Tanwar"
 date: "<b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> `r Sys.Date()`"
 output:
@@ -47,9 +47,9 @@ load("./input/cpm_pData.RData")
 # Data preparation
 ```{r}
 genes <- unique(c(
-  pnd8.pnd15$DEA$Genes[pnd8.pnd15$DEA$adj.P.Val <= 0.05],
-  pnd8.adult$DEA$Genes[pnd8.adult$DEA$adj.P.Val <= 0.05],
-  pnd15.adult$DEA$Genes[pnd15.adult$DEA$adj.P.Val <= 0.05]
+  pnd8.pnd15$DEA$Genes[pnd8.pnd15$DEA$adj.P.Val <= 0.05 & abs(pnd8.pnd15$DEA$logFC) >= 1],
+  pnd8.adult$DEA$Genes[pnd8.adult$DEA$adj.P.Val <= 0.05 & abs(pnd8.adult$DEA$logFC) >= 1],
+  pnd15.adult$DEA$Genes[pnd15.adult$DEA$adj.P.Val <= 0.05 & abs(pnd15.adult$DEA$logFC) >= 1]
 ))
 
 matrix <- data$cpm[genes, ]
@@ -61,11 +61,11 @@ matrix <- data$cpm[genes, ]
 ## NMF for ranks 2 to 10
 ```{r}
 res.nmf <- NULL
-if (file.exists("./output/20190513-nmd_SC_controls_fdr05.rds")) {
-  res.nmf <- readRDS("./output/20190513-nmd_SC_controls_fdr05.rds")
+if (file.exists("./output/nmf_SC_controls_fdr05_lfc1.rds")) {
+  res.nmf <- readRDS("./output/nmf_SC_controls_fdr05_lfc1.rds")
 } else {
   res.nmf <- nmf(x = matrix, rank = 2:10, nrun = 1000, seed = 100000, .opt = "vp16")
-  saveRDS(res.nmf, "./output/20190513-nmd_SC_controls_fdr05.rds")
+  saveRDS(res.nmf, "./output/nmf_SC_controls_fdr05_lfc1.rds")
 }
 ```
 

@@ -2837,73 +2837,64 @@ $(document).ready(function () {
 <div id="nmf-for-ranks-2-to-10" class="section level2">
 <h2>NMF for ranks 2 to 10</h2>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">res.nmf &lt;-<span class="st"> </span><span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb4-2" title="2"><span class="cf">if</span> (<span class="kw">file.exists</span>(<span class="st">&quot;./output/20190513-nmd_SC_controls_fdr05.rds&quot;</span>)) {</a>
-<a class="sourceLine" id="cb4-3" title="3">  res.nmf &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="st">&quot;./output/20190513-nmd_SC_controls_fdr05.rds&quot;</span>)</a>
+<a class="sourceLine" id="cb4-2" title="2"><span class="cf">if</span> (<span class="kw">file.exists</span>(<span class="st">&quot;./output/nmf_SC_controls_fdr05.rds&quot;</span>)) {</a>
+<a class="sourceLine" id="cb4-3" title="3">  res.nmf &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="st">&quot;./output/nmf_SC_controls_fdr05.rds&quot;</span>)</a>
 <a class="sourceLine" id="cb4-4" title="4">} <span class="cf">else</span> {</a>
 <a class="sourceLine" id="cb4-5" title="5">  res.nmf &lt;-<span class="st"> </span><span class="kw">nmf</span>(<span class="dt">x =</span> matrix, <span class="dt">rank =</span> <span class="dv">2</span><span class="op">:</span><span class="dv">10</span>, <span class="dt">nrun =</span> <span class="dv">1000</span>, <span class="dt">seed =</span> <span class="dv">100000</span>, <span class="dt">.opt =</span> <span class="st">&quot;vp16&quot;</span>)</a>
-<a class="sourceLine" id="cb4-6" title="6">  <span class="kw">saveRDS</span>(res.nmf, <span class="st">&quot;./output/20190513-nmd_SC_controls_fdr05.rds&quot;</span>)</a>
+<a class="sourceLine" id="cb4-6" title="6">  <span class="kw">saveRDS</span>(res.nmf, <span class="st">&quot;./output/nmf_SC_controls_fdr05.rds&quot;</span>)</a>
 <a class="sourceLine" id="cb4-7" title="7">}</a></code></pre></div>
-<pre><code>## Compute NMF rank= 2  ... + measures ... OK
-## Compute NMF rank= 3  ... + measures ... OK
-## Compute NMF rank= 4  ... + measures ... OK
-## Compute NMF rank= 5  ... + measures ... OK
-## Compute NMF rank= 6  ... + measures ... OK
-## Compute NMF rank= 7  ... + measures ... OK
-## Compute NMF rank= 8  ... + measures ... OK
-## Compute NMF rank= 9  ... + measures ... OK
-## Compute NMF rank= 10  ... + measures ... OK</code></pre>
 </div>
 <div id="rank-and-consensus-plot" class="section level2">
 <h2>Rank and consensus plot</h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">pdf</span>(<span class="st">&quot;./output/20190513-SC_control_NMF_rank_plot.pdf&quot;</span>, <span class="dt">onefile =</span> F, <span class="dt">width =</span> <span class="fl">8.5</span>, <span class="dt">height =</span> <span class="dv">11</span>)</a>
-<a class="sourceLine" id="cb6-2" title="2"><span class="kw">plot</span>(res.nmf)</a>
-<a class="sourceLine" id="cb6-3" title="3"><span class="kw">dev.off</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">pdf</span>(<span class="st">&quot;./output/20190513-SC_control_NMF_rank_plot.pdf&quot;</span>, <span class="dt">onefile =</span> F, <span class="dt">width =</span> <span class="fl">8.5</span>, <span class="dt">height =</span> <span class="dv">11</span>)</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="kw">plot</span>(res.nmf)</a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="kw">dev.off</span>()</a></code></pre></div>
 <pre><code>## png 
 ##   2</code></pre>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">pdf</span>(<span class="st">&quot;./output/20190513-SC_control_NMF_consensus.pdf&quot;</span>, <span class="dt">onefile =</span> F, <span class="dt">width =</span> <span class="fl">8.5</span>, <span class="dt">height =</span> <span class="dv">11</span>)</a>
-<a class="sourceLine" id="cb8-2" title="2"><span class="kw">consensusmap</span>(res.nmf, <span class="dt">info =</span> T)</a>
-<a class="sourceLine" id="cb8-3" title="3"><span class="kw">dev.off</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">pdf</span>(<span class="st">&quot;./output/20190513-SC_control_NMF_consensus.pdf&quot;</span>, <span class="dt">onefile =</span> F, <span class="dt">width =</span> <span class="fl">8.5</span>, <span class="dt">height =</span> <span class="dv">11</span>)</a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="kw">consensusmap</span>(res.nmf, <span class="dt">info =</span> T)</a>
+<a class="sourceLine" id="cb7-3" title="3"><span class="kw">dev.off</span>()</a></code></pre></div>
 <pre><code>## png 
 ##   2</code></pre>
 </div>
 <div id="consensus-maps-for-all-ranks" class="section level2">
 <h2>Consensus maps for all ranks</h2>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">system</span>(<span class="st">&quot;mkdir -p ./output/consensus_heatmap&quot;</span>)</a>
-<a class="sourceLine" id="cb10-2" title="2"><span class="kw">system</span>(<span class="st">&quot;mkdir -p ./output/coef_basis_plots&quot;</span>)</a>
-<a class="sourceLine" id="cb10-3" title="3"></a>
-<a class="sourceLine" id="cb10-4" title="4">file &lt;-<span class="st"> </span>res.nmf</a>
-<a class="sourceLine" id="cb10-5" title="5"></a>
-<a class="sourceLine" id="cb10-6" title="6"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="op">:</span><span class="dv">10</span>) {</a>
-<a class="sourceLine" id="cb10-7" title="7">  res &lt;-<span class="st"> </span>file<span class="op">$</span>fit[[i <span class="op">-</span><span class="st"> </span><span class="dv">1</span>]]</a>
-<a class="sourceLine" id="cb10-8" title="8">  consensus.file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/consensus_heatmap/20190513-SC_control_NMF_consensus_rank_&quot;</span>, i, <span class="st">&quot;.pdf&quot;</span>)</a>
-<a class="sourceLine" id="cb10-9" title="9"></a>
-<a class="sourceLine" id="cb10-10" title="10">  <span class="cf">if</span> (<span class="op">!</span><span class="kw">file.exists</span>(consensus.file)) {</a>
-<a class="sourceLine" id="cb10-11" title="11">    <span class="kw">pdf</span>(consensus.file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>, <span class="dt">onefile =</span> F)</a>
-<a class="sourceLine" id="cb10-12" title="12">    <span class="kw">par</span>(<span class="dt">pty =</span> <span class="st">&quot;s&quot;</span>)</a>
-<a class="sourceLine" id="cb10-13" title="13">    <span class="kw">consensusmap</span>(</a>
-<a class="sourceLine" id="cb10-14" title="14">      <span class="dt">object =</span> res, <span class="dt">col =</span> <span class="kw">viridis</span>(<span class="dv">1000</span>),</a>
-<a class="sourceLine" id="cb10-15" title="15">      <span class="dt">main =</span> <span class="kw">paste0</span>(<span class="st">&quot;SC controls consensusmap of Rank &quot;</span>, i),</a>
-<a class="sourceLine" id="cb10-16" title="16">      <span class="dt">annCol =</span> data<span class="op">$</span>pData, <span class="dt">annRow =</span> data<span class="op">$</span>pData</a>
-<a class="sourceLine" id="cb10-17" title="17">    )</a>
-<a class="sourceLine" id="cb10-18" title="18">    z &lt;-<span class="st"> </span><span class="kw">dev.off</span>()</a>
-<a class="sourceLine" id="cb10-19" title="19">  }</a>
-<a class="sourceLine" id="cb10-20" title="20"></a>
-<a class="sourceLine" id="cb10-21" title="21"></a>
-<a class="sourceLine" id="cb10-22" title="22">  bc.file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/coef_basis_plots/20190513-SC_control_NMF_basis_coef_rank_&quot;</span>, i, <span class="st">&quot;.pdf&quot;</span>)</a>
-<a class="sourceLine" id="cb10-23" title="23"></a>
-<a class="sourceLine" id="cb10-24" title="24">  <span class="cf">if</span> (<span class="op">!</span><span class="kw">file.exists</span>(bc.file)) {</a>
-<a class="sourceLine" id="cb10-25" title="25">    <span class="kw">pdf</span>(bc.file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>, <span class="dt">onefile =</span> F)</a>
-<a class="sourceLine" id="cb10-26" title="26">    <span class="kw">layout</span>(<span class="kw">cbind</span>(<span class="dv">1</span>, <span class="dv">2</span>))</a>
-<a class="sourceLine" id="cb10-27" title="27">    <span class="kw">basismap</span>(res)</a>
-<a class="sourceLine" id="cb10-28" title="28">    <span class="kw">coefmap</span>(res)</a>
-<a class="sourceLine" id="cb10-29" title="29">    z &lt;-<span class="st"> </span><span class="kw">dev.off</span>()</a>
-<a class="sourceLine" id="cb10-30" title="30">  }</a>
-<a class="sourceLine" id="cb10-31" title="31">}</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">system</span>(<span class="st">&quot;mkdir -p ./output/consensus_heatmap&quot;</span>)</a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="kw">system</span>(<span class="st">&quot;mkdir -p ./output/coef_basis_plots&quot;</span>)</a>
+<a class="sourceLine" id="cb9-3" title="3"></a>
+<a class="sourceLine" id="cb9-4" title="4">file &lt;-<span class="st"> </span>res.nmf</a>
+<a class="sourceLine" id="cb9-5" title="5"></a>
+<a class="sourceLine" id="cb9-6" title="6"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="op">:</span><span class="dv">10</span>) {</a>
+<a class="sourceLine" id="cb9-7" title="7">  res &lt;-<span class="st"> </span>file<span class="op">$</span>fit[[i <span class="op">-</span><span class="st"> </span><span class="dv">1</span>]]</a>
+<a class="sourceLine" id="cb9-8" title="8">  consensus.file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/consensus_heatmap/20190513-SC_control_NMF_consensus_rank_&quot;</span>, i, <span class="st">&quot;.pdf&quot;</span>)</a>
+<a class="sourceLine" id="cb9-9" title="9"></a>
+<a class="sourceLine" id="cb9-10" title="10">  <span class="cf">if</span> (<span class="op">!</span><span class="kw">file.exists</span>(consensus.file)) {</a>
+<a class="sourceLine" id="cb9-11" title="11">    <span class="kw">pdf</span>(consensus.file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>, <span class="dt">onefile =</span> F)</a>
+<a class="sourceLine" id="cb9-12" title="12">    <span class="kw">par</span>(<span class="dt">pty =</span> <span class="st">&quot;s&quot;</span>)</a>
+<a class="sourceLine" id="cb9-13" title="13">    <span class="kw">consensusmap</span>(</a>
+<a class="sourceLine" id="cb9-14" title="14">      <span class="dt">object =</span> res, <span class="dt">col =</span> <span class="kw">viridis</span>(<span class="dv">1000</span>),</a>
+<a class="sourceLine" id="cb9-15" title="15">      <span class="dt">main =</span> <span class="kw">paste0</span>(<span class="st">&quot;SC controls consensusmap of Rank &quot;</span>, i),</a>
+<a class="sourceLine" id="cb9-16" title="16">      <span class="dt">annCol =</span> data<span class="op">$</span>pData, <span class="dt">annRow =</span> data<span class="op">$</span>pData</a>
+<a class="sourceLine" id="cb9-17" title="17">    )</a>
+<a class="sourceLine" id="cb9-18" title="18">    z &lt;-<span class="st"> </span><span class="kw">dev.off</span>()</a>
+<a class="sourceLine" id="cb9-19" title="19">  }</a>
+<a class="sourceLine" id="cb9-20" title="20"></a>
+<a class="sourceLine" id="cb9-21" title="21"></a>
+<a class="sourceLine" id="cb9-22" title="22">  bc.file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/coef_basis_plots/20190513-SC_control_NMF_basis_coef_rank_&quot;</span>, i, <span class="st">&quot;.pdf&quot;</span>)</a>
+<a class="sourceLine" id="cb9-23" title="23"></a>
+<a class="sourceLine" id="cb9-24" title="24">  <span class="cf">if</span> (<span class="op">!</span><span class="kw">file.exists</span>(bc.file)) {</a>
+<a class="sourceLine" id="cb9-25" title="25">    <span class="kw">pdf</span>(bc.file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>, <span class="dt">onefile =</span> F)</a>
+<a class="sourceLine" id="cb9-26" title="26">    <span class="kw">layout</span>(<span class="kw">cbind</span>(<span class="dv">1</span>, <span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb9-27" title="27">    <span class="kw">basismap</span>(res)</a>
+<a class="sourceLine" id="cb9-28" title="28">    <span class="kw">coefmap</span>(res)</a>
+<a class="sourceLine" id="cb9-29" title="29">    z &lt;-<span class="st"> </span><span class="kw">dev.off</span>()</a>
+<a class="sourceLine" id="cb9-30" title="30">  }</a>
+<a class="sourceLine" id="cb9-31" title="31">}</a></code></pre></div>
 </div>
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">devtools<span class="op">::</span><span class="kw">session_info</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">devtools<span class="op">::</span><span class="kw">session_info</span>()</a></code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
 ##  version  R version 3.5.3 (2019-03-11)
@@ -2914,7 +2905,7 @@ $(document).ready(function () {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2019-05-13                  
+##  date     2019-05-15                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package      * version date       lib source        
@@ -2933,10 +2924,10 @@ $(document).ready(function () {
 ##  desc           1.2.0   2018-05-01 [1] CRAN (R 3.5.1)
 ##  devtools       2.0.2   2019-04-08 [1] CRAN (R 3.5.3)
 ##  digest         0.6.18  2018-10-10 [1] CRAN (R 3.5.1)
-##  doParallel   * 1.0.14  2018-09-24 [1] CRAN (R 3.5.1)
-##  dplyr          0.8.0.1 2019-02-15 [1] CRAN (R 3.5.2)
+##  doParallel     1.0.14  2018-09-24 [1] CRAN (R 3.5.1)
+##  dplyr          0.8.1   2019-05-14 [1] CRAN (R 3.5.3)
 ##  evaluate       0.13    2019-02-12 [1] CRAN (R 3.5.2)
-##  foreach      * 1.4.4   2017-12-12 [1] CRAN (R 3.5.1)
+##  foreach        1.4.4   2017-12-12 [1] CRAN (R 3.5.1)
 ##  fs             1.3.1   2019-05-06 [1] CRAN (R 3.5.3)
 ##  ggplot2        3.1.1   2019-04-07 [1] CRAN (R 3.5.3)
 ##  glue           1.3.1   2019-03-12 [1] CRAN (R 3.5.3)
@@ -2946,7 +2937,7 @@ $(document).ready(function () {
 ##  highr          0.8     2019-03-20 [1] CRAN (R 3.5.3)
 ##  htmltools      0.3.6   2017-04-28 [1] CRAN (R 3.5.1)
 ##  httpuv         1.5.1   2019-04-05 [1] CRAN (R 3.5.3)
-##  iterators    * 1.0.10  2018-07-13 [1] CRAN (R 3.5.1)
+##  iterators      1.0.10  2018-07-13 [1] CRAN (R 3.5.1)
 ##  knitr          1.22    2019-03-08 [1] CRAN (R 3.5.2)
 ##  labeling       0.3     2014-08-23 [1] CRAN (R 3.5.1)
 ##  later          0.8.0   2019-02-11 [1] CRAN (R 3.5.2)
@@ -2993,7 +2984,7 @@ $(document).ready(function () {
 ##  viridis      * 0.5.1   2018-03-29 [1] CRAN (R 3.5.1)
 ##  viridisLite  * 0.3.0   2018-02-01 [1] CRAN (R 3.5.1)
 ##  withr          2.1.2   2018-03-15 [1] CRAN (R 3.5.1)
-##  xfun           0.6     2019-04-02 [1] CRAN (R 3.5.3)
+##  xfun           0.7     2019-05-14 [1] CRAN (R 3.5.3)
 ##  xtable         1.8-4   2019-04-21 [1] CRAN (R 3.5.3)
 ##  yaml           2.2.0   2018-07-25 [1] CRAN (R 3.5.1)
 ## 
@@ -3009,7 +3000,7 @@ $(document).ready(function () {
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-05-13</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-05-15</p>
 </div>
 
 
