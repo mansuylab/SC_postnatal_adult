@@ -1,0 +1,118 @@
+---
+title: "RNA-Seq: differential co-expression analysis of controls"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-05-15 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(diffcoexp)
+```
+
+# Data
+```{r}
+load("./input/cpm_pData.RData")
+```
+
+# Differeitial co-expression analysis
+
+`diffcoexp` function identifies **differentially coexpressed links (DCLs)** and **differentially coexpressed genes (DCGs)**. 
+- **DCLs** are gene pairs with significantly different correlation coefficients under two conditions.
+
+- **DCGs** are genes with significantly more DCLs than by chance.
+
+- **Inputs** are two gene expression matrices or data frames under two conditions
+
+- `diffcoexp` calculates **gene-gene correlations** under two conditions and compare them with `Fisher's Z transformation`, filter the correlation with the r<sup>th</sup> and q<sup>th</sup> and the correlation changes with `r.diffth` and `q.diffth`. It **identifies DCGs** using `binomial probability model`.
+
+- Gene pairs (links) coexpressed in at least one condition are identified using the criteria that at least one of the correlation coefficients under two conditions has absolute value greater than the threshold r<sup>th</sup> and adjusted `p` value less than the threshold q<sup>th</sup>. The links that meet the criteria are included in **CLs**.
+
+- Differentially coexpressed gene pairs (links) are identified from CLs using the criteria that the absolute value of the difference between the two correlation coefficients is greater the threshold `r.diffth` and adjusted `p` value is less than the threshold `q.diffth`. The links that meet the criteria are included in DCLs.
+
+- The **DCLs** are classified into three categories: "same signed", "diff signed", or "switched opposites".
+   
+   - "same signed" indicates that the gene pair has same signed correlation coefficients under both conditions. 
+   
+   - "diff signed" indicates that the gene pair has oppositely signed correlation coefficients under two conditions and only one of them meets the criteria that absolute correlation coefficient is greater than the threshold rth and adjusted p value less than the threshold qth. 
+   
+   - "switched opposites" indicates that the gene pair has oppositely signed correlation coefficients under two conditions and both of them meet the criteria that absolute correlation coefficient is greater than the threshold rth and adjusted p value less than the threshold qth.
+
+**_All the genes in DCLs are tested for their enrichment of DCLs, i.e, whether they have more DCLs than by chance using binomial probability model. Those with adjusted p value less than the threshold q.dcgth are included in DCGs._**
+
+
+## Function for running differential analysis
+```{r}
+run_DCoEA <- function(mat, pData, groupCol = "Group", group1, group2) {
+  allowWGCNAThreads()
+  pheno <- pData[pData[, groupCol] %in% c(group1, group2), ]
+  tab <- mat[, rownames(pheno)]
+
+  dat1 <- tab[, rownames(pheno)[pheno[, groupCol] == group1]]
+  dat2 <- tab[, rownames(pheno)[pheno[, groupCol] == group2]]
+
+  dca <- diffcoexp(exprs.1 = dat1, exprs.2 = dat2, q.method = "BH")
+
+  res <- list(dca = dca, pData = pheno)
+  return(res)
+}
+```
+
+## DCoEA analysis
+```{r, warning=FALSE, message=FALSE}
+pnd8.pnd15 <- run_DCoEA(mat = data$cpm, pData = data$pData, groupCol = "Group", group1 = "PND8", group2 = "PND15")
+pnd8.adult <- run_DCoEA(mat = data$cpm, pData = data$pData, groupCol = "Group", group1 = "PND8", group2 = "Adult")
+pnd15.adult <- run_DCoEA(mat = data$cpm, pData = data$pData, groupCol = "Group", group1 = "PND15", group2 = "Adult")
+```
+
+## Save RData files
+```{r}
+save(pnd8.pnd15,
+  file = "./output/dcea_PND8_PND15.RData", compress = T,
+  compression_level = 3
+)
+
+save(pnd8.adult,
+  file = "./output/dcea_PND8_Adult.RData", compress = T,
+  compression_level = 3
+)
+
+save(pnd15.adult,
+  file = "./output/dcea_PND15_Adult.RData", compress = T,
+  compression_level = 3
+)
+```
+
+```{r, echo=F, eval=F}
+load("./output/dcea_PND15_Adult.RData")
+load("./output/dcea_PND8_Adult.RData")
+load("./output/dcea_PND8_PND15.RData")
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
