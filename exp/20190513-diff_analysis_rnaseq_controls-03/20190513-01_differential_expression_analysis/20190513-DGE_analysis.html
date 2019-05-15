@@ -2866,11 +2866,12 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb3-15" title="15"><span class="kw">rownames</span>(pData.pnd) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">rownames</span>(pData.pnd))</a>
 <a class="sourceLine" id="cb3-16" title="16"></a>
 <a class="sourceLine" id="cb3-17" title="17">pData.adult &lt;-<span class="st"> </span>adult<span class="op">@</span>phenoData[<span class="dv">3</span>]</a>
-<a class="sourceLine" id="cb3-18" title="18">pData.adult<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="dv">21</span></a>
+<a class="sourceLine" id="cb3-18" title="18">pData.adult<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="dv">150</span></a>
 <a class="sourceLine" id="cb3-19" title="19">pData.adult<span class="op">$</span>Batch &lt;-<span class="st"> &quot;D&quot;</span></a>
 <a class="sourceLine" id="cb3-20" title="20">pData.adult<span class="op">$</span>Group &lt;-<span class="st"> &quot;Adult&quot;</span></a>
 <a class="sourceLine" id="cb3-21" title="21"></a>
-<a class="sourceLine" id="cb3-22" title="22">pData &lt;-<span class="st"> </span><span class="kw">rbind.data.frame</span>(pData.pnd, pData.adult, <span class="dt">stringsAsFactors =</span> F)</a></code></pre></div>
+<a class="sourceLine" id="cb3-22" title="22">pData &lt;-<span class="st"> </span><span class="kw">rbind.data.frame</span>(pData.pnd, pData.adult, <span class="dt">stringsAsFactors =</span> F)</a>
+<a class="sourceLine" id="cb3-23" title="23">pData<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="kw">as.factor</span>(pData<span class="op">$</span>Age)</a></code></pre></div>
 </div>
 <div id="filtering-gene-counts" class="section level1">
 <h1>Filtering gene counts</h1>
@@ -2995,7 +2996,7 @@ $(document).ready(function () {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2019-05-13                  
+##  date     2019-05-15                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package              * version   date       lib source        
@@ -3029,7 +3030,7 @@ $(document).ready(function () {
 ##  DESeq2                 1.22.2    2019-01-04 [1] Bioconductor  
 ##  devtools               2.0.2     2019-04-08 [1] CRAN (R 3.5.3)
 ##  digest                 0.6.18    2018-10-10 [1] CRAN (R 3.5.1)
-##  dplyr                  0.8.0.1   2019-02-15 [1] CRAN (R 3.5.2)
+##  dplyr                  0.8.1     2019-05-14 [1] CRAN (R 3.5.3)
 ##  edgeR                * 3.24.3    2019-01-02 [1] Bioconductor  
 ##  evaluate               0.13      2019-02-12 [1] CRAN (R 3.5.2)
 ##  fdrtool              * 1.2.15    2015-07-08 [1] CRAN (R 3.5.2)
@@ -3084,7 +3085,7 @@ $(document).ready(function () {
 ##  pkgbuild               1.0.3     2019-03-20 [1] CRAN (R 3.5.3)
 ##  pkgconfig              2.0.2     2018-08-16 [1] CRAN (R 3.5.1)
 ##  pkgload                1.0.2     2018-10-29 [1] CRAN (R 3.5.1)
-##  plgINS               * 0.1.5     2019-05-09 [1] local         
+##  plgINS               * 0.1.5     2019-05-14 [1] local         
 ##  plyr                 * 1.8.4     2016-06-08 [1] CRAN (R 3.5.1)
 ##  polycor                0.7-9     2016-08-27 [1] CRAN (R 3.5.3)
 ##  prettyunits            1.0.2     2015-07-13 [1] CRAN (R 3.5.1)
@@ -3096,7 +3097,7 @@ $(document).ready(function () {
 ##  R6                     2.4.0     2019-02-14 [1] CRAN (R 3.5.2)
 ##  RColorBrewer           1.1-2     2014-12-07 [1] CRAN (R 3.5.1)
 ##  Rcpp                   1.0.1     2019-03-17 [1] CRAN (R 3.5.3)
-##  RCurl                  1.95-4.12 2019-03-04 [1] CRAN (R 3.5.2)
+##  RCurl                  1.95-4.12 2019-03-04 [1] CRAN (R 3.5.3)
 ##  remotes                2.0.4     2019-04-10 [1] CRAN (R 3.5.3)
 ##  rlang                  0.3.4     2019-04-07 [1] CRAN (R 3.5.3)
 ##  rmarkdown            * 1.12      2019-03-14 [1] CRAN (R 3.5.3)
@@ -3121,7 +3122,7 @@ $(document).ready(function () {
 ##  tidyselect             0.2.5     2018-10-11 [1] CRAN (R 3.5.1)
 ##  usethis                1.5.0     2019-04-07 [1] CRAN (R 3.5.3)
 ##  withr                  2.1.2     2018-03-15 [1] CRAN (R 3.5.1)
-##  xfun                   0.6       2019-04-02 [1] CRAN (R 3.5.3)
+##  xfun                   0.7       2019-05-14 [1] CRAN (R 3.5.3)
 ##  XML                    3.98-1.19 2019-03-06 [1] CRAN (R 3.5.2)
 ##  xtable                 1.8-4     2019-04-21 [1] CRAN (R 3.5.3)
 ##  XVector                0.22.0    2018-10-30 [1] Bioconductor  
@@ -3140,7 +3141,7 @@ $(document).ready(function () {
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-05-13</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-05-15</p>
 </div>
 
 

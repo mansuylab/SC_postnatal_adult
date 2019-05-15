@@ -79,11 +79,12 @@ pData.pnd$Group <- paste0("PND", pData.pnd$Age)
 rownames(pData.pnd) <- change_names(names = rownames(pData.pnd))
 
 pData.adult <- adult@phenoData[3]
-pData.adult$Age <- 21
+pData.adult$Age <- 150
 pData.adult$Batch <- "D"
 pData.adult$Group <- "Adult"
 
 pData <- rbind.data.frame(pData.pnd, pData.adult, stringsAsFactors = F)
+pData$Age <- as.factor(pData$Age)
 ```
 
 # Filtering gene counts
