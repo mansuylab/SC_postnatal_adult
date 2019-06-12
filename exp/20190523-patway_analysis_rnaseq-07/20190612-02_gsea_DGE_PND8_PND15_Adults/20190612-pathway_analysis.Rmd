@@ -1,0 +1,117 @@
+---
+title: "RNA-Seq: SC controls pathway analysis"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-06-12 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(EnrichmentBrowser)
+library(clusterProfiler)
+library(org.Mm.eg.db)
+library(DT)
+library(data.table)
+library(enrichplot)
+```
+
+
+# Data
+```{r}
+load("./input/dea_PND8_PND15.RData")
+load("./input/dea_PND15_Adult.RData")
+load("./input/dea_PND8_Adult.RData")
+load("./input/gencode.vM18.anno.RData")
+```
+
+# Map Entrez IDs to gene symbols
+```{r}
+anno.s <- anno[, c(3, 6)]
+anno.s <- anno.s[!duplicated(anno.s), ]
+
+anno.s <- anno.s[which(anno.s$symbol != anno.s$entrez_id), ]
+
+pnd8.pnd15.DEA <- merge(anno.s, pnd8.pnd15$DEA, by.x = "symbol", by.y = "Genes", all.y = T)
+pnd8.pnd15.DEA$entrez_id[is.na(pnd8.pnd15.DEA$entrez_id)] <- pnd8.pnd15.DEA$symbol[is.na(pnd8.pnd15.DEA$entrez_id)]
+pnd8.pnd15.DEA$group <- "PND15"
+pnd8.pnd15.DEA$group[pnd8.pnd15.DEA$logFC < 0] <- "PND8"
+pnd8.pnd15.DEA$analysis <- "PND15 vs PND8"
+
+pnd8.adult.DEA <- merge(anno.s, pnd8.adult$DEA, by.x = "symbol", by.y = "Genes", all.y = T)
+pnd8.adult.DEA$entrez_id[is.na(pnd8.adult.DEA$entrez_id)] <- pnd8.adult.DEA$symbol[is.na(pnd8.adult.DEA$entrez_id)]
+pnd8.adult.DEA$group <- "Adult"
+pnd8.adult.DEA$group[pnd8.adult.DEA$logFC < 0] <- "PND8"
+pnd8.adult.DEA$analysis <- "Adult vs PND8"
+
+pnd15.adult.DEA <- merge(anno.s, pnd15.adult$DEA, by.x = "symbol", by.y = "Genes", all.y = T)
+pnd15.adult.DEA$entrez_id[is.na(pnd15.adult.DEA$entrez_id)] <- pnd15.adult.DEA$symbol[is.na(pnd15.adult.DEA$entrez_id)]
+pnd15.adult.DEA$group <- "Adult"
+pnd15.adult.DEA$group[pnd15.adult.DEA$logFC < 0] <- "PND15"
+pnd15.adult.DEA$analysis <- "Adult vs PND15"
+```
+
+# Pathway analysis
+```{r}
+mydf <- rbind(pnd8.pnd15.DEA[, c(2, 5, 9, 10)], pnd8.adult.DEA[, c(2, 5, 9, 10)], pnd15.adult.DEA[, c(2, 5, 9, 10)])
+colnames(mydf) <- c("Entrez", "FC", "group", "othergroup")
+
+formula.res <- compareCluster(Entrez ~ group + othergroup, data = mydf, fun = "enrichKEGG", organism = "mmu")
+```
+
+## Function to show tables
+
+```{r}
+showDT <- function(df) {
+  datatable(
+    setDF(df),
+    rownames = F,
+    filter = "top", extensions = c("Buttons", "ColReorder"), options = list(
+      pageLength = 10,
+      buttons = c("copy", "csv", "excel", "pdf", "print"),
+      colReorder = list(realtime = FALSE),
+      dom = "fltBip"
+    )
+  )
+}
+```
+
+## KEGG results table {.tabset .tabset-pills}
+
+### Plot
+```{r, fig.width=11, fig.height=8.5, fig.align='center'}
+dotplot(formula.res, x = ~group, showCategory = 15) +
+  ggplot2::facet_grid(~othergroup) +
+  ggtitle("dotplot for ORA")
+```
+
+### Table
+```{r}
+showDT(as.data.frame(formula.res))
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
