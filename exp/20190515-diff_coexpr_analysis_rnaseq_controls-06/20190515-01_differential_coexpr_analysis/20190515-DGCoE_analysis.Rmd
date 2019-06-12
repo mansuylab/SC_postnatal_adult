@@ -110,7 +110,19 @@ save(pnd15.adult,
 load("./output/dcea_PND15_Adult.RData")
 load("./output/dcea_PND8_Adult.RData")
 load("./output/dcea_PND8_PND15.RData")
+
+mat <- log2(data$cpm[pnd8.pnd15$dca$DCGs$Gene[pnd8.pnd15$dca$DCGs$q <= 0.05], 
+                     grep(pattern = "PND8|PND15", x = colnames(data$cpm), value = T)])
+mat[is.na(mat)] <- 0
+mat[is.nan(mat)] <- 0
+mat[is.infinite(mat)] <- 0
+
+pheatmap::pheatmap(mat = mat, color = viridis::viridis(100), show_rownames = F,
+                   annotation_row = pnd8.pnd15$dca$DCGs[pnd8.pnd15$dca$DCGs$q <= 0.05,c(3,5,8)],
+                   annotation_col = data$pData)
 ```
+
+
 
 # SessionInfo
 ```{r}
