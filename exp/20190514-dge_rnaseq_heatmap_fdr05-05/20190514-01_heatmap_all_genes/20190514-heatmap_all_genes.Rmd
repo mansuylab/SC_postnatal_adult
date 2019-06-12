@@ -135,6 +135,8 @@ kmeans.new[kmeans.new == 6] <- 3
 kmeans.new[kmeans.new == 7] <- 5 # rename
 
 mat.new.k7 <- sortRows(x = mat.norm, toporder = kmeans.new)
+
+save(kmeans.new, mat.new.k7, file = "./output/kmeans_sortMat_k5.RData")
 ```
 
 ## Heatmap
