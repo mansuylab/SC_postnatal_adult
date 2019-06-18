@@ -2799,7 +2799,10 @@ $(document).ready(function () {
       <ul>
       <li><a href="#libraries-required">Libraries required</a></li>
       <li><a href="#function-to-change-names-of-pnd-data">Function to change names of PND data</a></li>
-      <li><a href="#salmon-data-objects">Salmon data objects</a></li>
+      <li><a href="#salmon-data-objects">Salmon data objects</a><ul>
+      <li><a href="#load-the-data-and-filter-it">Load the data and filter it</a></li>
+      <li><a href="#new-salmon-object-for-sc-controls">New salmon object for SC Controls</a></li>
+      </ul></li>
       <li><a href="#filtering-gene-counts">Filtering gene counts</a><ul>
       <li><a href="#function">Function</a></li>
       <li><a href="#counts-from-all-data">Counts from all data</a></li>
@@ -2809,7 +2812,8 @@ $(document).ready(function () {
       <li><a href="#function-for-running-differential-analysis">Function for running differential analysis</a></li>
       <li><a href="#dea-analysis">DEA analysis</a></li>
       </ul></li>
-      <li><a href="#cpm-counts-data-and-pdata"><code>cpm</code> Counts data and pData</a><ul>
+      <li><a href="#cpm-counts-data-and-pdata"><code>cpm</code> Counts data and pData</a></li>
+      <li><a href="#results">Results</a><ul>
       <li><a href="#save-rdata-files">Save RData files</a></li>
       </ul></li>
       <li><a href="#sessioninfo">SessionInfo</a></li>
@@ -2827,7 +2831,8 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb1-5" title="5"><span class="kw">library</span>(plgINS)</a>
 <a class="sourceLine" id="cb1-6" title="6"><span class="kw">library</span>(fdrtool)</a>
 <a class="sourceLine" id="cb1-7" title="7"><span class="kw">library</span>(plyr)</a>
-<a class="sourceLine" id="cb1-8" title="8"><span class="kw">library</span>(miceadds)</a></code></pre></div>
+<a class="sourceLine" id="cb1-8" title="8"><span class="kw">library</span>(miceadds)</a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="kw">library</span>(forcats)</a></code></pre></div>
 </div>
 <div id="function-to-change-names-of-pnd-data" class="section level1">
 <h1>Function to change names of PND data</h1>
@@ -2849,6 +2854,8 @@ $(document).ready(function () {
 </div>
 <div id="salmon-data-objects" class="section level1">
 <h1>Salmon data objects</h1>
+<div id="load-the-data-and-filter-it" class="section level2">
+<h2>Load the data and filter it</h2>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">pnd &lt;-<span class="st"> </span><span class="kw">load.Rdata2</span>(<span class="st">&quot;input/salmon_msus27_SSC.tds.RData&quot;</span>)</a>
 <a class="sourceLine" id="cb3-2" title="2">pnd &lt;-<span class="st"> </span>pnd[pnd<span class="op">@</span>phenoData<span class="op">$</span>group <span class="op">==</span><span class="st"> &quot;C&quot;</span>]</a>
 <a class="sourceLine" id="cb3-3" title="3"><span class="kw">colnames</span>(pnd<span class="op">@</span>gene.counts) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(pnd<span class="op">@</span>gene.counts))</a>
@@ -2873,119 +2880,207 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb3-22" title="22">pData &lt;-<span class="st"> </span><span class="kw">rbind.data.frame</span>(pData.pnd, pData.adult, <span class="dt">stringsAsFactors =</span> F)</a>
 <a class="sourceLine" id="cb3-23" title="23">pData<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="kw">as.factor</span>(pData<span class="op">$</span>Age)</a></code></pre></div>
 </div>
+<div id="new-salmon-object-for-sc-controls" class="section level2">
+<h2>New salmon object for SC Controls</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">sc &lt;-<span class="st"> </span>pnd</a>
+<a class="sourceLine" id="cb4-2" title="2">sc<span class="op">@</span>phenoData &lt;-<span class="st"> </span>pData</a>
+<a class="sourceLine" id="cb4-3" title="3">sc<span class="op">@</span>norm.factors &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(counts)</a>
+<a class="sourceLine" id="cb4-4" title="4"></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="kw">colnames</span>(sc<span class="op">@</span>tx.counts) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>tx.counts))</a>
+<a class="sourceLine" id="cb4-6" title="6">sc<span class="op">@</span>tx.counts &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>tx.counts, adult<span class="op">@</span>tx.counts[<span class="kw">rownames</span>(sc<span class="op">@</span>tx.counts), ]))</a>
+<a class="sourceLine" id="cb4-7" title="7">sc<span class="op">@</span>tx.counts &lt;-<span class="st"> </span>sc<span class="op">@</span>tx.counts[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb4-8" title="8"></a>
+<a class="sourceLine" id="cb4-9" title="9"><span class="kw">colnames</span>(sc<span class="op">@</span>tx.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>tx.tpm))</a>
+<a class="sourceLine" id="cb4-10" title="10">sc<span class="op">@</span>tx.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>tx.tpm, adult<span class="op">@</span>tx.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>tx.tpm), ]))</a>
+<a class="sourceLine" id="cb4-11" title="11">sc<span class="op">@</span>tx.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>tx.tpm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb4-12" title="12"></a>
+<a class="sourceLine" id="cb4-13" title="13">sc<span class="op">@</span>gene.counts &lt;-<span class="st"> </span>counts</a>
+<a class="sourceLine" id="cb4-14" title="14"></a>
+<a class="sourceLine" id="cb4-15" title="15"><span class="kw">colnames</span>(sc<span class="op">@</span>gene.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>gene.tpm))</a>
+<a class="sourceLine" id="cb4-16" title="16">sc<span class="op">@</span>gene.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>gene.tpm, adult<span class="op">@</span>gene.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>gene.tpm), ]))</a>
+<a class="sourceLine" id="cb4-17" title="17">sc<span class="op">@</span>gene.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>gene.tpm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb4-18" title="18"></a>
+<a class="sourceLine" id="cb4-19" title="19"><span class="kw">colnames</span>(sc<span class="op">@</span>type.readProp) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.readProp))</a>
+<a class="sourceLine" id="cb4-20" title="20">sc<span class="op">@</span>type.readProp &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.readProp, adult<span class="op">@</span>type.readProp[<span class="kw">rownames</span>(sc<span class="op">@</span>type.readProp), ]))</a>
+<a class="sourceLine" id="cb4-21" title="21">sc<span class="op">@</span>type.readProp &lt;-<span class="st"> </span>sc<span class="op">@</span>type.readProp[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb4-22" title="22"></a>
+<a class="sourceLine" id="cb4-23" title="23"><span class="kw">colnames</span>(sc<span class="op">@</span>type.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.tpm))</a>
+<a class="sourceLine" id="cb4-24" title="24">sc<span class="op">@</span>type.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.tpm, adult<span class="op">@</span>type.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>type.tpm), ]))</a>
+<a class="sourceLine" id="cb4-25" title="25">sc<span class="op">@</span>type.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>type.tpm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb4-26" title="26"></a>
+<a class="sourceLine" id="cb4-27" title="27"><span class="kw">rownames</span>(sc<span class="op">@</span>type.tmm)[<span class="dv">15</span>] &lt;-<span class="st"> &quot;repeat_family&quot;</span></a>
+<a class="sourceLine" id="cb4-28" title="28"><span class="kw">colnames</span>(sc<span class="op">@</span>type.tmm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.tmm))</a>
+<a class="sourceLine" id="cb4-29" title="29">sc<span class="op">@</span>type.tmm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.tmm, adult<span class="op">@</span>type.tmm[<span class="kw">rownames</span>(sc<span class="op">@</span>type.tmm), ]))</a>
+<a class="sourceLine" id="cb4-30" title="30">sc<span class="op">@</span>type.tmm &lt;-<span class="st"> </span>sc<span class="op">@</span>type.tmm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb4-31" title="31"></a>
+<a class="sourceLine" id="cb4-32" title="32">sc<span class="op">@</span>libStats &lt;-<span class="st"> </span><span class="kw">rbind</span>(sc<span class="op">@</span>libStats, adult<span class="op">@</span>libStats[, <span class="dv">-5</span>])</a>
+<a class="sourceLine" id="cb4-33" title="33">sc<span class="op">@</span>cmd &lt;-<span class="st"> </span><span class="kw">rbind</span>(sc<span class="op">@</span>cmd, adult<span class="op">@</span>cmd[, <span class="dv">-6</span>])</a>
+<a class="sourceLine" id="cb4-34" title="34"></a>
+<a class="sourceLine" id="cb4-35" title="35">salmon &lt;-<span class="st"> </span>sc</a>
+<a class="sourceLine" id="cb4-36" title="36"><span class="kw">save</span>(<span class="dt">object =</span> salmon, <span class="dt">file =</span> <span class="st">&quot;./output/salmon_SC_controls.tds.RData&quot;</span>)</a></code></pre></div>
+</div>
+</div>
 <div id="filtering-gene-counts" class="section level1">
 <h1>Filtering gene counts</h1>
 <div id="function" class="section level2">
 <h2>Function</h2>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">counts_filter &lt;-<span class="st"> </span><span class="cf">function</span>(counts, <span class="dt">nReads =</span> <span class="dv">15</span>, <span class="dt">nSamplesPercent =</span> <span class="fl">0.4</span>) {</a>
-<a class="sourceLine" id="cb4-2" title="2">  counts2 &lt;-<span class="st"> </span>counts[<span class="kw">apply</span>(counts, <span class="dv">1</span>, <span class="dt">FUN =</span> <span class="cf">function</span>(x) {</a>
-<a class="sourceLine" id="cb4-3" title="3">    <span class="kw">sum</span>(x <span class="op">&gt;=</span><span class="st"> </span><span class="dv">15</span>) <span class="op">&gt;=</span><span class="st"> </span><span class="kw">floor</span>(<span class="kw">length</span>(x) <span class="op">*</span><span class="st"> </span><span class="fl">0.4</span>)</a>
-<a class="sourceLine" id="cb4-4" title="4">  }), ]</a>
-<a class="sourceLine" id="cb4-5" title="5">  <span class="kw">return</span>(counts2)</a>
-<a class="sourceLine" id="cb4-6" title="6">}</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">counts_filter &lt;-<span class="st"> </span><span class="cf">function</span>(counts, <span class="dt">nReads =</span> <span class="dv">15</span>, <span class="dt">nSamplesPercent =</span> <span class="fl">0.4</span>) {</a>
+<a class="sourceLine" id="cb5-2" title="2">  counts2 &lt;-<span class="st"> </span>counts[<span class="kw">apply</span>(counts, <span class="dv">1</span>, <span class="dt">FUN =</span> <span class="cf">function</span>(x) {</a>
+<a class="sourceLine" id="cb5-3" title="3">    <span class="kw">sum</span>(x <span class="op">&gt;=</span><span class="st"> </span><span class="dv">15</span>) <span class="op">&gt;=</span><span class="st"> </span><span class="kw">floor</span>(<span class="kw">length</span>(x) <span class="op">*</span><span class="st"> </span><span class="fl">0.4</span>)</a>
+<a class="sourceLine" id="cb5-4" title="4">  }), ]</a>
+<a class="sourceLine" id="cb5-5" title="5">  <span class="kw">return</span>(counts2)</a>
+<a class="sourceLine" id="cb5-6" title="6">}</a></code></pre></div>
 </div>
 <div id="counts-from-all-data" class="section level2">
 <h2>Counts from all data</h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">counts.filt &lt;-<span class="st"> </span><span class="kw">counts_filter</span>(<span class="dt">counts =</span> counts)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">counts.filt &lt;-<span class="st"> </span><span class="kw">counts_filter</span>(<span class="dt">counts =</span> counts)</a></code></pre></div>
 </div>
 </div>
 <div id="differeitial-analysis-using-limma" class="section level1">
 <h1>Differeitial analysis using <code>limma</code></h1>
 <div id="function-for-differential-analysis-using-limma" class="section level2">
 <h2>Function for differential analysis using limma</h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">voomDupCor &lt;-<span class="st"> </span><span class="cf">function</span>(counts, mm, individuals, <span class="dt">tcoefs =</span> <span class="ot">NULL</span>) {</a>
-<a class="sourceLine" id="cb6-2" title="2">  <span class="co">## model matrix = model.matrix(~batch+group, data = desc)</span></a>
-<a class="sourceLine" id="cb6-3" title="3">  <span class="co">## individuals = sample/cage column from desc</span></a>
-<a class="sourceLine" id="cb6-4" title="4">  <span class="cf">if</span> (<span class="kw">is.null</span>(tcoefs)) tcoefs &lt;-<span class="st"> </span><span class="kw">colnames</span>(mm)[<span class="kw">ncol</span>(mm)]</a>
-<a class="sourceLine" id="cb6-5" title="5">  dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="kw">DGEList</span>(counts))</a>
-<a class="sourceLine" id="cb6-6" title="6">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm)</a>
-<a class="sourceLine" id="cb6-7" title="7">  dc &lt;-<span class="st"> </span><span class="kw">duplicateCorrelation</span>(v, mm, <span class="dt">block =</span> individuals)</a>
-<a class="sourceLine" id="cb6-8" title="8">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm, <span class="dt">block =</span> individuals, <span class="dt">correlation =</span> dc<span class="op">$</span>consensus.correlation)</a>
-<a class="sourceLine" id="cb6-9" title="9">  fit &lt;-<span class="st"> </span><span class="kw">eBayes</span>(<span class="kw">lmFit</span>(v, mm, <span class="dt">block =</span> individuals, <span class="dt">correlation =</span> dc<span class="op">$</span>consensus.correlation))</a>
-<a class="sourceLine" id="cb6-10" title="10">  tags &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit, tcoefs, <span class="dv">60000</span>))</a>
-<a class="sourceLine" id="cb6-11" title="11">  tags &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(tags), tags, <span class="dt">stringsAsFactors =</span> F)</a>
-<a class="sourceLine" id="cb6-12" title="12">  <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">DEA =</span> tags, <span class="dt">voom.norm.counts =</span> v<span class="op">$</span>E, <span class="dt">EList =</span> v))</a>
-<a class="sourceLine" id="cb6-13" title="13">}</a>
-<a class="sourceLine" id="cb6-14" title="14"></a>
-<a class="sourceLine" id="cb6-15" title="15">voomDupCor.s &lt;-<span class="st"> </span><span class="cf">function</span>(counts, mm, <span class="dt">tcoefs =</span> <span class="ot">NULL</span>) {</a>
-<a class="sourceLine" id="cb6-16" title="16">  <span class="cf">if</span> (<span class="kw">is.null</span>(tcoefs)) tcoefs &lt;-<span class="st"> </span><span class="kw">colnames</span>(mm)[<span class="kw">ncol</span>(mm)]</a>
-<a class="sourceLine" id="cb6-17" title="17">  dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="kw">DGEList</span>(counts))</a>
-<a class="sourceLine" id="cb6-18" title="18">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm)</a>
-<a class="sourceLine" id="cb6-19" title="19">  fit &lt;-<span class="st"> </span><span class="kw">eBayes</span>(<span class="kw">lmFit</span>(v, mm))</a>
-<a class="sourceLine" id="cb6-20" title="20">  tags &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit, tcoefs, <span class="dv">60000</span>))</a>
-<a class="sourceLine" id="cb6-21" title="21">  tags &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(tags), tags, <span class="dt">stringsAsFactors =</span> F)</a>
-<a class="sourceLine" id="cb6-22" title="22">  <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">DEA =</span> tags, <span class="dt">voom.norm.counts =</span> v<span class="op">$</span>E, <span class="dt">EList =</span> v))</a>
-<a class="sourceLine" id="cb6-23" title="23">}</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">voomDupCor &lt;-<span class="st"> </span><span class="cf">function</span>(counts, mm, individuals, <span class="dt">tcoefs =</span> <span class="ot">NULL</span>) {</a>
+<a class="sourceLine" id="cb7-2" title="2">  <span class="co">## model matrix = model.matrix(~batch+group, data = desc)</span></a>
+<a class="sourceLine" id="cb7-3" title="3">  <span class="co">## individuals = sample/cage column from desc</span></a>
+<a class="sourceLine" id="cb7-4" title="4">  <span class="cf">if</span> (<span class="kw">is.null</span>(tcoefs)) tcoefs &lt;-<span class="st"> </span><span class="kw">colnames</span>(mm)[<span class="kw">ncol</span>(mm)]</a>
+<a class="sourceLine" id="cb7-5" title="5">  dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="kw">DGEList</span>(counts))</a>
+<a class="sourceLine" id="cb7-6" title="6">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm)</a>
+<a class="sourceLine" id="cb7-7" title="7">  dc &lt;-<span class="st"> </span><span class="kw">duplicateCorrelation</span>(v, mm, <span class="dt">block =</span> individuals)</a>
+<a class="sourceLine" id="cb7-8" title="8">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm, <span class="dt">block =</span> individuals, <span class="dt">correlation =</span> dc<span class="op">$</span>consensus.correlation)</a>
+<a class="sourceLine" id="cb7-9" title="9">  fit &lt;-<span class="st"> </span><span class="kw">eBayes</span>(<span class="kw">lmFit</span>(v, mm, <span class="dt">block =</span> individuals, <span class="dt">correlation =</span> dc<span class="op">$</span>consensus.correlation))</a>
+<a class="sourceLine" id="cb7-10" title="10">  tags &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit, tcoefs, <span class="dv">60000</span>))</a>
+<a class="sourceLine" id="cb7-11" title="11">  tags &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(tags), tags, <span class="dt">stringsAsFactors =</span> F)</a>
+<a class="sourceLine" id="cb7-12" title="12">  <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">DEA =</span> tags, <span class="dt">voom.norm.counts =</span> v<span class="op">$</span>E, <span class="dt">EList =</span> v))</a>
+<a class="sourceLine" id="cb7-13" title="13">}</a>
+<a class="sourceLine" id="cb7-14" title="14"></a>
+<a class="sourceLine" id="cb7-15" title="15">voomDupCor.s &lt;-<span class="st"> </span><span class="cf">function</span>(counts, mm, <span class="dt">tcoefs =</span> <span class="ot">NULL</span>) {</a>
+<a class="sourceLine" id="cb7-16" title="16">  <span class="cf">if</span> (<span class="kw">is.null</span>(tcoefs)) tcoefs &lt;-<span class="st"> </span><span class="kw">colnames</span>(mm)[<span class="kw">ncol</span>(mm)]</a>
+<a class="sourceLine" id="cb7-17" title="17">  dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="kw">DGEList</span>(counts))</a>
+<a class="sourceLine" id="cb7-18" title="18">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm)</a>
+<a class="sourceLine" id="cb7-19" title="19">  fit &lt;-<span class="st"> </span><span class="kw">eBayes</span>(<span class="kw">lmFit</span>(v, mm))</a>
+<a class="sourceLine" id="cb7-20" title="20">  tags &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit, tcoefs, <span class="dv">60000</span>))</a>
+<a class="sourceLine" id="cb7-21" title="21">  tags &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(tags), tags, <span class="dt">stringsAsFactors =</span> F)</a>
+<a class="sourceLine" id="cb7-22" title="22">  <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">DEA =</span> tags, <span class="dt">voom.norm.counts =</span> v<span class="op">$</span>E, <span class="dt">EList =</span> v))</a>
+<a class="sourceLine" id="cb7-23" title="23">}</a></code></pre></div>
 </div>
 <div id="function-for-running-differential-analysis" class="section level2">
 <h2>Function for running differential analysis</h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">run_DEA &lt;-<span class="st"> </span><span class="cf">function</span>(mat, pData, <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, group1, group2, <span class="dt">batch =</span> <span class="ot">NULL</span>, <span class="dt">cage =</span> <span class="ot">NULL</span>) {</a>
-<a class="sourceLine" id="cb7-2" title="2">  pheno &lt;-<span class="st"> </span>pData[pData[, groupCol] <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(group1, group2), ]</a>
-<a class="sourceLine" id="cb7-3" title="3">  tab &lt;-<span class="st"> </span>mat[, <span class="kw">rownames</span>(pheno)]</a>
-<a class="sourceLine" id="cb7-4" title="4"></a>
-<a class="sourceLine" id="cb7-5" title="5">  dea &lt;-<span class="st"> </span><span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb7-6" title="6"></a>
-<a class="sourceLine" id="cb7-7" title="7">  <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(cage)) {</a>
-<a class="sourceLine" id="cb7-8" title="8">    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(batch)) {</a>
-<a class="sourceLine" id="cb7-9" title="9">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, batch] <span class="op">+</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb7-10" title="10">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm, <span class="dt">individuals =</span> pheno[, cage])</a>
-<a class="sourceLine" id="cb7-11" title="11">    } <span class="cf">else</span> {</a>
-<a class="sourceLine" id="cb7-12" title="12">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb7-13" title="13">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm, <span class="dt">individuals =</span> pheno[, cage])</a>
-<a class="sourceLine" id="cb7-14" title="14">    }</a>
-<a class="sourceLine" id="cb7-15" title="15">  } <span class="cf">else</span> {</a>
-<a class="sourceLine" id="cb7-16" title="16">    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(batch)) {</a>
-<a class="sourceLine" id="cb7-17" title="17">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, batch] <span class="op">+</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb7-18" title="18">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor.s</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm)</a>
-<a class="sourceLine" id="cb7-19" title="19">    } <span class="cf">else</span> {</a>
-<a class="sourceLine" id="cb7-20" title="20">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb7-21" title="21">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor.s</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm)</a>
-<a class="sourceLine" id="cb7-22" title="22">    }</a>
-<a class="sourceLine" id="cb7-23" title="23">  }</a>
-<a class="sourceLine" id="cb7-24" title="24">  dea<span class="op">$</span>pData &lt;-<span class="st"> </span>pheno</a>
-<a class="sourceLine" id="cb7-25" title="25">  <span class="kw">return</span>(dea)</a>
-<a class="sourceLine" id="cb7-26" title="26">}</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">run_DEA &lt;-<span class="st"> </span><span class="cf">function</span>(mat, pData, <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, group1, group2, <span class="dt">batch =</span> <span class="ot">NULL</span>, <span class="dt">cage =</span> <span class="ot">NULL</span>, <span class="dt">revGroup =</span> F) {</a>
+<a class="sourceLine" id="cb8-2" title="2">  pheno &lt;-<span class="st"> </span>pData[pData[, groupCol] <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(group1, group2), ]</a>
+<a class="sourceLine" id="cb8-3" title="3"></a>
+<a class="sourceLine" id="cb8-4" title="4">  <span class="cf">if</span> (revGroup) pheno[, groupCol] &lt;-<span class="st"> </span><span class="kw">fct_rev</span>(pheno[, groupCol])</a>
+<a class="sourceLine" id="cb8-5" title="5"></a>
+<a class="sourceLine" id="cb8-6" title="6">  tab &lt;-<span class="st"> </span>mat[, <span class="kw">rownames</span>(pheno)]</a>
+<a class="sourceLine" id="cb8-7" title="7"></a>
+<a class="sourceLine" id="cb8-8" title="8">  dea &lt;-<span class="st"> </span><span class="ot">NULL</span></a>
+<a class="sourceLine" id="cb8-9" title="9"></a>
+<a class="sourceLine" id="cb8-10" title="10">  <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(cage)) {</a>
+<a class="sourceLine" id="cb8-11" title="11">    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(batch)) {</a>
+<a class="sourceLine" id="cb8-12" title="12">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, batch] <span class="op">+</span><span class="st"> </span>pheno[, groupCol])</a>
+<a class="sourceLine" id="cb8-13" title="13">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm, <span class="dt">individuals =</span> pheno[, cage])</a>
+<a class="sourceLine" id="cb8-14" title="14">    } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb8-15" title="15">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, groupCol])</a>
+<a class="sourceLine" id="cb8-16" title="16">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm, <span class="dt">individuals =</span> pheno[, cage])</a>
+<a class="sourceLine" id="cb8-17" title="17">    }</a>
+<a class="sourceLine" id="cb8-18" title="18">  } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb8-19" title="19">    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(batch)) {</a>
+<a class="sourceLine" id="cb8-20" title="20">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, batch] <span class="op">+</span><span class="st"> </span>pheno[, groupCol])</a>
+<a class="sourceLine" id="cb8-21" title="21">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor.s</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm)</a>
+<a class="sourceLine" id="cb8-22" title="22">    } <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb8-23" title="23">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, groupCol])</a>
+<a class="sourceLine" id="cb8-24" title="24">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor.s</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm)</a>
+<a class="sourceLine" id="cb8-25" title="25">    }</a>
+<a class="sourceLine" id="cb8-26" title="26">  }</a>
+<a class="sourceLine" id="cb8-27" title="27">  dea<span class="op">$</span>pData &lt;-<span class="st"> </span>pheno</a>
+<a class="sourceLine" id="cb8-28" title="28">  <span class="kw">return</span>(dea)</a>
+<a class="sourceLine" id="cb8-29" title="29">}</a></code></pre></div>
 </div>
 <div id="dea-analysis" class="section level2">
 <h2>DEA analysis</h2>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">pnd8.pnd15 &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(<span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData, <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;PND15&quot;</span>)</a>
-<a class="sourceLine" id="cb8-2" title="2">pnd8.adult &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(<span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData, <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;Adult&quot;</span>)</a>
-<a class="sourceLine" id="cb8-3" title="3">pnd15.adult &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(<span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData, <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND15&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;Adult&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">pnd8.pnd15 &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(</a>
+<a class="sourceLine" id="cb9-2" title="2">  <span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData,</a>
+<a class="sourceLine" id="cb9-3" title="3">  <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;PND15&quot;</span>,</a>
+<a class="sourceLine" id="cb9-4" title="4">  <span class="dt">revGroup =</span> T</a>
+<a class="sourceLine" id="cb9-5" title="5">)</a>
+<a class="sourceLine" id="cb9-6" title="6"></a>
+<a class="sourceLine" id="cb9-7" title="7">pnd8.adult &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(</a>
+<a class="sourceLine" id="cb9-8" title="8">  <span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData,</a>
+<a class="sourceLine" id="cb9-9" title="9">  <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;Adult&quot;</span>,</a>
+<a class="sourceLine" id="cb9-10" title="10">  <span class="dt">revGroup =</span> T</a>
+<a class="sourceLine" id="cb9-11" title="11">)</a>
+<a class="sourceLine" id="cb9-12" title="12"></a>
+<a class="sourceLine" id="cb9-13" title="13">pnd15.adult &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(</a>
+<a class="sourceLine" id="cb9-14" title="14">  <span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData,</a>
+<a class="sourceLine" id="cb9-15" title="15">  <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND15&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;Adult&quot;</span>,</a>
+<a class="sourceLine" id="cb9-16" title="16">  <span class="dt">revGroup =</span> T</a>
+<a class="sourceLine" id="cb9-17" title="17">)</a></code></pre></div>
 </div>
 </div>
 <div id="cpm-counts-data-and-pdata" class="section level1">
 <h1><code>cpm</code> Counts data and pData</h1>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">dge &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts =</span> counts.filt, <span class="dt">group =</span> pData[<span class="kw">colnames</span>(counts.filt), <span class="st">&quot;Group&quot;</span>])</a>
-<a class="sourceLine" id="cb9-2" title="2">dge &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="dt">object =</span> dge, <span class="dt">method =</span> <span class="st">&quot;TMM&quot;</span>)</a>
-<a class="sourceLine" id="cb9-3" title="3">cpm &lt;-<span class="st"> </span><span class="kw">cpm</span>(dge)</a>
-<a class="sourceLine" id="cb9-4" title="4"></a>
-<a class="sourceLine" id="cb9-5" title="5">data &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">cpm =</span> cpm, <span class="dt">pData =</span> pData[<span class="kw">colnames</span>(cpm), ])</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">dge &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts =</span> counts.filt, <span class="dt">group =</span> pData[<span class="kw">colnames</span>(counts.filt), <span class="st">&quot;Group&quot;</span>])</a>
+<a class="sourceLine" id="cb10-2" title="2">dge &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="dt">object =</span> dge, <span class="dt">method =</span> <span class="st">&quot;TMM&quot;</span>)</a>
+<a class="sourceLine" id="cb10-3" title="3">cpm &lt;-<span class="st"> </span><span class="kw">cpm</span>(dge)</a>
+<a class="sourceLine" id="cb10-4" title="4"></a>
+<a class="sourceLine" id="cb10-5" title="5">data &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">cpm =</span> cpm, <span class="dt">pData =</span> pData[<span class="kw">colnames</span>(cpm), ])</a>
+<a class="sourceLine" id="cb10-6" title="6"></a>
+<a class="sourceLine" id="cb10-7" title="7"><span class="kw">save</span>(data,</a>
+<a class="sourceLine" id="cb10-8" title="8">  <span class="dt">file =</span> <span class="st">&quot;./output/cpm_pData.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb10-9" title="9">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb10-10" title="10">)</a></code></pre></div>
+</div>
+<div id="results" class="section level1">
+<h1>Results</h1>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">dea.list &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
+<a class="sourceLine" id="cb11-2" title="2">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd8.pnd15<span class="op">$</span>DEA),</a>
+<a class="sourceLine" id="cb11-3" title="3">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd8.adult<span class="op">$</span>DEA),</a>
+<a class="sourceLine" id="cb11-4" title="4">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd15.adult<span class="op">$</span>DEA)</a>
+<a class="sourceLine" id="cb11-5" title="5">)</a>
+<a class="sourceLine" id="cb11-6" title="6"></a>
+<a class="sourceLine" id="cb11-7" title="7">normCounts &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
+<a class="sourceLine" id="cb11-8" title="8">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>pnd8.pnd15<span class="op">$</span>voom.norm.counts,</a>
+<a class="sourceLine" id="cb11-9" title="9">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd8.adult<span class="op">$</span>voom.norm.counts,</a>
+<a class="sourceLine" id="cb11-10" title="10">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd15.adult<span class="op">$</span>voom.norm.counts</a>
+<a class="sourceLine" id="cb11-11" title="11">)</a>
+<a class="sourceLine" id="cb11-12" title="12"></a>
+<a class="sourceLine" id="cb11-13" title="13">voomEList &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
+<a class="sourceLine" id="cb11-14" title="14">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>pnd8.pnd15<span class="op">$</span>EList,</a>
+<a class="sourceLine" id="cb11-15" title="15">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd8.adult<span class="op">$</span>EList,</a>
+<a class="sourceLine" id="cb11-16" title="16">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd15.adult<span class="op">$</span>EList</a>
+<a class="sourceLine" id="cb11-17" title="17">)</a>
+<a class="sourceLine" id="cb11-18" title="18"></a>
+<a class="sourceLine" id="cb11-19" title="19">dea.limma &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
+<a class="sourceLine" id="cb11-20" title="20">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>pnd8.pnd15<span class="op">$</span>DEA,</a>
+<a class="sourceLine" id="cb11-21" title="21">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd8.adult<span class="op">$</span>DEA,</a>
+<a class="sourceLine" id="cb11-22" title="22">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd15.adult<span class="op">$</span>DEA</a>
+<a class="sourceLine" id="cb11-23" title="23">)</a></code></pre></div>
 <div id="save-rdata-files" class="section level2">
 <h2>Save RData files</h2>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">save</span>(pnd8.pnd15,</a>
-<a class="sourceLine" id="cb10-2" title="2">  <span class="dt">file =</span> <span class="st">&quot;./output/dea_PND8_PND15.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb10-3" title="3">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb10-4" title="4">)</a>
-<a class="sourceLine" id="cb10-5" title="5"></a>
-<a class="sourceLine" id="cb10-6" title="6"><span class="kw">save</span>(pnd8.adult,</a>
-<a class="sourceLine" id="cb10-7" title="7">  <span class="dt">file =</span> <span class="st">&quot;./output/dea_PND8_Adult.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb10-8" title="8">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb10-9" title="9">)</a>
-<a class="sourceLine" id="cb10-10" title="10"></a>
-<a class="sourceLine" id="cb10-11" title="11"><span class="kw">save</span>(pnd15.adult,</a>
-<a class="sourceLine" id="cb10-12" title="12">  <span class="dt">file =</span> <span class="st">&quot;./output/dea_PND15_Adult.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb10-13" title="13">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb10-14" title="14">)</a>
-<a class="sourceLine" id="cb10-15" title="15"></a>
-<a class="sourceLine" id="cb10-16" title="16"><span class="kw">save</span>(data,</a>
-<a class="sourceLine" id="cb10-17" title="17">  <span class="dt">file =</span> <span class="st">&quot;./output/cpm_pData.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb10-18" title="18">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb10-19" title="19">)</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">save</span>(dea.list,</a>
+<a class="sourceLine" id="cb12-2" title="2">  <span class="dt">file =</span> <span class="st">&quot;./output/dea_SC_Controls.DEA.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb12-3" title="3">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb12-4" title="4">)</a>
+<a class="sourceLine" id="cb12-5" title="5"></a>
+<a class="sourceLine" id="cb12-6" title="6"><span class="kw">save</span>(normCounts,</a>
+<a class="sourceLine" id="cb12-7" title="7">  <span class="dt">file =</span> <span class="st">&quot;./output/normCounts_voom_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb12-8" title="8">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb12-9" title="9">)</a>
+<a class="sourceLine" id="cb12-10" title="10"></a>
+<a class="sourceLine" id="cb12-11" title="11"><span class="kw">save</span>(voomEList,</a>
+<a class="sourceLine" id="cb12-12" title="12">  <span class="dt">file =</span> <span class="st">&quot;./output/voom_EList_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb12-13" title="13">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb12-14" title="14">)</a>
+<a class="sourceLine" id="cb12-15" title="15"></a>
+<a class="sourceLine" id="cb12-16" title="16"><span class="kw">save</span>(dea.limma,</a>
+<a class="sourceLine" id="cb12-17" title="17">  <span class="dt">file =</span> <span class="st">&quot;./output/limma_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb12-18" title="18">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb12-19" title="19">)</a></code></pre></div>
 </div>
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">devtools<span class="op">::</span><span class="kw">session_info</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">devtools<span class="op">::</span><span class="kw">session_info</span>()</a></code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
 ##  version  R version 3.5.3 (2019-03-11)
@@ -2996,138 +3091,145 @@ $(document).ready(function () {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2019-05-15                  
+##  date     2019-06-18                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
-##  package              * version   date       lib source        
-##  acepack                1.4.1     2016-10-29 [1] CRAN (R 3.5.1)
-##  annotate               1.60.1    2019-03-07 [1] Bioconductor  
-##  AnnotationDbi          1.44.0    2018-10-30 [1] Bioconductor  
-##  assertthat             0.2.1     2019-03-21 [1] CRAN (R 3.5.3)
-##  backports              1.1.4     2019-04-10 [1] CRAN (R 3.5.3)
-##  base64enc              0.1-3     2015-07-28 [1] CRAN (R 3.5.1)
-##  Biobase                2.42.0    2018-10-30 [1] Bioconductor  
-##  BiocGenerics           0.28.0    2018-10-30 [1] Bioconductor  
-##  BiocParallel           1.16.6    2019-02-10 [1] Bioconductor  
-##  bit                    1.1-14    2018-05-29 [1] CRAN (R 3.5.1)
-##  bit64                  0.9-7     2017-05-08 [1] CRAN (R 3.5.1)
-##  bitops                 1.0-6     2013-08-17 [1] CRAN (R 3.5.1)
-##  blob                   1.1.1     2018-03-25 [1] CRAN (R 3.5.1)
-##  bookdown               0.10      2019-05-10 [1] CRAN (R 3.5.3)
-##  boot                   1.3-22    2019-04-26 [1] CRAN (R 3.5.3)
-##  broom                  0.5.2     2019-04-07 [1] CRAN (R 3.5.3)
-##  callr                  3.2.0     2019-03-15 [1] CRAN (R 3.5.3)
-##  CDM                    7.4-7     2019-05-13 [1] local         
-##  checkmate              1.9.3     2019-05-03 [1] CRAN (R 3.5.3)
-##  cli                    1.1.0     2019-03-19 [1] CRAN (R 3.5.3)
-##  cluster                2.0.9     2019-05-01 [1] CRAN (R 3.5.3)
-##  colorspace             1.4-1     2019-03-18 [1] CRAN (R 3.5.3)
-##  crayon                 1.3.4     2017-09-16 [1] CRAN (R 3.5.1)
-##  data.table             1.12.2    2019-04-07 [1] CRAN (R 3.5.3)
-##  DBI                    1.0.0     2018-05-02 [1] CRAN (R 3.5.1)
-##  DelayedArray           0.8.0     2018-10-30 [1] Bioconductor  
-##  desc                   1.2.0     2018-05-01 [1] CRAN (R 3.5.1)
-##  DESeq2                 1.22.2    2019-01-04 [1] Bioconductor  
-##  devtools               2.0.2     2019-04-08 [1] CRAN (R 3.5.3)
-##  digest                 0.6.18    2018-10-10 [1] CRAN (R 3.5.1)
-##  dplyr                  0.8.1     2019-05-14 [1] CRAN (R 3.5.3)
-##  edgeR                * 3.24.3    2019-01-02 [1] Bioconductor  
-##  evaluate               0.13      2019-02-12 [1] CRAN (R 3.5.2)
-##  fdrtool              * 1.2.15    2015-07-08 [1] CRAN (R 3.5.2)
-##  foreign                0.8-71    2018-07-20 [1] CRAN (R 3.5.1)
-##  Formula                1.2-3     2018-05-03 [1] CRAN (R 3.5.1)
-##  fs                     1.3.1     2019-05-06 [1] CRAN (R 3.5.3)
-##  genefilter             1.64.0    2018-10-30 [1] Bioconductor  
-##  geneplotter            1.60.0    2018-10-30 [1] Bioconductor  
-##  generics               0.0.2     2018-11-29 [1] CRAN (R 3.5.1)
-##  GenomeInfoDb           1.18.2    2019-02-12 [1] Bioconductor  
-##  GenomeInfoDbData       1.2.0     2019-01-17 [1] Bioconductor  
-##  GenomicRanges          1.34.0    2018-10-30 [1] Bioconductor  
-##  ggplot2                3.1.1     2019-04-07 [1] CRAN (R 3.5.3)
-##  glue                   1.3.1     2019-03-12 [1] CRAN (R 3.5.3)
-##  gridExtra              2.3       2017-09-09 [1] CRAN (R 3.5.1)
-##  gtable                 0.3.0     2019-03-25 [1] CRAN (R 3.5.3)
-##  highr                  0.8       2019-03-20 [1] CRAN (R 3.5.3)
-##  Hmisc                  4.2-0     2019-01-26 [1] CRAN (R 3.5.2)
-##  htmlTable              1.13.1    2019-01-07 [1] CRAN (R 3.5.2)
-##  htmltools              0.3.6     2017-04-28 [1] CRAN (R 3.5.1)
-##  htmlwidgets            1.3       2018-09-30 [1] CRAN (R 3.5.1)
-##  httpuv                 1.5.1     2019-04-05 [1] CRAN (R 3.5.3)
-##  IRanges                2.16.0    2018-10-30 [1] Bioconductor  
-##  jomo                   2.6-7     2019-02-06 [1] CRAN (R 3.5.3)
-##  knitr                * 1.22      2019-03-08 [1] CRAN (R 3.5.2)
-##  later                  0.8.0     2019-02-11 [1] CRAN (R 3.5.2)
-##  lattice              * 0.20-38   2018-11-04 [1] CRAN (R 3.5.1)
-##  latticeExtra           0.6-28    2016-02-09 [1] CRAN (R 3.5.1)
-##  lazyeval               0.2.2     2019-03-15 [1] CRAN (R 3.5.3)
-##  limma                * 3.38.3    2018-12-02 [1] Bioconductor  
-##  lme4                   1.1-21    2019-03-05 [1] CRAN (R 3.5.2)
-##  locfit                 1.5-9.1   2013-04-20 [1] CRAN (R 3.5.1)
-##  magrittr               1.5       2014-11-22 [1] CRAN (R 3.5.1)
-##  MASS                   7.3-51.4  2019-04-26 [1] CRAN (R 3.5.3)
-##  Matrix                 1.2-17    2019-03-22 [1] CRAN (R 3.5.3)
-##  matrixStats            0.54.0    2018-07-23 [1] CRAN (R 3.5.1)
-##  memoise                1.1.0     2017-04-21 [1] CRAN (R 3.5.1)
-##  mice                 * 3.4.3     2019-05-13 [1] local         
-##  miceadds             * 2.12-3    2019-05-13 [1] local         
-##  mime                   0.6       2018-10-05 [1] CRAN (R 3.5.1)
-##  miniUI                 0.1.1.1   2018-05-18 [1] CRAN (R 3.5.1)
-##  minqa                  1.2.4     2014-10-09 [1] CRAN (R 3.5.1)
-##  mitml                  0.3-7     2019-01-07 [1] CRAN (R 3.5.3)
-##  mitools                2.4       2019-04-26 [1] CRAN (R 3.5.3)
-##  munsell                0.5.0     2018-06-12 [1] CRAN (R 3.5.1)
-##  mvtnorm                1.0-10    2019-03-05 [1] CRAN (R 3.5.2)
-##  nlme                   3.1-140   2019-05-12 [1] CRAN (R 3.5.3)
-##  nloptr                 1.2.1     2018-10-03 [1] CRAN (R 3.5.1)
-##  nnet                   7.3-12    2016-02-02 [1] CRAN (R 3.5.1)
-##  pan                    1.6       2018-06-29 [1] CRAN (R 3.5.3)
-##  pillar                 1.4.0     2019-05-11 [1] CRAN (R 3.5.3)
-##  pkgbuild               1.0.3     2019-03-20 [1] CRAN (R 3.5.3)
-##  pkgconfig              2.0.2     2018-08-16 [1] CRAN (R 3.5.1)
-##  pkgload                1.0.2     2018-10-29 [1] CRAN (R 3.5.1)
-##  plgINS               * 0.1.5     2019-05-14 [1] local         
-##  plyr                 * 1.8.4     2016-06-08 [1] CRAN (R 3.5.1)
-##  polycor                0.7-9     2016-08-27 [1] CRAN (R 3.5.3)
-##  prettyunits            1.0.2     2015-07-13 [1] CRAN (R 3.5.1)
-##  processx               3.3.1     2019-05-08 [1] CRAN (R 3.5.3)
-##  promises               1.0.1     2018-04-13 [1] CRAN (R 3.5.1)
-##  ps                     1.3.0     2018-12-21 [1] CRAN (R 3.5.1)
-##  purrr                  0.3.2     2019-03-15 [1] CRAN (R 3.5.3)
-##  questionr              0.7.0     2018-11-26 [1] CRAN (R 3.5.1)
-##  R6                     2.4.0     2019-02-14 [1] CRAN (R 3.5.2)
-##  RColorBrewer           1.1-2     2014-12-07 [1] CRAN (R 3.5.1)
-##  Rcpp                   1.0.1     2019-03-17 [1] CRAN (R 3.5.3)
-##  RCurl                  1.95-4.12 2019-03-04 [1] CRAN (R 3.5.3)
-##  remotes                2.0.4     2019-04-10 [1] CRAN (R 3.5.3)
-##  rlang                  0.3.4     2019-04-07 [1] CRAN (R 3.5.3)
-##  rmarkdown            * 1.12      2019-03-14 [1] CRAN (R 3.5.3)
-##  rmdformats             0.3.5     2019-02-19 [1] CRAN (R 3.5.2)
-##  rpart                  4.1-15    2019-04-12 [1] CRAN (R 3.5.3)
-##  rprojroot              1.3-2     2018-01-03 [1] CRAN (R 3.5.1)
-##  RSQLite                2.1.1     2018-05-06 [1] CRAN (R 3.5.1)
-##  rstudioapi             0.10      2019-03-19 [1] CRAN (R 3.5.3)
-##  S4Vectors              0.20.1    2018-11-09 [1] Bioconductor  
-##  scales                 1.0.0     2018-08-09 [1] CRAN (R 3.5.1)
-##  sessioninfo            1.1.1     2018-11-05 [1] CRAN (R 3.5.1)
-##  shiny                  1.3.2     2019-04-22 [1] CRAN (R 3.5.3)
-##  sirt                   3.5-27    2019-05-13 [1] local         
-##  stringi                1.4.3     2019-03-12 [1] CRAN (R 3.5.3)
-##  stringr                1.4.0     2019-02-10 [1] CRAN (R 3.5.2)
-##  SummarizedExperiment   1.12.0    2018-10-30 [1] Bioconductor  
-##  survival               2.44-1.1  2019-04-01 [1] CRAN (R 3.5.3)
-##  TAM                    3.2-18    2019-05-13 [1] local         
-##  testthat               2.1.1     2019-04-23 [1] CRAN (R 3.5.3)
-##  tibble                 2.1.1     2019-03-16 [1] CRAN (R 3.5.3)
-##  tidyr                  0.8.3     2019-03-01 [1] CRAN (R 3.5.2)
-##  tidyselect             0.2.5     2018-10-11 [1] CRAN (R 3.5.1)
-##  usethis                1.5.0     2019-04-07 [1] CRAN (R 3.5.3)
-##  withr                  2.1.2     2018-03-15 [1] CRAN (R 3.5.1)
-##  xfun                   0.7       2019-05-14 [1] CRAN (R 3.5.3)
-##  XML                    3.98-1.19 2019-03-06 [1] CRAN (R 3.5.2)
-##  xtable                 1.8-4     2019-04-21 [1] CRAN (R 3.5.3)
-##  XVector                0.22.0    2018-10-30 [1] Bioconductor  
-##  yaml                   2.2.0     2018-07-25 [1] CRAN (R 3.5.1)
-##  zlibbioc               1.28.0    2018-10-30 [1] Bioconductor  
+##  package              * version    date       lib source        
+##  acepack                1.4.1      2016-10-29 [1] CRAN (R 3.5.1)
+##  annotate               1.60.1     2019-03-07 [1] Bioconductor  
+##  AnnotationDbi          1.44.0     2018-10-30 [1] Bioconductor  
+##  assertthat             0.2.1      2019-03-21 [1] CRAN (R 3.5.3)
+##  backports              1.1.4      2019-04-10 [1] CRAN (R 3.5.3)
+##  base64enc              0.1-3      2015-07-28 [1] CRAN (R 3.5.1)
+##  Biobase                2.42.0     2018-10-30 [1] Bioconductor  
+##  BiocGenerics           0.28.0     2018-10-30 [1] Bioconductor  
+##  BiocParallel           1.16.6     2019-02-10 [1] Bioconductor  
+##  Biostrings             2.50.2     2019-01-03 [1] Bioconductor  
+##  bit                    1.1-14     2018-05-29 [1] CRAN (R 3.5.1)
+##  bit64                  0.9-7      2017-05-08 [1] CRAN (R 3.5.1)
+##  bitops                 1.0-6      2013-08-17 [1] CRAN (R 3.5.1)
+##  blob                   1.1.1      2018-03-25 [1] CRAN (R 3.5.1)
+##  bookdown               0.11       2019-05-28 [1] CRAN (R 3.5.3)
+##  boot                   1.3-22     2019-04-26 [1] CRAN (R 3.5.3)
+##  broom                  0.5.2      2019-04-07 [1] CRAN (R 3.5.3)
+##  callr                  3.2.0      2019-03-15 [1] CRAN (R 3.5.3)
+##  CDM                    7.4-7      2019-05-13 [1] local         
+##  checkmate              1.9.3      2019-05-03 [1] CRAN (R 3.5.3)
+##  cli                    1.1.0      2019-03-19 [1] CRAN (R 3.5.3)
+##  cluster                2.0.9      2019-05-01 [1] CRAN (R 3.5.3)
+##  colorspace             1.4-1      2019-03-18 [1] CRAN (R 3.5.3)
+##  crayon                 1.3.4      2017-09-16 [1] CRAN (R 3.5.1)
+##  data.table             1.12.2     2019-04-07 [1] CRAN (R 3.5.3)
+##  DBI                    1.0.0      2018-05-02 [1] CRAN (R 3.5.1)
+##  DelayedArray           0.8.0      2018-10-30 [1] Bioconductor  
+##  desc                   1.2.0      2018-05-01 [1] CRAN (R 3.5.1)
+##  DESeq2                 1.22.2     2019-01-04 [1] Bioconductor  
+##  devtools               2.0.2      2019-04-08 [1] CRAN (R 3.5.3)
+##  digest                 0.6.19     2019-05-20 [1] CRAN (R 3.5.3)
+##  dplyr                  0.8.1      2019-05-14 [1] CRAN (R 3.5.3)
+##  edgeR                * 3.24.3     2019-01-02 [1] Bioconductor  
+##  evaluate               0.14       2019-05-28 [1] CRAN (R 3.5.3)
+##  fdrtool              * 1.2.15     2015-07-08 [1] CRAN (R 3.5.2)
+##  forcats              * 0.4.0      2019-02-17 [1] CRAN (R 3.5.2)
+##  foreign                0.8-71     2018-07-20 [1] CRAN (R 3.5.1)
+##  Formula                1.2-3      2018-05-03 [1] CRAN (R 3.5.1)
+##  fs                     1.3.1      2019-05-06 [1] CRAN (R 3.5.3)
+##  genefilter             1.64.0     2018-10-30 [1] Bioconductor  
+##  geneplotter            1.60.0     2018-10-30 [1] Bioconductor  
+##  generics               0.0.2      2018-11-29 [1] CRAN (R 3.5.1)
+##  GenomeInfoDb           1.18.2     2019-02-12 [1] Bioconductor  
+##  GenomeInfoDbData       1.2.0      2019-01-17 [1] Bioconductor  
+##  GenomicRanges          1.34.0     2018-10-30 [1] Bioconductor  
+##  GEOquery               2.50.5     2018-12-22 [1] Bioconductor  
+##  ggplot2                3.1.1      2019-04-07 [1] CRAN (R 3.5.3)
+##  glue                   1.3.1      2019-03-12 [1] CRAN (R 3.5.3)
+##  gridExtra              2.3        2017-09-09 [1] CRAN (R 3.5.1)
+##  gtable                 0.3.0      2019-03-25 [1] CRAN (R 3.5.3)
+##  highr                  0.8        2019-03-20 [1] CRAN (R 3.5.3)
+##  Hmisc                  4.2-0      2019-01-26 [1] CRAN (R 3.5.2)
+##  hms                    0.4.2      2018-03-10 [1] CRAN (R 3.5.1)
+##  htmlTable              1.13.1     2019-01-07 [1] CRAN (R 3.5.2)
+##  htmltools              0.3.6      2017-04-28 [1] CRAN (R 3.5.1)
+##  htmlwidgets            1.3        2018-09-30 [1] CRAN (R 3.5.1)
+##  httpuv                 1.5.1      2019-04-05 [1] CRAN (R 3.5.3)
+##  IRanges                2.16.0     2018-10-30 [1] Bioconductor  
+##  jomo                   2.6-8      2019-05-21 [1] CRAN (R 3.5.3)
+##  knitr                * 1.23       2019-05-18 [1] CRAN (R 3.5.3)
+##  later                  0.8.0      2019-02-11 [1] CRAN (R 3.5.2)
+##  lattice              * 0.20-38    2018-11-04 [1] CRAN (R 3.5.1)
+##  latticeExtra           0.6-28     2016-02-09 [1] CRAN (R 3.5.1)
+##  lazyeval               0.2.2      2019-03-15 [1] CRAN (R 3.5.3)
+##  limma                * 3.38.3     2018-12-02 [1] Bioconductor  
+##  lme4                   1.1-21     2019-03-05 [1] CRAN (R 3.5.2)
+##  locfit                 1.5-9.1    2013-04-20 [1] CRAN (R 3.5.1)
+##  magrittr               1.5        2014-11-22 [1] CRAN (R 3.5.1)
+##  MASS                   7.3-51.4   2019-04-26 [1] CRAN (R 3.5.3)
+##  Matrix                 1.2-17     2019-03-22 [1] CRAN (R 3.5.3)
+##  matrixStats            0.54.0     2018-07-23 [1] CRAN (R 3.5.1)
+##  memoise                1.1.0      2017-04-21 [1] CRAN (R 3.5.1)
+##  mice                 * 3.5.0.9000 2019-06-04 [1] local         
+##  miceadds             * 2.12-3     2019-05-13 [1] local         
+##  mime                   0.7        2019-06-11 [1] CRAN (R 3.5.3)
+##  miniUI                 0.1.1.1    2018-05-18 [1] CRAN (R 3.5.1)
+##  minqa                  1.2.4      2014-10-09 [1] CRAN (R 3.5.1)
+##  mitml                  0.3-7      2019-01-07 [1] CRAN (R 3.5.3)
+##  mitools                2.4        2019-04-26 [1] CRAN (R 3.5.3)
+##  munsell                0.5.0      2018-06-12 [1] CRAN (R 3.5.1)
+##  mvtnorm                1.0-10     2019-03-05 [1] CRAN (R 3.5.2)
+##  nlme                   3.1-140    2019-05-12 [1] CRAN (R 3.5.3)
+##  nloptr                 1.2.1      2018-10-03 [1] CRAN (R 3.5.1)
+##  nnet                   7.3-12     2016-02-02 [1] CRAN (R 3.5.1)
+##  pan                    1.6        2018-06-29 [1] CRAN (R 3.5.3)
+##  pillar                 1.4.1      2019-05-28 [1] CRAN (R 3.5.3)
+##  pkgbuild               1.0.3      2019-03-20 [1] CRAN (R 3.5.3)
+##  pkgconfig              2.0.2      2018-08-16 [1] CRAN (R 3.5.1)
+##  pkgload                1.0.2      2018-10-29 [1] CRAN (R 3.5.1)
+##  plgINS               * 0.1.5      2019-06-07 [1] local         
+##  plyr                 * 1.8.4      2016-06-08 [1] CRAN (R 3.5.1)
+##  polycor                0.7-9      2016-08-27 [1] CRAN (R 3.5.3)
+##  prettyunits            1.0.2      2015-07-13 [1] CRAN (R 3.5.1)
+##  processx               3.3.1      2019-05-08 [1] CRAN (R 3.5.3)
+##  promises               1.0.1      2018-04-13 [1] CRAN (R 3.5.1)
+##  ps                     1.3.0      2018-12-21 [1] CRAN (R 3.5.1)
+##  purrr                  0.3.2      2019-03-15 [1] CRAN (R 3.5.3)
+##  questionr              0.7.0      2018-11-26 [1] CRAN (R 3.5.1)
+##  R6                     2.4.0      2019-02-14 [1] CRAN (R 3.5.2)
+##  RColorBrewer           1.1-2      2014-12-07 [1] CRAN (R 3.5.1)
+##  Rcpp                   1.0.1      2019-03-17 [1] CRAN (R 3.5.3)
+##  RCurl                  1.95-4.12  2019-03-04 [1] CRAN (R 3.5.3)
+##  readr                  1.3.1      2018-12-21 [1] CRAN (R 3.5.1)
+##  remotes                2.0.4      2019-04-10 [1] CRAN (R 3.5.3)
+##  rlang                  0.3.4      2019-04-07 [1] CRAN (R 3.5.3)
+##  rmarkdown            * 1.13       2019-05-22 [1] CRAN (R 3.5.3)
+##  rmdformats             0.3.5      2019-02-19 [1] CRAN (R 3.5.2)
+##  rpart                  4.1-15     2019-04-12 [1] CRAN (R 3.5.3)
+##  rprojroot              1.3-2      2018-01-03 [1] CRAN (R 3.5.1)
+##  RSQLite                2.1.1      2018-05-06 [1] CRAN (R 3.5.1)
+##  rstudioapi             0.10       2019-03-19 [1] CRAN (R 3.5.3)
+##  S4Vectors              0.20.1     2018-11-09 [1] Bioconductor  
+##  scales                 1.0.0      2018-08-09 [1] CRAN (R 3.5.1)
+##  sessioninfo            1.1.1      2018-11-05 [1] CRAN (R 3.5.1)
+##  shiny                  1.3.2      2019-04-22 [1] CRAN (R 3.5.3)
+##  sirt                   3.5-27     2019-05-13 [1] local         
+##  SRAdb                  1.44.0     2018-10-30 [1] Bioconductor  
+##  stringi                1.4.3      2019-03-12 [1] CRAN (R 3.5.3)
+##  stringr                1.4.0      2019-02-10 [1] CRAN (R 3.5.2)
+##  SummarizedExperiment   1.12.0     2018-10-30 [1] Bioconductor  
+##  survival               2.44-1.1   2019-04-01 [1] CRAN (R 3.5.3)
+##  TAM                    3.2-18     2019-05-13 [1] local         
+##  testthat               2.1.1      2019-04-23 [1] CRAN (R 3.5.3)
+##  tibble                 2.1.3      2019-06-06 [1] CRAN (R 3.5.3)
+##  tidyr                  0.8.3      2019-03-01 [1] CRAN (R 3.5.2)
+##  tidyselect             0.2.5      2018-10-11 [1] CRAN (R 3.5.1)
+##  usethis                1.5.0      2019-04-07 [1] CRAN (R 3.5.3)
+##  withr                  2.1.2      2018-03-15 [1] CRAN (R 3.5.1)
+##  xfun                   0.7        2019-05-14 [1] CRAN (R 3.5.3)
+##  XML                    3.98-1.20  2019-06-06 [1] CRAN (R 3.5.3)
+##  xml2                   1.2.0      2018-01-24 [1] CRAN (R 3.5.1)
+##  xtable                 1.8-4      2019-04-21 [1] CRAN (R 3.5.3)
+##  XVector                0.22.0     2018-10-30 [1] Bioconductor  
+##  yaml                   2.2.0      2018-07-25 [1] CRAN (R 3.5.1)
+##  zlibbioc               1.28.0     2018-10-30 [1] Bioconductor  
 ## 
 ## [1] /home/ubuntu/R/x86_64-pc-linux-gnu-library/3.5
 ## [2] /usr/local/lib/R/site-library
@@ -3141,7 +3243,7 @@ $(document).ready(function () {
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-05-15</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-06-18</p>
 </div>
 
 

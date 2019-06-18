@@ -38,6 +38,7 @@ library(plgINS)
 library(fdrtool)
 library(plyr)
 library(miceadds)
+library(forcats)
 ```
 
 # Function to change names of PND data
@@ -61,6 +62,7 @@ change_names <- function(names) {
 
 # Salmon data objects
 
+## Load the data and filter it
 ```{r}
 pnd <- load.Rdata2("input/salmon_msus27_SSC.tds.RData")
 pnd <- pnd[pnd@phenoData$group == "C"]
@@ -86,6 +88,47 @@ pData.adult$Group <- "Adult"
 pData <- rbind.data.frame(pData.pnd, pData.adult, stringsAsFactors = F)
 pData$Age <- as.factor(pData$Age)
 ```
+
+## New salmon object for SC Controls
+```{r}
+sc <- pnd
+sc@phenoData <- pData
+sc@norm.factors <- calcNormFactors(counts)
+
+colnames(sc@tx.counts) <- change_names(names = colnames(sc@tx.counts))
+sc@tx.counts <- data.matrix(data.frame(sc@tx.counts, adult@tx.counts[rownames(sc@tx.counts), ]))
+sc@tx.counts <- sc@tx.counts[, rownames(pData)]
+
+colnames(sc@tx.tpm) <- change_names(names = colnames(sc@tx.tpm))
+sc@tx.tpm <- data.matrix(data.frame(sc@tx.tpm, adult@tx.tpm[rownames(sc@tx.tpm), ]))
+sc@tx.tpm <- sc@tx.tpm[, rownames(pData)]
+
+sc@gene.counts <- counts
+
+colnames(sc@gene.tpm) <- change_names(names = colnames(sc@gene.tpm))
+sc@gene.tpm <- data.matrix(data.frame(sc@gene.tpm, adult@gene.tpm[rownames(sc@gene.tpm), ]))
+sc@gene.tpm <- sc@gene.tpm[, rownames(pData)]
+
+colnames(sc@type.readProp) <- change_names(names = colnames(sc@type.readProp))
+sc@type.readProp <- data.matrix(data.frame(sc@type.readProp, adult@type.readProp[rownames(sc@type.readProp), ]))
+sc@type.readProp <- sc@type.readProp[, rownames(pData)]
+
+colnames(sc@type.tpm) <- change_names(names = colnames(sc@type.tpm))
+sc@type.tpm <- data.matrix(data.frame(sc@type.tpm, adult@type.tpm[rownames(sc@type.tpm), ]))
+sc@type.tpm <- sc@type.tpm[, rownames(pData)]
+
+rownames(sc@type.tmm)[15] <- "repeat_family"
+colnames(sc@type.tmm) <- change_names(names = colnames(sc@type.tmm))
+sc@type.tmm <- data.matrix(data.frame(sc@type.tmm, adult@type.tmm[rownames(sc@type.tmm), ]))
+sc@type.tmm <- sc@type.tmm[, rownames(pData)]
+
+sc@libStats <- rbind(sc@libStats, adult@libStats[, -5])
+sc@cmd <- rbind(sc@cmd, adult@cmd[, -6])
+
+salmon <- sc
+save(object = salmon, file = "./output/salmon_SC_controls.tds.RData")
+```
+
 
 # Filtering gene counts
 
@@ -136,8 +179,11 @@ voomDupCor.s <- function(counts, mm, tcoefs = NULL) {
 
 ## Function for running differential analysis
 ```{r}
-run_DEA <- function(mat, pData, groupCol = "Group", group1, group2, batch = NULL, cage = NULL) {
+run_DEA <- function(mat, pData, groupCol = "Group", group1, group2, batch = NULL, cage = NULL, revGroup = F) {
   pheno <- pData[pData[, groupCol] %in% c(group1, group2), ]
+
+  if (revGroup) pheno[, groupCol] <- fct_rev(pheno[, groupCol])
+
   tab <- mat[, rownames(pheno)]
 
   dea <- NULL
@@ -166,9 +212,23 @@ run_DEA <- function(mat, pData, groupCol = "Group", group1, group2, batch = NULL
 
 ## DEA analysis
 ```{r}
-pnd8.pnd15 <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", group1 = "PND8", group2 = "PND15")
-pnd8.adult <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", group1 = "PND8", group2 = "Adult")
-pnd15.adult <- run_DEA(mat = counts.filt, pData = pData, groupCol = "Group", group1 = "PND15", group2 = "Adult")
+pnd8.pnd15 <- run_DEA(
+  mat = counts.filt, pData = pData,
+  groupCol = "Group", group1 = "PND8", group2 = "PND15",
+  revGroup = T
+)
+
+pnd8.adult <- run_DEA(
+  mat = counts.filt, pData = pData,
+  groupCol = "Group", group1 = "PND8", group2 = "Adult",
+  revGroup = T
+)
+
+pnd15.adult <- run_DEA(
+  mat = counts.filt, pData = pData,
+  groupCol = "Group", group1 = "PND15", group2 = "Adult",
+  revGroup = T
+)
 ```
 
 # `cpm` Counts data and pData
@@ -178,28 +238,61 @@ dge <- calcNormFactors(object = dge, method = "TMM")
 cpm <- cpm(dge)
 
 data <- list(cpm = cpm, pData = pData[colnames(cpm), ])
+
+save(data,
+  file = "./output/cpm_pData.RData", compress = T,
+  compression_level = 3
+)
+```
+
+
+# Results
+```{r}
+dea.list <- list(
+  `PND8 vs PND15` = as.DEA(pnd8.pnd15$DEA),
+  `PND8 vs Adult` = as.DEA(pnd8.adult$DEA),
+  `PND15 vs Adult` = as.DEA(pnd15.adult$DEA)
+)
+
+normCounts <- list(
+  `PND8 vs PND15` = pnd8.pnd15$voom.norm.counts,
+  `PND8 vs Adult` = pnd8.adult$voom.norm.counts,
+  `PND15 vs Adult` = pnd15.adult$voom.norm.counts
+)
+
+voomEList <- list(
+  `PND8 vs PND15` = pnd8.pnd15$EList,
+  `PND8 vs Adult` = pnd8.adult$EList,
+  `PND15 vs Adult` = pnd15.adult$EList
+)
+
+dea.limma <- list(
+  `PND8 vs PND15` = pnd8.pnd15$DEA,
+  `PND8 vs Adult` = pnd8.adult$DEA,
+  `PND15 vs Adult` = pnd15.adult$DEA
+)
 ```
 
 
 ## Save RData files
 ```{r}
-save(pnd8.pnd15,
-  file = "./output/dea_PND8_PND15.RData", compress = T,
+save(dea.list,
+  file = "./output/dea_SC_Controls.DEA.RData", compress = T,
   compression_level = 3
 )
 
-save(pnd8.adult,
-  file = "./output/dea_PND8_Adult.RData", compress = T,
+save(normCounts,
+  file = "./output/normCounts_voom_SC_Controls.RData", compress = T,
   compression_level = 3
 )
 
-save(pnd15.adult,
-  file = "./output/dea_PND15_Adult.RData", compress = T,
+save(voomEList,
+  file = "./output/voom_EList_SC_Controls.RData", compress = T,
   compression_level = 3
 )
 
-save(data,
-  file = "./output/cpm_pData.RData", compress = T,
+save(dea.limma,
+  file = "./output/limma_SC_Controls.RData", compress = T,
   compression_level = 3
 )
 ```
