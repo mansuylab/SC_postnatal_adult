@@ -1,0 +1,150 @@
+---
+title: "RNA-Seq: Pathway analysis"
+author: "Deepak Tanwar"
+date: "r Sys.Date()"
+output:
+  html_document:
+    keep_md: no
+    number_sections: yes
+    toc: yes
+    df_print: paged
+  fontsize: 11pt
+  geometry: margin=1in
+  documentclass: article
+  pdf_document:
+    fig_caption: yes
+    fig_height: 11
+    fig_width: 8.5
+    number_sections: yes
+    toc: yes
+  word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+# Libraries required
+
+```{r libraries, message=FALSE, warning=FALSE}
+library(multiGSEA)
+library(multiGSEA.shiny)
+library(EnrichmentBrowser)
+library(GeneSetDb.MSigDB.Mmusculus.v61)
+library(parallel)
+library(doParallel)
+library(foreach)
+```
+
+# Data setup
+```{r load-objects}
+load("./input/gencode.vM18.anno.RData")
+load("./input/voom_EList_SC_Controls.RData")
+```
+
+
+# Genes with length information
+```{r genes-information}
+genes <- anno[, c(2, 3, 6, 7, 10)]
+genes <- genes[!duplicated(genes), ]
+
+g1 <- genes[!genes$entrez_id %in% genes$entrez_id[duplicated(genes$entrez_id)], ]
+g2 <- genes[genes$entrez_id %in% genes$entrez_id[duplicated(genes$entrez_id)], ]
+
+g2 <- g2[!duplicated(g2$ensembl), ]
+g2 <- g2[!duplicated(g2$symbol), ]
+g2$entrez_id[duplicated(g2$entrez_id)] <- g2$symbol[duplicated(g2$entrez_id)]
+
+genes.f <- rbind(g1, g2)
+rownames(genes.f) <- genes.f$entrez_id
+```
+
+
+# GeneSets
+```{r making-geneSets}
+MSigdb <- getMSigGeneSetDb(
+  collection = c("c1", "c2", "c3", "c4", "c5", "c6", "c7", "h"),
+  species = "mouse", with.kegg = T, species.specific = T
+)
+
+go <- GeneSetDb(getGenesets(org = "mmu", db = "go"), collectionName = "Gene Ontology")
+go.bp <- GeneSetDb(getGenesets(org = "mmu", go.onto = "BP"), collectionName = "GO_BP")
+go.mf <- GeneSetDb(getGenesets(org = "mmu", go.onto = "MF"), collectionName = "GO_MF")
+go.cc <- GeneSetDb(getGenesets(org = "mmu", go.onto = "CC"), collectionName = "GO_CC")
+
+kegg <- GeneSetDb(getGenesets(org = "mmu", db = "kegg"), collectionName = "KEGG")
+
+reactome <- getReactomeGeneSetDb(species = "mouse", rm.species.prefix = T)
+
+gdb <- Reduce(append, list(go, go.bp, go.cc, go.mf, kegg, reactome, MSigdb))
+gdb@table$organism <- "Mus musculus"
+```
+
+
+# MultiGSEA function
+```{r function-multiGSEA}
+perform_enrichment_analysis <- function(voomEl, genes.db, pathways, treat = F) {
+
+  # Changing rownames of voom EList
+  ts <- data.frame(symbol = rownames(voomEl$E))
+  ts <- merge(ts, genes.db)
+  ts <- ts[!duplicated(ts), ]
+
+  t1 <- ts[ts$symbol %in% ts$symbol[duplicated(ts$symbol)], ]
+  t2 <- ts[!ts$symbol %in% ts$symbol[duplicated(ts$symbol)], ]
+  t1 <- t1[t1$symbol == t1$symbol1, ]
+  t1 <- t1[t1$symbol != t1$entrez_id, ]
+
+  ts.f <- rbind(t2, t1)
+  ts.f <- ts.f[complete.cases(ts.f$symbol), ]
+  rownames(ts.f) <- ts.f$symbol
+  rownames(voomEl$E) <- ts.f[rownames(voomEl$E), "entrez_id"]
+
+  # design matrix cols
+  contr <- colnames(voomEl$design)
+
+  # Adding genes variable
+  voomEl$genes <- ts.f
+  ms <- multiGSEA(
+    gsd = pathways, x = voomEl,
+    design = voomEl$design,
+    contrast = contr[length(contr)],
+    methods = c("goseq", "camera", "fgsea", "fry", "cameraPR", "roast", "romer"),
+    # "geneSetTest", "hyperGeometricTest" (Methods having problems)
+
+    ## these parameters define which genes are differentially expressed
+    feature.max.padj = 0.2, feature.min.logFC = 0.5,
+    ## for camera:
+    inter.gene.cor = 0.01,
+    ## for goseq (the *.max.padj and *.min.logFC parameters also affect goseq)
+    feature.bias = setNames(voomEl$gene$size, rownames(voomEl)),
+    .parallel = F, minSize = 5, nperm = 1000, use.treat = treat
+  )
+  return(ms)
+}
+```
+
+
+# Pathway analysis
+```{r multiGSEA, warning=F, message=F}
+analysis <- list()
+
+for (i in 1:length(voomEList)) {
+  sprintf(names(voomEList)[i])
+  analysis[[i]] <- perform_enrichment_analysis(
+    voomEl = voomEList[[i]],
+    genes.db = genes.f, pathways = gdb, treat = F
+  )
+
+  names(analysis)[i] <- names(voomEList)[i]
+
+  saveRDS(analysis[[i]], file = paste0("./output/", names(voomEList)[i], ".rds"))
+}
+
+saveRDS(analysis, file = "./output/functional_enrichment_results.rds")
+# saveRDS(analysis.t, file = "./output/functional_enrichment_results.treat.rds")
+```
+
+
+# SessionInfo
+```{r sessionInfo}
+devtools::session_info()
+```
