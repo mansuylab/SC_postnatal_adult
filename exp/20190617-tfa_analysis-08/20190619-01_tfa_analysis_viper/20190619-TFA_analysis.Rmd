@@ -1,0 +1,451 @@
+---
+title: "RNA-Seq: TFA analysis of SC Controls"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-06-19 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(plgINS)
+library(plotly)
+library(UpSetR)
+library(RColorBrewer)
+library(grid)
+library(gridExtra)
+library(DT)
+```
+
+# Data
+```{r}
+load("input/dea_SC_Controls.DEA.RData")
+load("input/voom_EList_SC_Controls.RData")
+load("input/salmon_SC_controls.tds.RData")
+data(regulon.curated.mm)
+```
+
+# TFA analysis
+
+Transcription Factor Binding Affinity analysis is performed using Virtual Inference of Protein-activity by Enriched Regulon analysis (VIPER) algorithm.
+
+**Regulon** is a group of genes that are regulated as a unit, generally controlled by the same regulatory gene that expresses a protein acting as a repressor or activator.
+
+More details: [10.1038/ng.3593](https://doi.org/10.1038/ng.3593)
+
+
+## Function to show table
+```{r}
+make_DT <- function(tab) {
+  df <- data.frame(TF = rownames(tab), tab, check.names = F, stringsAsFactors = F)
+  DT::datatable(
+    df,
+    rownames = F,
+    filter = "top", extensions = c("Buttons", "ColReorder"), options = list(
+      autoWidth = TRUE,
+      columnDefs = list(list(
+        targets = 12,
+        render = JS(
+          "function(data, type, row, meta) {",
+          "return type === 'display' && data.length > 8 ?",
+          "'<span title=\"' + data + '\">' + data.substr(0, 8) + '...</span>' : data;",
+          "}"
+        )
+      )),
+      pageLength = 10,
+      buttons = c("copy", "csv", "excel", "pdf", "print"),
+      colReorder = list(realtime = FALSE),
+      dom = "fltBip"
+    )
+  )
+}
+```
+
+## Filters a viper regulon by likelihood
+```{r}
+regulon.mm10 <- regulon.filter(regulon = regulon.curated.mm, min.likelihood = 0.15)
+```
+
+
+## TFA analysis
+
+### All regulons
+
+```{r, warning=FALSE, message=FALSE}
+tfa.all <- mapply(
+  function(x, y) TFA(se = x$E, dea = y, design = x$design, regulon = regulon.curated.mm),
+  voomEList, dea.list
+)
+
+tfa.all <- lapply(tfa.all, function(x) {
+  colData(x) <- DataFrame(salmon@phenoData[colnames(x), ])
+  return(x)
+})
+```
+
+
+### Filtered regulons
+```{r, warning=F, message=FALSE}
+tfa <- mapply(
+  function(x, y) TFA(se = x$E, dea = y, design = x$design, regulon = regulon.mm10),
+  voomEList, dea.list
+)
+
+tfa <- lapply(tfa, function(x) {
+  colData(x) <- DataFrame(salmon@phenoData[colnames(x), ])
+  return(x)
+})
+```
+
+
+# Results
+
+## Volcano plots {.tabset .tabset-pills}
+
+### All regulons
+```{r, fig.height=10, fig.width=8, fig.align='center', warning=F, message=FALSE}
+p <- subplot(plotTFA(tfa.all$`PND8 vs PND15`) %>%
+  layout(xaxis = list(range = c(-6, 6)), yaxis = list(range = c(-1, 22))),
+plotTFA(tfa.all$`PND8 vs Adult`) %>%
+  layout(xaxis = list(range = c(-6, 6)), yaxis = list(range = c(-1, 22))),
+plotTFA(tfa.all$`PND15 vs Adult`) %>%
+  layout(xaxis = list(range = c(-6, 6)), yaxis = list(range = c(-1, 22))),
+nrows = 3, shareX = T, shareY = T, titleX = T, titleY = T
+)
+
+p %>% layout(title = "", annotations = list(
+  list(
+    x = 0.5, y = 1.02, text = "PND8 vs PND15", showarrow = F, xref = "paper", yref = "paper",
+    font = list(color = "red", family = "Arial", size = 16)
+  ),
+  list(
+    x = 0.5, y = 0.66, text = "PND8 vs Adult", showarrow = F, xref = "paper", yref = "paper",
+    font = list(color = "red", family = "Arial", size = 16)
+  ),
+  list(
+    x = 0.5, y = 0.33, text = "PND15 vs Adult", showarrow = F, xref = "paper", yref = "paper",
+    font = list(color = "red", family = "Arial", size = 16)
+  )
+), showlegend = FALSE)
+```
+
+### Filtered regulons
+```{r, fig.height=10, fig.width=8, fig.align='center', warning=F, message=FALSE}
+p <- subplot(plotTFA(tfa$`PND8 vs PND15`) %>%
+  layout(xaxis = list(range = c(-6, 6)), yaxis = list(range = c(-1, 22))),
+plotTFA(tfa$`PND8 vs Adult`) %>%
+  layout(xaxis = list(range = c(-6, 6)), yaxis = list(range = c(-1, 22))),
+plotTFA(tfa$`PND15 vs Adult`) %>%
+  layout(xaxis = list(range = c(-6, 6)), yaxis = list(range = c(-1, 22))),
+nrows = 3, shareX = T, shareY = T, titleX = T, titleY = T
+)
+
+p %>% layout(title = "", annotations = list(
+  list(
+    x = 0.5, y = 1.02, text = "PND8 vs PND15", showarrow = F, xref = "paper", yref = "paper",
+    font = list(color = "red", family = "Arial", size = 16)
+  ),
+  list(
+    x = 0.5, y = 0.66, text = "PND8 vs Adult", showarrow = F, xref = "paper", yref = "paper",
+    font = list(color = "red", family = "Arial", size = 16)
+  ),
+  list(
+    x = 0.5, y = 0.33, text = "PND15 vs Adult", showarrow = F, xref = "paper", yref = "paper",
+    font = list(color = "red", family = "Arial", size = 16)
+  )
+), showlegend = FALSE)
+```
+
+
+## UpSetPlot {.tabset .tabset-pills}
+
+### All regulons
+```{r, fig.align='center', fig.width=9, fig.height=8, fig.show='hide'}
+tfa.all.union <- Reduce(
+  union,
+  list(
+    rownames(rowData(tfa.all$`PND8 vs PND15`)[rowData(tfa.all$`PND8 vs PND15`)[, "activity.FDR"] <= 0.05, ]),
+    rownames(rowData(tfa.all$`PND8 vs Adult`)[rowData(tfa.all$`PND8 vs Adult`)[, "activity.FDR"] <= 0.05, ]),
+    rownames(rowData(tfa.all$`PND15 vs Adult`)[rowData(tfa.all$`PND15 vs Adult`)[, "activity.FDR"] <= 0.05, ])
+  )
+)
+
+tfa.all.upset <- data.frame(
+  TF = tfa.all.union, `PND8 vs PND15` = 0, `PND8 vs Adult` = 0, `PND15 vs Adult` = 0,
+  check.names = F, stringsAsFactors = F
+)
+rownames(tfa.all.upset) <- tfa.all.upset$TF
+
+
+tfa.all.upset[rownames(rowData(tfa.all$`PND8 vs PND15`)[rowData(tfa.all$`PND8 vs PND15`)[, "activity.FDR"] <= 0.05, ]), 2] <- 1
+tfa.all.upset[rownames(rowData(tfa.all$`PND8 vs Adult`)[rowData(tfa.all$`PND8 vs Adult`)[, "activity.FDR"] <= 0.05, ]), 3] <- 1
+tfa.all.upset[rownames(rowData(tfa.all$`PND15 vs Adult`)[rowData(tfa.all$`PND15 vs Adult`)[, "activity.FDR"] <= 0.05, ]), 4] <- 1
+
+col <- brewer.pal(7, "Set1")
+
+
+upset(tfa.all.upset[, 2:4],
+  point.size = 5, sets.bar.color = col[1:3], matrix.color = col[5],
+  order.by = "freq", set_size.numbers_size = T, text.scale = c(1.5, 2, 1.5, 1.5, 1.5, 2)
+)
+
+grid.edit("arrange", name = "UpSet")
+vp <- grid.grab()
+
+grid.arrange(
+  grobs = list(
+    vp
+  ),
+  top = "TFA in SC at different stages of development (FDR <= 0.05)",
+  cols = 1
+)
+```
+
+```{r, fig.align='center', fig.width=9, fig.height=8}
+grid.arrange(
+  grobs = list(
+    vp
+  ),
+  top = "TFA in SC at different stages of development (FDR <= 0.05)",
+  cols = 1
+)
+```
+
+
+
+### Filtered regulons
+```{r, fig.align='center', fig.width=9, fig.height=8, fig.show='hide'}
+tfa.union <- Reduce(
+  union,
+  list(
+    rownames(rowData(tfa$`PND8 vs PND15`)[rowData(tfa$`PND8 vs PND15`)[, "activity.FDR"] <= 0.05, ]),
+    rownames(rowData(tfa$`PND8 vs Adult`)[rowData(tfa$`PND8 vs Adult`)[, "activity.FDR"] <= 0.05, ]),
+    rownames(rowData(tfa$`PND15 vs Adult`)[rowData(tfa$`PND15 vs Adult`)[, "activity.FDR"] <= 0.05, ])
+  )
+)
+
+tfa.upset <- data.frame(
+  TF = tfa.union, `PND8 vs PND15` = 0, `PND8 vs Adult` = 0, `PND15 vs Adult` = 0,
+  check.names = F, stringsAsFactors = F
+)
+rownames(tfa.upset) <- tfa.upset$TF
+
+
+tfa.upset[rownames(rowData(tfa$`PND8 vs PND15`)[rowData(tfa$`PND8 vs PND15`)[, "activity.FDR"] <= 0.05, ]), 2] <- 1
+tfa.upset[rownames(rowData(tfa$`PND8 vs Adult`)[rowData(tfa$`PND8 vs Adult`)[, "activity.FDR"] <= 0.05, ]), 3] <- 1
+tfa.upset[rownames(rowData(tfa$`PND15 vs Adult`)[rowData(tfa$`PND15 vs Adult`)[, "activity.FDR"] <= 0.05, ]), 4] <- 1
+
+col <- brewer.pal(7, "Set1")
+
+
+upset(tfa.upset[, 2:4],
+  point.size = 5, sets.bar.color = col[1:3], matrix.color = col[5],
+  order.by = "freq", set_size.numbers_size = T, text.scale = c(1.5, 2, 1.5, 1.5, 1.5, 2)
+)
+
+grid.edit("arrange", name = "UpSet")
+vp <- grid.grab()
+
+grid.arrange(
+  grobs = list(
+    vp
+  ),
+  top = "TFA in SC at different stages of development (FDR <= 0.05)",
+  cols = 1
+)
+```
+
+```{r, fig.align='center', fig.width=9, fig.height=8}
+grid.arrange(
+  grobs = list(
+    vp
+  ),
+  top = "TFA in SC at different stages of development (FDR <= 0.05)",
+  cols = 1
+)
+```
+
+## Heatmaps of TBA
+
+### Data prep
+
+#### All regulons
+```{r}
+tfa.all$`PND8 vs PND15` <- tfa.all$`PND8 vs PND15`[, c(
+  grep(pattern = "PND8", x = colnames(tfa.all$`PND8 vs PND15`), value = T),
+  grep(pattern = "PND15", x = colnames(tfa.all$`PND8 vs PND15`), value = T)
+)]
+
+# rowData(tfa.all$`PND8 vs PND15`) <- rowData(tfa.all$`PND8 vs PND15`)[order(rowData(tfa.all$`PND8 vs PND15`)[, "activity.FDR"]), ]
+
+
+tfa.all$`PND8 vs Adult` <- tfa.all$`PND8 vs Adult`[, c(
+  grep(pattern = "PND8", x = colnames(tfa.all$`PND8 vs Adult`), value = T),
+  grep(pattern = "Adult", x = colnames(tfa.all$`PND8 vs Adult`), value = T)
+)]
+
+# rowData(tfa.all$`PND8 vs Adult`) <- rowData(tfa.all$`PND8 vs Adult`)[order(rowData(tfa.all$`PND8 vs Adult`)[, "activity.FDR"]), ]
+
+tfa.all$`PND15 vs Adult` <- tfa.all$`PND15 vs Adult`[, c(
+  grep(pattern = "PND15", x = colnames(tfa.all$`PND15 vs Adult`), value = T),
+  grep(pattern = "Adult", x = colnames(tfa.all$`PND15 vs Adult`), value = T)
+)]
+
+# rowData(tfa$`PND15 vs Adult`) <- rowData(tfa$`PND15 vs Adult`)[order(rowData(tfa$`PND15 vs Adult`)[, 11]), ]
+```
+
+
+#### Filtered regulons
+```{r}
+tfa$`PND8 vs PND15` <- tfa$`PND8 vs PND15`[, c(
+  grep(pattern = "PND8", x = colnames(tfa$`PND8 vs PND15`), value = ),
+  grep(pattern = "PND15", x = colnames(tfa$`PND8 vs PND15`), value = )
+)]
+
+# rowData(tfa$`PND8 vs PND15`) <- rowData(tfa$`PND8 vs PND15`)[order(rowData(tfa$`PND8 vs PND15`)[, 11]), ]
+
+
+tfa$`PND8 vs Adult` <- tfa$`PND8 vs Adult`[, c(
+  grep(pattern = "PND8", x = colnames(tfa$`PND8 vs Adult`), value = ),
+  grep(pattern = "Adult", x = colnames(tfa$`PND8 vs Adult`), value = )
+)]
+
+# rowData(tfa$`PND8 vs Adult`) <- rowData(tfa$`PND8 vs Adult`)[order(rowData(tfa$`PND8 vs Adult`)[, 11]), ]
+
+tfa$`PND15 vs Adult` <- tfa$`PND15 vs Adult`[, c(
+  grep(pattern = "PND15", x = colnames(tfa$`PND15 vs Adult`), value = ),
+  grep(pattern = "Adult", x = colnames(tfa$`PND15 vs Adult`), value = )
+)]
+
+# rowData(tfa$`PND15 vs Adult`) <- rowData(tfa$`PND15 vs Adult`)[order(rowData(tfa$`PND15 vs Adult`)[, 11]), ]
+```
+
+## Heatmaps
+
+### All regulons {.tabset .tabset-pills}
+
+#### PND8 vs PND15
+```{r}
+sehm(
+  hmcols = viridis::viridis(1000), se = tfa.all$`PND8 vs PND15`[1:20, ],
+  anno_columns = c("Group", "Cage.ID", "Batch"), scale = "row",
+  anno_rows = c("activity.logFC", "activity.FDR", "targetEnrichment", "targetEnrFDR")
+)
+```
+
+
+#### PND8 vs Adult
+```{r}
+sehm(
+  hmcols = viridis::viridis(1000), se = tfa.all$`PND8 vs Adult`[1:20, ],
+  anno_columns = c("Group", "Cage.ID", "Batch"), scale = "row",
+  anno_rows = c("activity.logFC", "activity.FDR", "targetEnrichment", "targetEnrFDR")
+)
+```
+
+#### PND15 vs Adult
+```{r}
+sehm(
+  hmcols = viridis::viridis(1000), se = tfa.all$`PND15 vs Adult`[1:20, ],
+  anno_columns = c("Group", "Cage.ID", "Batch"), scale = "row",
+  anno_rows = c("activity.logFC", "activity.FDR", "targetEnrichment", "targetEnrFDR")
+)
+```
+
+
+### Filtered regulons {.tabset .tabset-pills}
+
+#### PND8 vs PND15
+```{r}
+sehm(
+  hmcols = viridis::viridis(1000), se = tfa$`PND8 vs PND15`[1:20, ],
+  anno_columns = c("Group", "Cage.ID", "Batch"), scale = "row",
+  anno_rows = c("activity.logFC", "activity.FDR", "targetEnrichment", "targetEnrFDR")
+)
+```
+
+
+#### PND8 vs Adult
+```{r}
+sehm(
+  hmcols = viridis::viridis(1000), se = tfa$`PND8 vs Adult`[1:20, ],
+  anno_columns = c("Group", "Cage.ID", "Batch"), scale = "row",
+  anno_rows = c("activity.logFC", "activity.FDR", "targetEnrichment", "targetEnrFDR")
+)
+```
+
+#### PND15 vs Adult
+```{r}
+sehm(
+  hmcols = viridis::viridis(1000), se = tfa$`PND15 vs Adult`[1:20, ],
+  anno_columns = c("Group", "Cage.ID", "Batch"), scale = "row",
+  anno_rows = c("activity.logFC", "activity.FDR", "targetEnrichment", "targetEnrFDR")
+)
+```
+
+
+
+## Tables
+
+### All regulons {.tabset .tabset-pills}
+
+#### PND8 vs PND15
+```{r}
+make_DT(tab = rowData(tfa.all$`PND8 vs PND15`))
+```
+
+#### PND8 vs Adult
+```{r}
+make_DT(tab = rowData(tfa.all$`PND8 vs Adult`))
+```
+
+#### PND15 vs Adult
+```{r}
+make_DT(tab = rowData(tfa.all$`PND15 vs Adult`))
+```
+
+
+### Filtered regulons {.tabset .tabset-pills}
+
+#### PND8 vs PND15
+```{r}
+make_DT(tab = rowData(tfa$`PND8 vs PND15`))
+```
+
+#### PND8 vs Adult
+```{r}
+make_DT(tab = rowData(tfa$`PND8 vs Adult`))
+```
+
+#### PND15 vs Adult
+```{r}
+make_DT(tab = rowData(tfa$`PND15 vs Adult`))
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
