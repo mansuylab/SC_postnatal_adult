@@ -56,6 +56,7 @@ change_names <- function(names) {
     }
     return(r)
   }))
+  names <- gsub(pattern = "CTRL_", replacement = "", x = names)
   return(names)
 }
 ```
@@ -66,8 +67,46 @@ change_names <- function(names) {
 ```{r}
 pnd <- load.Rdata2("input/salmon_msus27_SSC.tds.RData")
 pnd <- pnd[pnd@phenoData$group == "C"]
-colnames(pnd@gene.counts) <- change_names(names = colnames(pnd@gene.counts))
 
+pnd1 <- pnd
+```
+
+## Add counts from different runs
+```{r}
+idx <- rownames(pnd@phenoData[which(duplicated(pnd@phenoData$sample)), ])
+p <- pnd@phenoData[which(pnd@phenoData$sample %in% idx), ]
+
+idx1 <- grep(pattern = "mRNA", x = rownames(p), value = T)
+idx2 <- grep(pattern = "mRNA", x = rownames(p), value = T, invert = T)
+idx3 <- rownames(pnd@phenoData)[!rownames(pnd@phenoData) %in% rownames(p)]
+
+pnd@tx.counts <- data.matrix(data.frame(pnd@tx.counts[, idx1] + pnd@tx.counts[, idx2], pnd@tx.counts[, idx3]))
+pnd@tx.tpm <- data.matrix(data.frame(pnd@tx.tpm[, idx1] + pnd@tx.tpm[, idx2], pnd@tx.tpm[, idx3]))
+pnd@gene.counts <- data.matrix(data.frame(
+  pnd@gene.counts[, idx1] + pnd@gene.counts[, idx2],
+  pnd@gene.counts[, idx3]
+))
+pnd@gene.tpm <- data.matrix(data.frame(pnd@gene.tpm[, idx1] + pnd@gene.tpm[, idx2], pnd@gene.tpm[, idx3]))
+
+pnd@type.readProp <- data.matrix(data.frame(
+  pnd@type.readProp[, idx1] + pnd@type.readProp[, idx2],
+  pnd@type.readProp[, idx3]
+))
+pnd@type.tpm <- data.matrix(data.frame(
+  pnd@type.tpm[, idx1] + pnd@type.tpm[, idx2],
+  pnd@type.tpm[, idx3]
+))
+pnd@type.tmm <- data.matrix(data.frame(
+  pnd@type.tmm[, idx1] + pnd@type.tmm[, idx2],
+  pnd@type.tmm[, idx3]
+))
+pnd@phenoData <- pnd@phenoData[colnames(pnd@tx.counts), ]
+
+rownames(pnd@phenoData) <- colnames(pnd@tx.counts) <- colnames(pnd@tx.tpm) <- colnames(pnd@gene.counts) <- colnames(pnd@gene.tpm) <- colnames(pnd@type.readProp) <- colnames(pnd@type.tpm) <- colnames(pnd@type.tmm) <- change_names(names = gsub(pattern = "mRNA_", replacement = "", x = rownames(pnd@phenoData)))
+```
+
+## Adults
+```{r}
 adult <- load.Rdata2("input/salmon_msus30_SC_adult.tds.RData")
 adult <- adult[adult@phenoData$Group == "CTRL"]
 
@@ -126,6 +165,10 @@ sc@libStats <- rbind(sc@libStats, adult@libStats[, -5])
 sc@cmd <- rbind(sc@cmd, adult@cmd[, -6])
 
 salmon <- sc
+
+rownames(salmon@phenoData) <- colnames(salmon@tx.counts) <- colnames(salmon@tx.tpm) <- colnames(salmon@gene.counts) <- colnames(salmon@gene.tpm) <- colnames(salmon@type.readProp) <- colnames(salmon@type.tpm) <- colnames(salmon@type.tmm) <- gsub(pattern = "SC_MS30|_CTRL_[0-9]+", replacement = "", x = rownames(salmon@phenoData))
+
+
 save(object = salmon, file = "./output/salmon_SC_controls.tds.RData")
 ```
 
@@ -144,100 +187,135 @@ counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
 
 ## Counts from all data
 ```{r}
-counts.filt <- counts_filter(counts = counts)
+counts.filt <- counts_filter(counts = salmon@gene.counts)
 ```
 
 
 # Differeitial analysis using `limma`
 
-## Function for differential analysis using limma
-```{r}
-voomDupCor <- function(counts, mm, individuals, tcoefs = NULL) {
-  ## model matrix = model.matrix(~batch+group, data = desc)
-  ## individuals = sample/cage column from desc
-  if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)]
-  dds <- calcNormFactors(DGEList(counts))
-  v <- voom(dds, mm)
-  dc <- duplicateCorrelation(v, mm, block = individuals)
-  v <- voom(dds, mm, block = individuals, correlation = dc$consensus.correlation)
-  fit <- eBayes(lmFit(v, mm, block = individuals, correlation = dc$consensus.correlation))
-  tags <- as.data.frame(topTable(fit, tcoefs, 60000))
-  tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F)
-  return(list(DEA = tags, voom.norm.counts = v$E, EList = v))
-}
+<!-- ## Function for differential analysis using limma -->
+<!-- ```{r} -->
+<!-- voomDupCor <- function(counts, mm, individuals, tcoefs = NULL) { -->
+<!--   ## model matrix = model.matrix(~batch+group, data = desc) -->
+<!--   ## individuals = sample/cage column from desc -->
+<!--   if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)] -->
+<!--   dds <- calcNormFactors(DGEList(counts)) -->
+<!--   v <- voom(dds, mm) -->
+<!--   dc <- duplicateCorrelation(v, mm, block = individuals) -->
+<!--   v <- voom(dds, mm, block = individuals, correlation = dc$consensus.correlation) -->
+<!--   fit <- eBayes(lmFit(v, mm, block = individuals, correlation = dc$consensus.correlation)) -->
+<!--   tags <- as.data.frame(topTable(fit, tcoefs, 60000)) -->
+<!--   tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F) -->
+<!--   return(list(DEA = tags, voom.norm.counts = v$E, EList = v)) -->
+<!-- } -->
 
-voomDupCor.s <- function(counts, mm, tcoefs = NULL) {
-  if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)]
-  dds <- calcNormFactors(DGEList(counts))
-  v <- voom(dds, mm)
-  fit <- eBayes(lmFit(v, mm))
-  tags <- as.data.frame(topTable(fit, tcoefs, 60000))
-  tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F)
-  return(list(DEA = tags, voom.norm.counts = v$E, EList = v))
-}
+<!-- voomDupCor.s <- function(counts, mm, tcoefs = NULL) { -->
+<!--   if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)] -->
+<!--   dds <- calcNormFactors(DGEList(counts)) -->
+<!--   v <- voom(dds, mm) -->
+<!--   fit <- eBayes(lmFit(v, mm)) -->
+<!--   tags <- as.data.frame(topTable(fit, tcoefs, 60000)) -->
+<!--   tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F) -->
+<!--   return(list(DEA = tags, voom.norm.counts = v$E, EList = v)) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ## Function for running differential analysis -->
+<!-- ```{r} -->
+<!-- run_DEA <- function(mat, pData, groupCol = "Group", group1, group2, batch = NULL, cage = NULL, revGroup = F) { -->
+<!--   pheno <- pData[pData[, groupCol] %in% c(group1, group2), ] -->
+
+<!--   if (revGroup) pheno[, groupCol] <- fct_rev(pheno[, groupCol]) -->
+
+<!--   tab <- mat[, rownames(pheno)] -->
+
+<!--   dea <- NULL -->
+
+<!--   if (!is.null(cage)) { -->
+<!--     if (!is.null(batch)) { -->
+<!--       mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol]) -->
+<!--       dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage]) -->
+<!--     } else { -->
+<!--       mm <- model.matrix(~ pheno[, groupCol]) -->
+<!--       dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage]) -->
+<!--     } -->
+<!--   } else { -->
+<!--     if (!is.null(batch)) { -->
+<!--       mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol]) -->
+<!--       dea <- voomDupCor.s(counts = tab, mm = mm) -->
+<!--     } else { -->
+<!--       mm <- model.matrix(~ pheno[, groupCol]) -->
+<!--       dea <- voomDupCor.s(counts = tab, mm = mm) -->
+<!--     } -->
+<!--   } -->
+<!--   dea$pData <- pheno -->
+<!--   return(dea) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ## DEA analysis -->
+<!-- ```{r} -->
+<!-- pnd8.pnd15 <- run_DEA( -->
+<!--   mat = counts.filt, pData = salmon@phenoData, -->
+<!--   groupCol = "Group", group1 = "PND8", group2 = "PND15", -->
+<!--   revGroup = T -->
+<!-- ) -->
+
+<!-- pnd8.adult <- run_DEA( -->
+<!--   mat = counts.filt, pData = salmon@phenoData, -->
+<!--   groupCol = "Group", group1 = "PND8", group2 = "Adult", -->
+<!--   revGroup = T -->
+<!-- ) -->
+
+<!-- pnd15.adult <- run_DEA( -->
+<!--   mat = counts.filt, pData = salmon@phenoData, -->
+<!--   groupCol = "Group", group1 = "PND15", group2 = "Adult", -->
+<!--   revGroup = T -->
+<!-- ) -->
+<!-- ``` -->
+
+
+## limma fit
+```{r}
+design <- model.matrix(~ 0 + (salmon@phenoData$Group))
+colnames(design) <- gsub(pattern = "salmon@phenoData\\$Group", replacement = "", x = colnames(design))
+
+dds <- calcNormFactors(DGEList(counts = counts.filt))
+v <- voom(dds, design = design)
+
+contrast.matrix <- makeContrasts(PND15 - PND8, Adult - PND8, Adult - PND15, levels = design)
+fit <- lmFit(v)
+
+fit2 <- contrasts.fit(fit, contrast.matrix)
+fit2 <- eBayes(fit2)
 ```
 
-## Function for running differential analysis
+## DEA results
 ```{r}
-run_DEA <- function(mat, pData, groupCol = "Group", group1, group2, batch = NULL, cage = NULL, revGroup = F) {
-  pheno <- pData[pData[, groupCol] %in% c(group1, group2), ]
+pnd8.pnd15 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+pnd8.pnd15 <- data.frame(Genes = rownames(pnd8.pnd15), pnd8.pnd15, stringsAsFactors = F)
 
-  if (revGroup) pheno[, groupCol] <- fct_rev(pheno[, groupCol])
+pnd8.adult <- as.data.frame(topTable(fit2, coef = 2, number = Inf))
+pnd8.adult <- data.frame(Genes = rownames(pnd8.adult), pnd8.adult, stringsAsFactors = F)
 
-  tab <- mat[, rownames(pheno)]
-
-  dea <- NULL
-
-  if (!is.null(cage)) {
-    if (!is.null(batch)) {
-      mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol])
-      dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage])
-    } else {
-      mm <- model.matrix(~ pheno[, groupCol])
-      dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage])
-    }
-  } else {
-    if (!is.null(batch)) {
-      mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol])
-      dea <- voomDupCor.s(counts = tab, mm = mm)
-    } else {
-      mm <- model.matrix(~ pheno[, groupCol])
-      dea <- voomDupCor.s(counts = tab, mm = mm)
-    }
-  }
-  dea$pData <- pheno
-  return(dea)
-}
+pnd15.adult <- as.data.frame(topTable(fit2, coef = 3, number = Inf))
+pnd15.adult <- data.frame(Genes = rownames(pnd15.adult), pnd15.adult, stringsAsFactors = F)
 ```
 
-## DEA analysis
+## Venn Diagram
 ```{r}
-pnd8.pnd15 <- run_DEA(
-  mat = counts.filt, pData = pData,
-  groupCol = "Group", group1 = "PND8", group2 = "PND15",
-  revGroup = T
-)
-
-pnd8.adult <- run_DEA(
-  mat = counts.filt, pData = pData,
-  groupCol = "Group", group1 = "PND8", group2 = "Adult",
-  revGroup = T
-)
-
-pnd15.adult <- run_DEA(
-  mat = counts.filt, pData = pData,
-  groupCol = "Group", group1 = "PND15", group2 = "Adult",
-  revGroup = T
-)
+results <- decideTests(fit2)
+vennDiagram(results)
 ```
 
 # `cpm` Counts data and pData
+
 ```{r}
-dge <- DGEList(counts = counts.filt, group = pData[colnames(counts.filt), "Group"])
+dge <- DGEList(counts = counts.filt, group = salmon@phenoData$Group)
 dge <- calcNormFactors(object = dge, method = "TMM")
 cpm <- cpm(dge)
 
-data <- list(cpm = cpm, pData = pData[colnames(cpm), ])
+data <- list(cpm = cpm, pData = salmon@phenoData)
 
 save(data,
   file = "./output/cpm_pData.RData", compress = T,
@@ -245,31 +323,22 @@ save(data,
 )
 ```
 
-
 # Results
 ```{r}
 dea.list <- list(
-  `PND8 vs PND15` = as.DEA(pnd8.pnd15$DEA),
-  `PND8 vs Adult` = as.DEA(pnd8.adult$DEA),
-  `PND15 vs Adult` = as.DEA(pnd15.adult$DEA)
+  `PND8 vs PND15` = as.DEA(pnd8.pnd15),
+  `PND8 vs Adult` = as.DEA(pnd8.adult),
+  `PND15 vs Adult` = as.DEA(pnd15.adult)
 )
 
-normCounts <- list(
-  `PND8 vs PND15` = pnd8.pnd15$voom.norm.counts,
-  `PND8 vs Adult` = pnd8.adult$voom.norm.counts,
-  `PND15 vs Adult` = pnd15.adult$voom.norm.counts
-)
+normCounts <- v$E
 
-voomEList <- list(
-  `PND8 vs PND15` = pnd8.pnd15$EList,
-  `PND8 vs Adult` = pnd8.adult$EList,
-  `PND15 vs Adult` = pnd15.adult$EList
-)
+voomEList <- v
 
 dea.limma <- list(
-  `PND8 vs PND15` = pnd8.pnd15$DEA,
-  `PND8 vs Adult` = pnd8.adult$DEA,
-  `PND15 vs Adult` = pnd15.adult$DEA
+  `PND8 vs PND15` = pnd8.pnd15,
+  `PND8 vs Adult` = pnd8.adult,
+  `PND15 vs Adult` = pnd15.adult
 )
 ```
 

@@ -2801,6 +2801,8 @@ $(document).ready(function () {
       <li><a href="#function-to-change-names-of-pnd-data">Function to change names of PND data</a></li>
       <li><a href="#salmon-data-objects">Salmon data objects</a><ul>
       <li><a href="#load-the-data-and-filter-it">Load the data and filter it</a></li>
+      <li><a href="#add-counts-from-different-runs">Add counts from different runs</a></li>
+      <li><a href="#adults">Adults</a></li>
       <li><a href="#new-salmon-object-for-sc-controls">New salmon object for SC Controls</a></li>
       </ul></li>
       <li><a href="#filtering-gene-counts">Filtering gene counts</a><ul>
@@ -2808,9 +2810,9 @@ $(document).ready(function () {
       <li><a href="#counts-from-all-data">Counts from all data</a></li>
       </ul></li>
       <li><a href="#differeitial-analysis-using-limma">Differeitial analysis using <code>limma</code></a><ul>
-      <li><a href="#function-for-differential-analysis-using-limma">Function for differential analysis using limma</a></li>
-      <li><a href="#function-for-running-differential-analysis">Function for running differential analysis</a></li>
-      <li><a href="#dea-analysis">DEA analysis</a></li>
+      <li><a href="#limma-fit">limma fit</a></li>
+      <li><a href="#dea-results">DEA results</a></li>
+      <li><a href="#venn-diagram">Venn Diagram</a></li>
       </ul></li>
       <li><a href="#cpm-counts-data-and-pdata"><code>cpm</code> Counts data and pData</a></li>
       <li><a href="#results">Results</a><ul>
@@ -2849,8 +2851,9 @@ $(document).ready(function () {
 <a class="sourceLine" id="cb2-11" title="11">    }</a>
 <a class="sourceLine" id="cb2-12" title="12">    <span class="kw">return</span>(r)</a>
 <a class="sourceLine" id="cb2-13" title="13">  }))</a>
-<a class="sourceLine" id="cb2-14" title="14">  <span class="kw">return</span>(names)</a>
-<a class="sourceLine" id="cb2-15" title="15">}</a></code></pre></div>
+<a class="sourceLine" id="cb2-14" title="14">  names &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;CTRL_&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> names)</a>
+<a class="sourceLine" id="cb2-15" title="15">  <span class="kw">return</span>(names)</a>
+<a class="sourceLine" id="cb2-16" title="16">}</a></code></pre></div>
 </div>
 <div id="salmon-data-objects" class="section level1">
 <h1>Salmon data objects</h1>
@@ -2858,232 +2861,288 @@ $(document).ready(function () {
 <h2>Load the data and filter it</h2>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">pnd &lt;-<span class="st"> </span><span class="kw">load.Rdata2</span>(<span class="st">&quot;input/salmon_msus27_SSC.tds.RData&quot;</span>)</a>
 <a class="sourceLine" id="cb3-2" title="2">pnd &lt;-<span class="st"> </span>pnd[pnd<span class="op">@</span>phenoData<span class="op">$</span>group <span class="op">==</span><span class="st"> &quot;C&quot;</span>]</a>
-<a class="sourceLine" id="cb3-3" title="3"><span class="kw">colnames</span>(pnd<span class="op">@</span>gene.counts) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(pnd<span class="op">@</span>gene.counts))</a>
-<a class="sourceLine" id="cb3-4" title="4"></a>
-<a class="sourceLine" id="cb3-5" title="5">adult &lt;-<span class="st"> </span><span class="kw">load.Rdata2</span>(<span class="st">&quot;input/salmon_msus30_SC_adult.tds.RData&quot;</span>)</a>
-<a class="sourceLine" id="cb3-6" title="6">adult &lt;-<span class="st"> </span>adult[adult<span class="op">@</span>phenoData<span class="op">$</span>Group <span class="op">==</span><span class="st"> &quot;CTRL&quot;</span>]</a>
-<a class="sourceLine" id="cb3-7" title="7"></a>
-<a class="sourceLine" id="cb3-8" title="8">counts &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(pnd<span class="op">@</span>gene.counts, adult<span class="op">@</span>gene.counts[<span class="kw">rownames</span>(pnd<span class="op">@</span>gene.counts), ]))</a>
-<a class="sourceLine" id="cb3-9" title="9"></a>
-<a class="sourceLine" id="cb3-10" title="10">pData.pnd &lt;-<span class="st"> </span>pnd<span class="op">@</span>phenoData[, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">4</span>)]</a>
-<a class="sourceLine" id="cb3-11" title="11"><span class="kw">colnames</span>(pData.pnd) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Age&quot;</span>, <span class="st">&quot;Batch&quot;</span>, <span class="st">&quot;Cage.ID&quot;</span>)</a>
-<a class="sourceLine" id="cb3-12" title="12">pData.pnd<span class="op">$</span>Age[pData.pnd<span class="op">$</span>Age <span class="op">==</span><span class="st"> </span><span class="dv">7</span>] &lt;-<span class="st"> </span><span class="dv">8</span></a>
-<a class="sourceLine" id="cb3-13" title="13">pData.pnd<span class="op">$</span>Age[pData.pnd<span class="op">$</span>Age <span class="op">==</span><span class="st"> </span><span class="dv">14</span>] &lt;-<span class="st"> </span><span class="dv">15</span></a>
-<a class="sourceLine" id="cb3-14" title="14">pData.pnd<span class="op">$</span>Group &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;PND&quot;</span>, pData.pnd<span class="op">$</span>Age)</a>
-<a class="sourceLine" id="cb3-15" title="15"><span class="kw">rownames</span>(pData.pnd) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">rownames</span>(pData.pnd))</a>
-<a class="sourceLine" id="cb3-16" title="16"></a>
-<a class="sourceLine" id="cb3-17" title="17">pData.adult &lt;-<span class="st"> </span>adult<span class="op">@</span>phenoData[<span class="dv">3</span>]</a>
-<a class="sourceLine" id="cb3-18" title="18">pData.adult<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="dv">150</span></a>
-<a class="sourceLine" id="cb3-19" title="19">pData.adult<span class="op">$</span>Batch &lt;-<span class="st"> &quot;D&quot;</span></a>
-<a class="sourceLine" id="cb3-20" title="20">pData.adult<span class="op">$</span>Group &lt;-<span class="st"> &quot;Adult&quot;</span></a>
-<a class="sourceLine" id="cb3-21" title="21"></a>
-<a class="sourceLine" id="cb3-22" title="22">pData &lt;-<span class="st"> </span><span class="kw">rbind.data.frame</span>(pData.pnd, pData.adult, <span class="dt">stringsAsFactors =</span> F)</a>
-<a class="sourceLine" id="cb3-23" title="23">pData<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="kw">as.factor</span>(pData<span class="op">$</span>Age)</a></code></pre></div>
+<a class="sourceLine" id="cb3-3" title="3"></a>
+<a class="sourceLine" id="cb3-4" title="4">pnd1 &lt;-<span class="st"> </span>pnd</a></code></pre></div>
+</div>
+<div id="add-counts-from-different-runs" class="section level2">
+<h2>Add counts from different runs</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">idx &lt;-<span class="st"> </span><span class="kw">rownames</span>(pnd<span class="op">@</span>phenoData[<span class="kw">which</span>(<span class="kw">duplicated</span>(pnd<span class="op">@</span>phenoData<span class="op">$</span>sample)), ])</a>
+<a class="sourceLine" id="cb4-2" title="2">p &lt;-<span class="st"> </span>pnd<span class="op">@</span>phenoData[<span class="kw">which</span>(pnd<span class="op">@</span>phenoData<span class="op">$</span>sample <span class="op">%in%</span><span class="st"> </span>idx), ]</a>
+<a class="sourceLine" id="cb4-3" title="3"></a>
+<a class="sourceLine" id="cb4-4" title="4">idx1 &lt;-<span class="st"> </span><span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;mRNA&quot;</span>, <span class="dt">x =</span> <span class="kw">rownames</span>(p), <span class="dt">value =</span> T)</a>
+<a class="sourceLine" id="cb4-5" title="5">idx2 &lt;-<span class="st"> </span><span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;mRNA&quot;</span>, <span class="dt">x =</span> <span class="kw">rownames</span>(p), <span class="dt">value =</span> T, <span class="dt">invert =</span> T)</a>
+<a class="sourceLine" id="cb4-6" title="6">idx3 &lt;-<span class="st"> </span><span class="kw">rownames</span>(pnd<span class="op">@</span>phenoData)[<span class="op">!</span><span class="kw">rownames</span>(pnd<span class="op">@</span>phenoData) <span class="op">%in%</span><span class="st"> </span><span class="kw">rownames</span>(p)]</a>
+<a class="sourceLine" id="cb4-7" title="7"></a>
+<a class="sourceLine" id="cb4-8" title="8">pnd<span class="op">@</span>tx.counts &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(pnd<span class="op">@</span>tx.counts[, idx1] <span class="op">+</span><span class="st"> </span>pnd<span class="op">@</span>tx.counts[, idx2], pnd<span class="op">@</span>tx.counts[, idx3]))</a>
+<a class="sourceLine" id="cb4-9" title="9">pnd<span class="op">@</span>tx.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(pnd<span class="op">@</span>tx.tpm[, idx1] <span class="op">+</span><span class="st"> </span>pnd<span class="op">@</span>tx.tpm[, idx2], pnd<span class="op">@</span>tx.tpm[, idx3]))</a>
+<a class="sourceLine" id="cb4-10" title="10">pnd<span class="op">@</span>gene.counts &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb4-11" title="11">  pnd<span class="op">@</span>gene.counts[, idx1] <span class="op">+</span><span class="st"> </span>pnd<span class="op">@</span>gene.counts[, idx2],</a>
+<a class="sourceLine" id="cb4-12" title="12">  pnd<span class="op">@</span>gene.counts[, idx3]</a>
+<a class="sourceLine" id="cb4-13" title="13">))</a>
+<a class="sourceLine" id="cb4-14" title="14">pnd<span class="op">@</span>gene.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(pnd<span class="op">@</span>gene.tpm[, idx1] <span class="op">+</span><span class="st"> </span>pnd<span class="op">@</span>gene.tpm[, idx2], pnd<span class="op">@</span>gene.tpm[, idx3]))</a>
+<a class="sourceLine" id="cb4-15" title="15"></a>
+<a class="sourceLine" id="cb4-16" title="16">pnd<span class="op">@</span>type.readProp &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb4-17" title="17">  pnd<span class="op">@</span>type.readProp[, idx1] <span class="op">+</span><span class="st"> </span>pnd<span class="op">@</span>type.readProp[, idx2],</a>
+<a class="sourceLine" id="cb4-18" title="18">  pnd<span class="op">@</span>type.readProp[, idx3]</a>
+<a class="sourceLine" id="cb4-19" title="19">))</a>
+<a class="sourceLine" id="cb4-20" title="20">pnd<span class="op">@</span>type.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb4-21" title="21">  pnd<span class="op">@</span>type.tpm[, idx1] <span class="op">+</span><span class="st"> </span>pnd<span class="op">@</span>type.tpm[, idx2],</a>
+<a class="sourceLine" id="cb4-22" title="22">  pnd<span class="op">@</span>type.tpm[, idx3]</a>
+<a class="sourceLine" id="cb4-23" title="23">))</a>
+<a class="sourceLine" id="cb4-24" title="24">pnd<span class="op">@</span>type.tmm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(</a>
+<a class="sourceLine" id="cb4-25" title="25">  pnd<span class="op">@</span>type.tmm[, idx1] <span class="op">+</span><span class="st"> </span>pnd<span class="op">@</span>type.tmm[, idx2],</a>
+<a class="sourceLine" id="cb4-26" title="26">  pnd<span class="op">@</span>type.tmm[, idx3]</a>
+<a class="sourceLine" id="cb4-27" title="27">))</a>
+<a class="sourceLine" id="cb4-28" title="28">pnd<span class="op">@</span>phenoData &lt;-<span class="st"> </span>pnd<span class="op">@</span>phenoData[<span class="kw">colnames</span>(pnd<span class="op">@</span>tx.counts), ]</a>
+<a class="sourceLine" id="cb4-29" title="29"></a>
+<a class="sourceLine" id="cb4-30" title="30"><span class="kw">rownames</span>(pnd<span class="op">@</span>phenoData) &lt;-<span class="st"> </span><span class="kw">colnames</span>(pnd<span class="op">@</span>tx.counts) &lt;-<span class="st"> </span><span class="kw">colnames</span>(pnd<span class="op">@</span>tx.tpm) &lt;-<span class="st"> </span><span class="kw">colnames</span>(pnd<span class="op">@</span>gene.counts) &lt;-<span class="st"> </span><span class="kw">colnames</span>(pnd<span class="op">@</span>gene.tpm) &lt;-<span class="st"> </span><span class="kw">colnames</span>(pnd<span class="op">@</span>type.readProp) &lt;-<span class="st"> </span><span class="kw">colnames</span>(pnd<span class="op">@</span>type.tpm) &lt;-<span class="st"> </span><span class="kw">colnames</span>(pnd<span class="op">@</span>type.tmm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;mRNA_&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">rownames</span>(pnd<span class="op">@</span>phenoData)))</a></code></pre></div>
+</div>
+<div id="adults" class="section level2">
+<h2>Adults</h2>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">adult &lt;-<span class="st"> </span><span class="kw">load.Rdata2</span>(<span class="st">&quot;input/salmon_msus30_SC_adult.tds.RData&quot;</span>)</a>
+<a class="sourceLine" id="cb5-2" title="2">adult &lt;-<span class="st"> </span>adult[adult<span class="op">@</span>phenoData<span class="op">$</span>Group <span class="op">==</span><span class="st"> &quot;CTRL&quot;</span>]</a>
+<a class="sourceLine" id="cb5-3" title="3"></a>
+<a class="sourceLine" id="cb5-4" title="4">counts &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(pnd<span class="op">@</span>gene.counts, adult<span class="op">@</span>gene.counts[<span class="kw">rownames</span>(pnd<span class="op">@</span>gene.counts), ]))</a>
+<a class="sourceLine" id="cb5-5" title="5"></a>
+<a class="sourceLine" id="cb5-6" title="6">pData.pnd &lt;-<span class="st"> </span>pnd<span class="op">@</span>phenoData[, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">4</span>)]</a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="kw">colnames</span>(pData.pnd) &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Age&quot;</span>, <span class="st">&quot;Batch&quot;</span>, <span class="st">&quot;Cage.ID&quot;</span>)</a>
+<a class="sourceLine" id="cb5-8" title="8">pData.pnd<span class="op">$</span>Age[pData.pnd<span class="op">$</span>Age <span class="op">==</span><span class="st"> </span><span class="dv">7</span>] &lt;-<span class="st"> </span><span class="dv">8</span></a>
+<a class="sourceLine" id="cb5-9" title="9">pData.pnd<span class="op">$</span>Age[pData.pnd<span class="op">$</span>Age <span class="op">==</span><span class="st"> </span><span class="dv">14</span>] &lt;-<span class="st"> </span><span class="dv">15</span></a>
+<a class="sourceLine" id="cb5-10" title="10">pData.pnd<span class="op">$</span>Group &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;PND&quot;</span>, pData.pnd<span class="op">$</span>Age)</a>
+<a class="sourceLine" id="cb5-11" title="11"><span class="kw">rownames</span>(pData.pnd) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">rownames</span>(pData.pnd))</a>
+<a class="sourceLine" id="cb5-12" title="12"></a>
+<a class="sourceLine" id="cb5-13" title="13">pData.adult &lt;-<span class="st"> </span>adult<span class="op">@</span>phenoData[<span class="dv">3</span>]</a>
+<a class="sourceLine" id="cb5-14" title="14">pData.adult<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="dv">150</span></a>
+<a class="sourceLine" id="cb5-15" title="15">pData.adult<span class="op">$</span>Batch &lt;-<span class="st"> &quot;D&quot;</span></a>
+<a class="sourceLine" id="cb5-16" title="16">pData.adult<span class="op">$</span>Group &lt;-<span class="st"> &quot;Adult&quot;</span></a>
+<a class="sourceLine" id="cb5-17" title="17"></a>
+<a class="sourceLine" id="cb5-18" title="18">pData &lt;-<span class="st"> </span><span class="kw">rbind.data.frame</span>(pData.pnd, pData.adult, <span class="dt">stringsAsFactors =</span> F)</a>
+<a class="sourceLine" id="cb5-19" title="19">pData<span class="op">$</span>Age &lt;-<span class="st"> </span><span class="kw">as.factor</span>(pData<span class="op">$</span>Age)</a></code></pre></div>
 </div>
 <div id="new-salmon-object-for-sc-controls" class="section level2">
 <h2>New salmon object for SC Controls</h2>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">sc &lt;-<span class="st"> </span>pnd</a>
-<a class="sourceLine" id="cb4-2" title="2">sc<span class="op">@</span>phenoData &lt;-<span class="st"> </span>pData</a>
-<a class="sourceLine" id="cb4-3" title="3">sc<span class="op">@</span>norm.factors &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(counts)</a>
-<a class="sourceLine" id="cb4-4" title="4"></a>
-<a class="sourceLine" id="cb4-5" title="5"><span class="kw">colnames</span>(sc<span class="op">@</span>tx.counts) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>tx.counts))</a>
-<a class="sourceLine" id="cb4-6" title="6">sc<span class="op">@</span>tx.counts &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>tx.counts, adult<span class="op">@</span>tx.counts[<span class="kw">rownames</span>(sc<span class="op">@</span>tx.counts), ]))</a>
-<a class="sourceLine" id="cb4-7" title="7">sc<span class="op">@</span>tx.counts &lt;-<span class="st"> </span>sc<span class="op">@</span>tx.counts[, <span class="kw">rownames</span>(pData)]</a>
-<a class="sourceLine" id="cb4-8" title="8"></a>
-<a class="sourceLine" id="cb4-9" title="9"><span class="kw">colnames</span>(sc<span class="op">@</span>tx.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>tx.tpm))</a>
-<a class="sourceLine" id="cb4-10" title="10">sc<span class="op">@</span>tx.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>tx.tpm, adult<span class="op">@</span>tx.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>tx.tpm), ]))</a>
-<a class="sourceLine" id="cb4-11" title="11">sc<span class="op">@</span>tx.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>tx.tpm[, <span class="kw">rownames</span>(pData)]</a>
-<a class="sourceLine" id="cb4-12" title="12"></a>
-<a class="sourceLine" id="cb4-13" title="13">sc<span class="op">@</span>gene.counts &lt;-<span class="st"> </span>counts</a>
-<a class="sourceLine" id="cb4-14" title="14"></a>
-<a class="sourceLine" id="cb4-15" title="15"><span class="kw">colnames</span>(sc<span class="op">@</span>gene.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>gene.tpm))</a>
-<a class="sourceLine" id="cb4-16" title="16">sc<span class="op">@</span>gene.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>gene.tpm, adult<span class="op">@</span>gene.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>gene.tpm), ]))</a>
-<a class="sourceLine" id="cb4-17" title="17">sc<span class="op">@</span>gene.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>gene.tpm[, <span class="kw">rownames</span>(pData)]</a>
-<a class="sourceLine" id="cb4-18" title="18"></a>
-<a class="sourceLine" id="cb4-19" title="19"><span class="kw">colnames</span>(sc<span class="op">@</span>type.readProp) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.readProp))</a>
-<a class="sourceLine" id="cb4-20" title="20">sc<span class="op">@</span>type.readProp &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.readProp, adult<span class="op">@</span>type.readProp[<span class="kw">rownames</span>(sc<span class="op">@</span>type.readProp), ]))</a>
-<a class="sourceLine" id="cb4-21" title="21">sc<span class="op">@</span>type.readProp &lt;-<span class="st"> </span>sc<span class="op">@</span>type.readProp[, <span class="kw">rownames</span>(pData)]</a>
-<a class="sourceLine" id="cb4-22" title="22"></a>
-<a class="sourceLine" id="cb4-23" title="23"><span class="kw">colnames</span>(sc<span class="op">@</span>type.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.tpm))</a>
-<a class="sourceLine" id="cb4-24" title="24">sc<span class="op">@</span>type.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.tpm, adult<span class="op">@</span>type.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>type.tpm), ]))</a>
-<a class="sourceLine" id="cb4-25" title="25">sc<span class="op">@</span>type.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>type.tpm[, <span class="kw">rownames</span>(pData)]</a>
-<a class="sourceLine" id="cb4-26" title="26"></a>
-<a class="sourceLine" id="cb4-27" title="27"><span class="kw">rownames</span>(sc<span class="op">@</span>type.tmm)[<span class="dv">15</span>] &lt;-<span class="st"> &quot;repeat_family&quot;</span></a>
-<a class="sourceLine" id="cb4-28" title="28"><span class="kw">colnames</span>(sc<span class="op">@</span>type.tmm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.tmm))</a>
-<a class="sourceLine" id="cb4-29" title="29">sc<span class="op">@</span>type.tmm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.tmm, adult<span class="op">@</span>type.tmm[<span class="kw">rownames</span>(sc<span class="op">@</span>type.tmm), ]))</a>
-<a class="sourceLine" id="cb4-30" title="30">sc<span class="op">@</span>type.tmm &lt;-<span class="st"> </span>sc<span class="op">@</span>type.tmm[, <span class="kw">rownames</span>(pData)]</a>
-<a class="sourceLine" id="cb4-31" title="31"></a>
-<a class="sourceLine" id="cb4-32" title="32">sc<span class="op">@</span>libStats &lt;-<span class="st"> </span><span class="kw">rbind</span>(sc<span class="op">@</span>libStats, adult<span class="op">@</span>libStats[, <span class="dv">-5</span>])</a>
-<a class="sourceLine" id="cb4-33" title="33">sc<span class="op">@</span>cmd &lt;-<span class="st"> </span><span class="kw">rbind</span>(sc<span class="op">@</span>cmd, adult<span class="op">@</span>cmd[, <span class="dv">-6</span>])</a>
-<a class="sourceLine" id="cb4-34" title="34"></a>
-<a class="sourceLine" id="cb4-35" title="35">salmon &lt;-<span class="st"> </span>sc</a>
-<a class="sourceLine" id="cb4-36" title="36"><span class="kw">save</span>(<span class="dt">object =</span> salmon, <span class="dt">file =</span> <span class="st">&quot;./output/salmon_SC_controls.tds.RData&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">sc &lt;-<span class="st"> </span>pnd</a>
+<a class="sourceLine" id="cb6-2" title="2">sc<span class="op">@</span>phenoData &lt;-<span class="st"> </span>pData</a>
+<a class="sourceLine" id="cb6-3" title="3">sc<span class="op">@</span>norm.factors &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(counts)</a>
+<a class="sourceLine" id="cb6-4" title="4"></a>
+<a class="sourceLine" id="cb6-5" title="5"><span class="kw">colnames</span>(sc<span class="op">@</span>tx.counts) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>tx.counts))</a>
+<a class="sourceLine" id="cb6-6" title="6">sc<span class="op">@</span>tx.counts &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>tx.counts, adult<span class="op">@</span>tx.counts[<span class="kw">rownames</span>(sc<span class="op">@</span>tx.counts), ]))</a>
+<a class="sourceLine" id="cb6-7" title="7">sc<span class="op">@</span>tx.counts &lt;-<span class="st"> </span>sc<span class="op">@</span>tx.counts[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb6-8" title="8"></a>
+<a class="sourceLine" id="cb6-9" title="9"><span class="kw">colnames</span>(sc<span class="op">@</span>tx.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>tx.tpm))</a>
+<a class="sourceLine" id="cb6-10" title="10">sc<span class="op">@</span>tx.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>tx.tpm, adult<span class="op">@</span>tx.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>tx.tpm), ]))</a>
+<a class="sourceLine" id="cb6-11" title="11">sc<span class="op">@</span>tx.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>tx.tpm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb6-12" title="12"></a>
+<a class="sourceLine" id="cb6-13" title="13">sc<span class="op">@</span>gene.counts &lt;-<span class="st"> </span>counts</a>
+<a class="sourceLine" id="cb6-14" title="14"></a>
+<a class="sourceLine" id="cb6-15" title="15"><span class="kw">colnames</span>(sc<span class="op">@</span>gene.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>gene.tpm))</a>
+<a class="sourceLine" id="cb6-16" title="16">sc<span class="op">@</span>gene.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>gene.tpm, adult<span class="op">@</span>gene.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>gene.tpm), ]))</a>
+<a class="sourceLine" id="cb6-17" title="17">sc<span class="op">@</span>gene.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>gene.tpm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb6-18" title="18"></a>
+<a class="sourceLine" id="cb6-19" title="19"><span class="kw">colnames</span>(sc<span class="op">@</span>type.readProp) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.readProp))</a>
+<a class="sourceLine" id="cb6-20" title="20">sc<span class="op">@</span>type.readProp &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.readProp, adult<span class="op">@</span>type.readProp[<span class="kw">rownames</span>(sc<span class="op">@</span>type.readProp), ]))</a>
+<a class="sourceLine" id="cb6-21" title="21">sc<span class="op">@</span>type.readProp &lt;-<span class="st"> </span>sc<span class="op">@</span>type.readProp[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb6-22" title="22"></a>
+<a class="sourceLine" id="cb6-23" title="23"><span class="kw">colnames</span>(sc<span class="op">@</span>type.tpm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.tpm))</a>
+<a class="sourceLine" id="cb6-24" title="24">sc<span class="op">@</span>type.tpm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.tpm, adult<span class="op">@</span>type.tpm[<span class="kw">rownames</span>(sc<span class="op">@</span>type.tpm), ]))</a>
+<a class="sourceLine" id="cb6-25" title="25">sc<span class="op">@</span>type.tpm &lt;-<span class="st"> </span>sc<span class="op">@</span>type.tpm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb6-26" title="26"></a>
+<a class="sourceLine" id="cb6-27" title="27"><span class="kw">rownames</span>(sc<span class="op">@</span>type.tmm)[<span class="dv">15</span>] &lt;-<span class="st"> &quot;repeat_family&quot;</span></a>
+<a class="sourceLine" id="cb6-28" title="28"><span class="kw">colnames</span>(sc<span class="op">@</span>type.tmm) &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">names =</span> <span class="kw">colnames</span>(sc<span class="op">@</span>type.tmm))</a>
+<a class="sourceLine" id="cb6-29" title="29">sc<span class="op">@</span>type.tmm &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(<span class="kw">data.frame</span>(sc<span class="op">@</span>type.tmm, adult<span class="op">@</span>type.tmm[<span class="kw">rownames</span>(sc<span class="op">@</span>type.tmm), ]))</a>
+<a class="sourceLine" id="cb6-30" title="30">sc<span class="op">@</span>type.tmm &lt;-<span class="st"> </span>sc<span class="op">@</span>type.tmm[, <span class="kw">rownames</span>(pData)]</a>
+<a class="sourceLine" id="cb6-31" title="31"></a>
+<a class="sourceLine" id="cb6-32" title="32">sc<span class="op">@</span>libStats &lt;-<span class="st"> </span><span class="kw">rbind</span>(sc<span class="op">@</span>libStats, adult<span class="op">@</span>libStats[, <span class="dv">-5</span>])</a>
+<a class="sourceLine" id="cb6-33" title="33">sc<span class="op">@</span>cmd &lt;-<span class="st"> </span><span class="kw">rbind</span>(sc<span class="op">@</span>cmd, adult<span class="op">@</span>cmd[, <span class="dv">-6</span>])</a>
+<a class="sourceLine" id="cb6-34" title="34"></a>
+<a class="sourceLine" id="cb6-35" title="35">salmon &lt;-<span class="st"> </span>sc</a>
+<a class="sourceLine" id="cb6-36" title="36"></a>
+<a class="sourceLine" id="cb6-37" title="37"><span class="kw">rownames</span>(salmon<span class="op">@</span>phenoData) &lt;-<span class="st"> </span><span class="kw">colnames</span>(salmon<span class="op">@</span>tx.counts) &lt;-<span class="st"> </span><span class="kw">colnames</span>(salmon<span class="op">@</span>tx.tpm) &lt;-<span class="st"> </span><span class="kw">colnames</span>(salmon<span class="op">@</span>gene.counts) &lt;-<span class="st"> </span><span class="kw">colnames</span>(salmon<span class="op">@</span>gene.tpm) &lt;-<span class="st"> </span><span class="kw">colnames</span>(salmon<span class="op">@</span>type.readProp) &lt;-<span class="st"> </span><span class="kw">colnames</span>(salmon<span class="op">@</span>type.tpm) &lt;-<span class="st"> </span><span class="kw">colnames</span>(salmon<span class="op">@</span>type.tmm) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;SC_MS30|_CTRL_[0-9]+&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">rownames</span>(salmon<span class="op">@</span>phenoData))</a>
+<a class="sourceLine" id="cb6-38" title="38"></a>
+<a class="sourceLine" id="cb6-39" title="39"></a>
+<a class="sourceLine" id="cb6-40" title="40"><span class="kw">save</span>(<span class="dt">object =</span> salmon, <span class="dt">file =</span> <span class="st">&quot;./output/salmon_SC_controls.tds.RData&quot;</span>)</a></code></pre></div>
 </div>
 </div>
 <div id="filtering-gene-counts" class="section level1">
 <h1>Filtering gene counts</h1>
 <div id="function" class="section level2">
 <h2>Function</h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">counts_filter &lt;-<span class="st"> </span><span class="cf">function</span>(counts, <span class="dt">nReads =</span> <span class="dv">15</span>, <span class="dt">nSamplesPercent =</span> <span class="fl">0.4</span>) {</a>
-<a class="sourceLine" id="cb5-2" title="2">  counts2 &lt;-<span class="st"> </span>counts[<span class="kw">apply</span>(counts, <span class="dv">1</span>, <span class="dt">FUN =</span> <span class="cf">function</span>(x) {</a>
-<a class="sourceLine" id="cb5-3" title="3">    <span class="kw">sum</span>(x <span class="op">&gt;=</span><span class="st"> </span><span class="dv">15</span>) <span class="op">&gt;=</span><span class="st"> </span><span class="kw">floor</span>(<span class="kw">length</span>(x) <span class="op">*</span><span class="st"> </span><span class="fl">0.4</span>)</a>
-<a class="sourceLine" id="cb5-4" title="4">  }), ]</a>
-<a class="sourceLine" id="cb5-5" title="5">  <span class="kw">return</span>(counts2)</a>
-<a class="sourceLine" id="cb5-6" title="6">}</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">counts_filter &lt;-<span class="st"> </span><span class="cf">function</span>(counts, <span class="dt">nReads =</span> <span class="dv">15</span>, <span class="dt">nSamplesPercent =</span> <span class="fl">0.4</span>) {</a>
+<a class="sourceLine" id="cb7-2" title="2">  counts2 &lt;-<span class="st"> </span>counts[<span class="kw">apply</span>(counts, <span class="dv">1</span>, <span class="dt">FUN =</span> <span class="cf">function</span>(x) {</a>
+<a class="sourceLine" id="cb7-3" title="3">    <span class="kw">sum</span>(x <span class="op">&gt;=</span><span class="st"> </span><span class="dv">15</span>) <span class="op">&gt;=</span><span class="st"> </span><span class="kw">floor</span>(<span class="kw">length</span>(x) <span class="op">*</span><span class="st"> </span><span class="fl">0.4</span>)</a>
+<a class="sourceLine" id="cb7-4" title="4">  }), ]</a>
+<a class="sourceLine" id="cb7-5" title="5">  <span class="kw">return</span>(counts2)</a>
+<a class="sourceLine" id="cb7-6" title="6">}</a></code></pre></div>
 </div>
 <div id="counts-from-all-data" class="section level2">
 <h2>Counts from all data</h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">counts.filt &lt;-<span class="st"> </span><span class="kw">counts_filter</span>(<span class="dt">counts =</span> counts)</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">counts.filt &lt;-<span class="st"> </span><span class="kw">counts_filter</span>(<span class="dt">counts =</span> salmon<span class="op">@</span>gene.counts)</a></code></pre></div>
 </div>
 </div>
 <div id="differeitial-analysis-using-limma" class="section level1">
 <h1>Differeitial analysis using <code>limma</code></h1>
-<div id="function-for-differential-analysis-using-limma" class="section level2">
-<h2>Function for differential analysis using limma</h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">voomDupCor &lt;-<span class="st"> </span><span class="cf">function</span>(counts, mm, individuals, <span class="dt">tcoefs =</span> <span class="ot">NULL</span>) {</a>
-<a class="sourceLine" id="cb7-2" title="2">  <span class="co">## model matrix = model.matrix(~batch+group, data = desc)</span></a>
-<a class="sourceLine" id="cb7-3" title="3">  <span class="co">## individuals = sample/cage column from desc</span></a>
-<a class="sourceLine" id="cb7-4" title="4">  <span class="cf">if</span> (<span class="kw">is.null</span>(tcoefs)) tcoefs &lt;-<span class="st"> </span><span class="kw">colnames</span>(mm)[<span class="kw">ncol</span>(mm)]</a>
-<a class="sourceLine" id="cb7-5" title="5">  dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="kw">DGEList</span>(counts))</a>
-<a class="sourceLine" id="cb7-6" title="6">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm)</a>
-<a class="sourceLine" id="cb7-7" title="7">  dc &lt;-<span class="st"> </span><span class="kw">duplicateCorrelation</span>(v, mm, <span class="dt">block =</span> individuals)</a>
-<a class="sourceLine" id="cb7-8" title="8">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm, <span class="dt">block =</span> individuals, <span class="dt">correlation =</span> dc<span class="op">$</span>consensus.correlation)</a>
-<a class="sourceLine" id="cb7-9" title="9">  fit &lt;-<span class="st"> </span><span class="kw">eBayes</span>(<span class="kw">lmFit</span>(v, mm, <span class="dt">block =</span> individuals, <span class="dt">correlation =</span> dc<span class="op">$</span>consensus.correlation))</a>
-<a class="sourceLine" id="cb7-10" title="10">  tags &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit, tcoefs, <span class="dv">60000</span>))</a>
-<a class="sourceLine" id="cb7-11" title="11">  tags &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(tags), tags, <span class="dt">stringsAsFactors =</span> F)</a>
-<a class="sourceLine" id="cb7-12" title="12">  <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">DEA =</span> tags, <span class="dt">voom.norm.counts =</span> v<span class="op">$</span>E, <span class="dt">EList =</span> v))</a>
-<a class="sourceLine" id="cb7-13" title="13">}</a>
-<a class="sourceLine" id="cb7-14" title="14"></a>
-<a class="sourceLine" id="cb7-15" title="15">voomDupCor.s &lt;-<span class="st"> </span><span class="cf">function</span>(counts, mm, <span class="dt">tcoefs =</span> <span class="ot">NULL</span>) {</a>
-<a class="sourceLine" id="cb7-16" title="16">  <span class="cf">if</span> (<span class="kw">is.null</span>(tcoefs)) tcoefs &lt;-<span class="st"> </span><span class="kw">colnames</span>(mm)[<span class="kw">ncol</span>(mm)]</a>
-<a class="sourceLine" id="cb7-17" title="17">  dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="kw">DGEList</span>(counts))</a>
-<a class="sourceLine" id="cb7-18" title="18">  v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, mm)</a>
-<a class="sourceLine" id="cb7-19" title="19">  fit &lt;-<span class="st"> </span><span class="kw">eBayes</span>(<span class="kw">lmFit</span>(v, mm))</a>
-<a class="sourceLine" id="cb7-20" title="20">  tags &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit, tcoefs, <span class="dv">60000</span>))</a>
-<a class="sourceLine" id="cb7-21" title="21">  tags &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(tags), tags, <span class="dt">stringsAsFactors =</span> F)</a>
-<a class="sourceLine" id="cb7-22" title="22">  <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">DEA =</span> tags, <span class="dt">voom.norm.counts =</span> v<span class="op">$</span>E, <span class="dt">EList =</span> v))</a>
-<a class="sourceLine" id="cb7-23" title="23">}</a></code></pre></div>
-</div>
-<div id="function-for-running-differential-analysis" class="section level2">
-<h2>Function for running differential analysis</h2>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">run_DEA &lt;-<span class="st"> </span><span class="cf">function</span>(mat, pData, <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, group1, group2, <span class="dt">batch =</span> <span class="ot">NULL</span>, <span class="dt">cage =</span> <span class="ot">NULL</span>, <span class="dt">revGroup =</span> F) {</a>
-<a class="sourceLine" id="cb8-2" title="2">  pheno &lt;-<span class="st"> </span>pData[pData[, groupCol] <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(group1, group2), ]</a>
-<a class="sourceLine" id="cb8-3" title="3"></a>
-<a class="sourceLine" id="cb8-4" title="4">  <span class="cf">if</span> (revGroup) pheno[, groupCol] &lt;-<span class="st"> </span><span class="kw">fct_rev</span>(pheno[, groupCol])</a>
-<a class="sourceLine" id="cb8-5" title="5"></a>
-<a class="sourceLine" id="cb8-6" title="6">  tab &lt;-<span class="st"> </span>mat[, <span class="kw">rownames</span>(pheno)]</a>
-<a class="sourceLine" id="cb8-7" title="7"></a>
-<a class="sourceLine" id="cb8-8" title="8">  dea &lt;-<span class="st"> </span><span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb8-9" title="9"></a>
-<a class="sourceLine" id="cb8-10" title="10">  <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(cage)) {</a>
-<a class="sourceLine" id="cb8-11" title="11">    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(batch)) {</a>
-<a class="sourceLine" id="cb8-12" title="12">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, batch] <span class="op">+</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb8-13" title="13">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm, <span class="dt">individuals =</span> pheno[, cage])</a>
-<a class="sourceLine" id="cb8-14" title="14">    } <span class="cf">else</span> {</a>
-<a class="sourceLine" id="cb8-15" title="15">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb8-16" title="16">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm, <span class="dt">individuals =</span> pheno[, cage])</a>
-<a class="sourceLine" id="cb8-17" title="17">    }</a>
-<a class="sourceLine" id="cb8-18" title="18">  } <span class="cf">else</span> {</a>
-<a class="sourceLine" id="cb8-19" title="19">    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(batch)) {</a>
-<a class="sourceLine" id="cb8-20" title="20">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, batch] <span class="op">+</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb8-21" title="21">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor.s</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm)</a>
-<a class="sourceLine" id="cb8-22" title="22">    } <span class="cf">else</span> {</a>
-<a class="sourceLine" id="cb8-23" title="23">      mm &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>pheno[, groupCol])</a>
-<a class="sourceLine" id="cb8-24" title="24">      dea &lt;-<span class="st"> </span><span class="kw">voomDupCor.s</span>(<span class="dt">counts =</span> tab, <span class="dt">mm =</span> mm)</a>
-<a class="sourceLine" id="cb8-25" title="25">    }</a>
-<a class="sourceLine" id="cb8-26" title="26">  }</a>
-<a class="sourceLine" id="cb8-27" title="27">  dea<span class="op">$</span>pData &lt;-<span class="st"> </span>pheno</a>
-<a class="sourceLine" id="cb8-28" title="28">  <span class="kw">return</span>(dea)</a>
-<a class="sourceLine" id="cb8-29" title="29">}</a></code></pre></div>
-</div>
-<div id="dea-analysis" class="section level2">
-<h2>DEA analysis</h2>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">pnd8.pnd15 &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(</a>
-<a class="sourceLine" id="cb9-2" title="2">  <span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData,</a>
-<a class="sourceLine" id="cb9-3" title="3">  <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;PND15&quot;</span>,</a>
-<a class="sourceLine" id="cb9-4" title="4">  <span class="dt">revGroup =</span> T</a>
-<a class="sourceLine" id="cb9-5" title="5">)</a>
+<!-- ## Function for differential analysis using limma -->
+<!-- ```{r} -->
+<!-- voomDupCor <- function(counts, mm, individuals, tcoefs = NULL) { -->
+<!--   ## model matrix = model.matrix(~batch+group, data = desc) -->
+<!--   ## individuals = sample/cage column from desc -->
+<!--   if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)] -->
+<!--   dds <- calcNormFactors(DGEList(counts)) -->
+<!--   v <- voom(dds, mm) -->
+<!--   dc <- duplicateCorrelation(v, mm, block = individuals) -->
+<!--   v <- voom(dds, mm, block = individuals, correlation = dc$consensus.correlation) -->
+<!--   fit <- eBayes(lmFit(v, mm, block = individuals, correlation = dc$consensus.correlation)) -->
+<!--   tags <- as.data.frame(topTable(fit, tcoefs, 60000)) -->
+<!--   tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F) -->
+<!--   return(list(DEA = tags, voom.norm.counts = v$E, EList = v)) -->
+<!-- } -->
+<!-- voomDupCor.s <- function(counts, mm, tcoefs = NULL) { -->
+<!--   if (is.null(tcoefs)) tcoefs <- colnames(mm)[ncol(mm)] -->
+<!--   dds <- calcNormFactors(DGEList(counts)) -->
+<!--   v <- voom(dds, mm) -->
+<!--   fit <- eBayes(lmFit(v, mm)) -->
+<!--   tags <- as.data.frame(topTable(fit, tcoefs, 60000)) -->
+<!--   tags <- data.frame(Genes = rownames(tags), tags, stringsAsFactors = F) -->
+<!--   return(list(DEA = tags, voom.norm.counts = v$E, EList = v)) -->
+<!-- } -->
+<!-- ``` -->
+<!-- ## Function for running differential analysis -->
+<!-- ```{r} -->
+<!-- run_DEA <- function(mat, pData, groupCol = "Group", group1, group2, batch = NULL, cage = NULL, revGroup = F) { -->
+<!--   pheno <- pData[pData[, groupCol] %in% c(group1, group2), ] -->
+<!--   if (revGroup) pheno[, groupCol] <- fct_rev(pheno[, groupCol]) -->
+<!--   tab <- mat[, rownames(pheno)] -->
+<!--   dea <- NULL -->
+<!--   if (!is.null(cage)) { -->
+<!--     if (!is.null(batch)) { -->
+<!--       mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol]) -->
+<!--       dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage]) -->
+<!--     } else { -->
+<!--       mm <- model.matrix(~ pheno[, groupCol]) -->
+<!--       dea <- voomDupCor(counts = tab, mm = mm, individuals = pheno[, cage]) -->
+<!--     } -->
+<!--   } else { -->
+<!--     if (!is.null(batch)) { -->
+<!--       mm <- model.matrix(~ pheno[, batch] + pheno[, groupCol]) -->
+<!--       dea <- voomDupCor.s(counts = tab, mm = mm) -->
+<!--     } else { -->
+<!--       mm <- model.matrix(~ pheno[, groupCol]) -->
+<!--       dea <- voomDupCor.s(counts = tab, mm = mm) -->
+<!--     } -->
+<!--   } -->
+<!--   dea$pData <- pheno -->
+<!--   return(dea) -->
+<!-- } -->
+<!-- ``` -->
+<!-- ## DEA analysis -->
+<!-- ```{r} -->
+<!-- pnd8.pnd15 <- run_DEA( -->
+<!--   mat = counts.filt, pData = salmon@phenoData, -->
+<!--   groupCol = "Group", group1 = "PND8", group2 = "PND15", -->
+<!--   revGroup = T -->
+<!-- ) -->
+<!-- pnd8.adult <- run_DEA( -->
+<!--   mat = counts.filt, pData = salmon@phenoData, -->
+<!--   groupCol = "Group", group1 = "PND8", group2 = "Adult", -->
+<!--   revGroup = T -->
+<!-- ) -->
+<!-- pnd15.adult <- run_DEA( -->
+<!--   mat = counts.filt, pData = salmon@phenoData, -->
+<!--   groupCol = "Group", group1 = "PND15", group2 = "Adult", -->
+<!--   revGroup = T -->
+<!-- ) -->
+<!-- ``` -->
+<div id="limma-fit" class="section level2">
+<h2>limma fit</h2>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">design &lt;-<span class="st"> </span><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span><span class="st"> </span>(salmon<span class="op">@</span>phenoData<span class="op">$</span>Group))</a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="kw">colnames</span>(design) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;salmon@phenoData</span><span class="ch">\\</span><span class="st">$Group&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(design))</a>
+<a class="sourceLine" id="cb9-3" title="3"></a>
+<a class="sourceLine" id="cb9-4" title="4">dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="kw">DGEList</span>(<span class="dt">counts =</span> counts.filt))</a>
+<a class="sourceLine" id="cb9-5" title="5">v &lt;-<span class="st"> </span><span class="kw">voom</span>(dds, <span class="dt">design =</span> design)</a>
 <a class="sourceLine" id="cb9-6" title="6"></a>
-<a class="sourceLine" id="cb9-7" title="7">pnd8.adult &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(</a>
-<a class="sourceLine" id="cb9-8" title="8">  <span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData,</a>
-<a class="sourceLine" id="cb9-9" title="9">  <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;Adult&quot;</span>,</a>
-<a class="sourceLine" id="cb9-10" title="10">  <span class="dt">revGroup =</span> T</a>
-<a class="sourceLine" id="cb9-11" title="11">)</a>
-<a class="sourceLine" id="cb9-12" title="12"></a>
-<a class="sourceLine" id="cb9-13" title="13">pnd15.adult &lt;-<span class="st"> </span><span class="kw">run_DEA</span>(</a>
-<a class="sourceLine" id="cb9-14" title="14">  <span class="dt">mat =</span> counts.filt, <span class="dt">pData =</span> pData,</a>
-<a class="sourceLine" id="cb9-15" title="15">  <span class="dt">groupCol =</span> <span class="st">&quot;Group&quot;</span>, <span class="dt">group1 =</span> <span class="st">&quot;PND15&quot;</span>, <span class="dt">group2 =</span> <span class="st">&quot;Adult&quot;</span>,</a>
-<a class="sourceLine" id="cb9-16" title="16">  <span class="dt">revGroup =</span> T</a>
-<a class="sourceLine" id="cb9-17" title="17">)</a></code></pre></div>
+<a class="sourceLine" id="cb9-7" title="7">contrast.matrix &lt;-<span class="st"> </span><span class="kw">makeContrasts</span>(PND15 <span class="op">-</span><span class="st"> </span>PND8, Adult <span class="op">-</span><span class="st"> </span>PND8, Adult <span class="op">-</span><span class="st"> </span>PND15, <span class="dt">levels =</span> design)</a>
+<a class="sourceLine" id="cb9-8" title="8">fit &lt;-<span class="st"> </span><span class="kw">lmFit</span>(v)</a>
+<a class="sourceLine" id="cb9-9" title="9"></a>
+<a class="sourceLine" id="cb9-10" title="10">fit2 &lt;-<span class="st"> </span><span class="kw">contrasts.fit</span>(fit, contrast.matrix)</a>
+<a class="sourceLine" id="cb9-11" title="11">fit2 &lt;-<span class="st"> </span><span class="kw">eBayes</span>(fit2)</a></code></pre></div>
+</div>
+<div id="dea-results" class="section level2">
+<h2>DEA results</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">pnd8.pnd15 &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit2, <span class="dt">coef =</span> <span class="dv">1</span>, <span class="dt">number =</span> <span class="ot">Inf</span>))</a>
+<a class="sourceLine" id="cb10-2" title="2">pnd8.pnd15 &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(pnd8.pnd15), pnd8.pnd15, <span class="dt">stringsAsFactors =</span> F)</a>
+<a class="sourceLine" id="cb10-3" title="3"></a>
+<a class="sourceLine" id="cb10-4" title="4">pnd8.adult &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit2, <span class="dt">coef =</span> <span class="dv">2</span>, <span class="dt">number =</span> <span class="ot">Inf</span>))</a>
+<a class="sourceLine" id="cb10-5" title="5">pnd8.adult &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(pnd8.adult), pnd8.adult, <span class="dt">stringsAsFactors =</span> F)</a>
+<a class="sourceLine" id="cb10-6" title="6"></a>
+<a class="sourceLine" id="cb10-7" title="7">pnd15.adult &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(<span class="kw">topTable</span>(fit2, <span class="dt">coef =</span> <span class="dv">3</span>, <span class="dt">number =</span> <span class="ot">Inf</span>))</a>
+<a class="sourceLine" id="cb10-8" title="8">pnd15.adult &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">Genes =</span> <span class="kw">rownames</span>(pnd15.adult), pnd15.adult, <span class="dt">stringsAsFactors =</span> F)</a></code></pre></div>
+</div>
+<div id="venn-diagram" class="section level2">
+<h2>Venn Diagram</h2>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">results &lt;-<span class="st"> </span><span class="kw">decideTests</span>(fit2)</a>
+<a class="sourceLine" id="cb11-2" title="2"><span class="kw">vennDiagram</span>(results)</a></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABgAAAAYACAMAAACHMHNZAAADAFBMVEUAAAABAQECAgIDAwMEBAQFBQUGBgYHBwcICAgJCQkKCgoLCwsMDAwNDQ0ODg4PDw8QEBARERESEhITExMUFBQVFRUWFhYXFxcYGBgZGRkaGhobGxscHBwdHR0eHh4fHx8gICAhISEiIiIjIyMkJCQlJSUmJiYnJycoKCgpKSkqKiorKyssLCwtLS0uLi4vLy8wMDAxMTEyMjIzMzM0NDQ1NTU2NjY3Nzc4ODg5OTk6Ojo7Ozs8PDw9PT0+Pj4/Pz9AQEBBQUFCQkJDQ0NERERFRUVGRkZHR0dISEhJSUlKSkpLS0tMTExNTU1OTk5PT09QUFBRUVFSUlJTU1NUVFRVVVVWVlZXV1dYWFhZWVlaWlpbW1tcXFxdXV1eXl5fX19gYGBhYWFiYmJjY2NkZGRlZWVmZmZnZ2doaGhpaWlqampra2tsbGxtbW1ubm5vb29wcHBxcXFycnJzc3N0dHR1dXV2dnZ3d3d4eHh5eXl6enp7e3t8fHx9fX1+fn5/f3+AgICBgYGCgoKDg4OEhISFhYWGhoaHh4eIiIiJiYmKioqLi4uMjIyNjY2Ojo6Pj4+QkJCRkZGSkpKTk5OUlJSVlZWWlpaXl5eYmJiZmZmampqbm5ucnJydnZ2enp6fn5+goKChoaGioqKjo6OkpKSlpaWmpqanp6eoqKipqamqqqqrq6usrKytra2urq6vr6+wsLCxsbGysrKzs7O0tLS1tbW2tra3t7e4uLi5ubm6urq7u7u8vLy9vb2+vr6/v7/AwMDBwcHCwsLDw8PExMTFxcXGxsbHx8fIyMjJycnKysrLy8vMzMzNzc3Ozs7Pz8/Q0NDR0dHS0tLT09PU1NTV1dXW1tbX19fY2NjZ2dna2trb29vc3Nzd3d3e3t7f39/g4ODh4eHi4uLj4+Pk5OTl5eXm5ubn5+fo6Ojp6enq6urr6+vs7Ozt7e3u7u7v7+/w8PDx8fHy8vLz8/P09PT19fX29vb39/f4+Pj5+fn6+vr7+/v8/Pz9/f3+/v7////isF19AAAACXBIWXMAAB2HAAAdhwGP5fFlAAAgAElEQVR4nOzdZ4AURd6A8f9sIGdQkWQGBDMGEM+AoGfGwBGMr3pmjJhAQb1TVIyHYj5PRT1FUUHBcOYsImYxg4qARMmwod7p2jSbJ3R1TXc9vw+6k6prd5l+Znt6ukUBAJwkticAALCDAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowgAADiKAACAowhA3LJJTwJwyqTlttc72YAAxP1dADjmNNvrnWxAAOIGSZ9BABzSW/5me72TDQiA8gLwpO0pAAjSEwTAQwAUAQCcQwA0AqAIAOAcAqARAEUAAOcQAI0AKAIAOIcAaARAEQDAOQRAIwCKAADOIQAaAVAEAHAOAdAIgCIAgHMIgEYAFAEAnEMANAKgCADgHAKgEQBFAADnEACNACgCADiHAGgEQBEAwDkEQCMAigAAziEAGgFQBABwDgHQCIAiAIBzCIBGABQBAJxDADQCoAgA4BwCoBEARQAA5xAAjQAoAgA4hwBoBEARAMA5BEAjAIoAAM4hABoBUAQAcA4B0AiAIgCAcwiARgAUAQCcQwA0AqAIAOAcAqARAEUAAOcQAI0AKAIAOIcAaARAEQDAOQRAIwCKAADOIQAaAVAEAHAOAdAIgCIAgHMIgEYAFAEAnEMANAKgCADgHAKgEQBFAADnEACNACgCADiHAGgEQBEAwDkEQCMAigAAziEAGgFQBABwDgHQCIAiAIBzCIBGABQBAJxDADQCoAgA4BwCoBEARQAA5xAAjQAoAgA4hwBoBEARAMA5BEAjAIoAAM4hABoBUAQAcA4B0AiAIgCAcwiARgAUAQCcQwA0AqAIAOAcAqARAEUAAOcQAI0AKAIAOIcAaARAEQDAOQRAIwCKAADOIQAaAVAEAHAOAdAIgCIAgHMIgEYAFAEAnEMANAKgCADgHAKgEQBFAADnEACNACgCADiHAGgEQBEAwDkEQCMAigAAziEAGgFQBABwDgHQCIAiAIBzCIBGABQBAJxDADQCoAgA4BwCoBEARQAA5xAAjQAoAgA4hwBoBEARAMA5BEAjAIoAAM4hABoBUAQAcA4B0AiAIgCAcwiARgAUAQCcQwA0AqAIAOAcAqARAEUAAOcQAI0AKAIAOIcAaARAEQDAOQRAIwCKAADOIQAaAVAEAHAOAdAIgCIAgHMIgEYAFAEAnEMANAKgCADgHAKgEQBFAADnEACNACgCADiHAGgEQBEAwDkEQCMAigAAziEAGgFQBABwDgHQCIAiAIBzCIBGABQBAJxDADQCoAgA4BwCoBEARQAA5xAAjQAoAgA4hwBoBEARAMA5BEAjAIoAAM4hABoBUAQAcA4B0AiAIgCAcwiARgAUAQCcQwA0AqAIAOAcAqARAEUAAOcQAI0AKAIAOIcAaARAEQDAOQRAIwCKAADOIQAaAVAEAHAOAdAIgCIAgHMIgEYAFAEAnEMANAKgCADgHAKgEQBFAADnEACNACgCADiHAGgEQBEAwDkEQCMAigAAziEAGgFQBABwDgHQCIAiAIBzCIBGABQBAJxDADQCoAgA4BwCoBEARQAA5xAAjQAoAgA4hwBoBEARAMA5BEAjAIoAAM4hABoBUAQAcA4B0AiAIgCAcwiARgAUAQCcQwA0AqAIAOAcAqARAEUAAOcQAI0AKAIAOIcAaARAEQDAOQRAIwCKAADOIQAaAVAEAHAOAdAIgCIAgHMIgEYAFAEAnEMANAKgCADgHAKgEQBFAADnEACNACgCADiHAGgEQGVjAE6USpp16Xvxy0UVNz/iXblzQdVHve9dXXbt/pVGaN1j/9Gzimtb3JoZM37w/XsI8rso/uTmEw/uN3jE1BUGvo0kFXXRc3yrnrt5317fegfzvu/XM5uPWz/9lBEAjQCoEARA6/FM+c36ySs3Vn1UHU9ebasna0nAgyKDq1y1W9UHd8ve76L4iR3KV3MXL059nv54s2QGZ9ZzN1sBiPhPP2UEQCMAKiwBEBle9gKu5MnbuOqr9vqevCL959S4uAHVA9C66kN9CoCB7+LPQYk3dnwz9Yn64rSS5bfdUPfdUg/ADWPGjFmb+nzc+umnjABoBEBlawBiTcvklD29RpXeXPLklf2rvBir9uTNKR2gSaxshM7f17C0+TnVArCk2vM+zQCY/y7W7lN5oo3fT32mPlhXlswX6r5f6gFoG/96WeoTcuqnnzoCoBEAla0B6Fl+af03U4aWPL1Kn12lT155sPKjqj159y+7pWD+e6N76Id0+LH60s6RagH40K8AmP8uzvWuyB0+fe7yD+7ezPt6kz9Tn2rmnin7QR1b9/0CDYAzP/3UEQCNAKjsD4Dno27es+vAkgtlT942Cyvdp/Ynr6fofm9NIvsUqSruj1UPwKPxqw6dlejrLP0uZufGL272ecmF1X/3brw89alm7pj4gjseHf9P09V13s9SADwR/umnjgBoBECFIwDq56bx62Ilb7J5T96G3mp7SKW71P3kVeq7Dt4d7q503ZqpB+v1QJUAXB2/6upQfBeXewOWb3lev2P84qbVGmfe8obxBV/8pDe1/9Z5R4sBiO5PPw0EQCMAKiQBUBd5z7xJ+kvvybvZcO/y84n3qO/Jq2Y3jl/ZqvwV6sorj+xatm24SgCOj1/1eCi+C2+dM7Dixhe8R8/MdOape8Bb7qervKkdXucdbQYgsj/9NBAAjQCosATgKe/JdZ3+Uj95V3SK/7dz4q7X9T551VjvHg+VXfpVKlQJwJ7xqz4OxXfRIv71PypuW+Dd9lSmM09dP+97LdYbgvKX1HVHqwGI6k8/DQRAIwAqLAH43ntyXaC/1E9eNdW7YnjCPep/8q7fNHH1U0cANo5flfG7eUF8F4VS5W8Vb5V0b6YzT9lvsZI1q94GVH3xxTMfu3nc4x97e9xYDUBEf/rpIAAaAVChCsDZ+suSJ68aHP9fLGG3u/qfvCXbAH4rvbDk2BLdqgXgz/g17cPxXXh7X15bcZPef/WZao8wbZy32DlK6W1A+1a5cfllnUoqu+U/1yUGwNtr5teE+3m/h9JdLMsCMCmh0bNSm5JDP/10EACNAKiwBED/+V7yxmzpk3eB9/Tbbn35PZJ48n7s3WVylSvPqxaAT+LX/CWzb0EF9F3sHP/yqIqbXvZu+iTjqadqp7IfmLcNKPZbpdumblyxEt/+K6sBiOhPPx0EQCMAKiwB0C+8HtVflj55S955rNgEm8STt6BR/OrLqlxZPQDeloxT1IapIwbue8TfJ9Tw0YHs+S5ujn+Z807ZLRt2jV/cttaDHpnylTdnvWvME95XNyfe9mhuwkpcOkyyGYBo/vTTQgA0AqBCEoA5zbzXln/or8uevMX7xb9o8E3ZXZJ48irvKdq/ynXVA3Bd/Jrr7uxQtur5yxvZ+10s6xj/eouvSi6s1sdjmJjWbDPh7Q1Z8t6v3gbUK+GmGXr93/hvd0+ZeEnn+FetUwrA/OnTpzePfz0p/v8U35Nx56efFgKgEQAVjgDM0B/iObjkQtmTV33nvRj7S9mO18k8eb39O7ercl31AJwcv6ZV4gvX4fUc4cbid/Gpt4LMO+/lX/786B79WdSRaUw1M0Xeckv3/vS2Acns8pvWdfcuHzBXX1g/quSnmXwAPL69CRzRn356CIBGAFT2B2D9ty8cV7LmKN0zs/zJW7JPXtnHcpJ58np7fneqcl31AFQ5wEvcIYVZ+13M3Dpxovnjgt8E8ba34NJ/Q3ob0Jjymx7yLh5Rns+bbQUgwj/99BAAjQCobA1ADQfyKttUW/Hk3eAdirfFvJKrk3nyXhG/ummV66oHoKNe3D4P/7h6+Rf/6qkvpPEJ/6C+ixW9K9ZAjT5IfZ4ZOz2+4OZrSr7W24C2KV8NeofV3rRi9V3cP9AAOPHTTw8B0AiAytYAVHde4qF8Nyv58iPvmX1kydfJPHn1y70qr9KqBWC1d6cG95XerfAGbyf3WOoHAwrou5g/LHH47q+lPM9MrW8TX+5JZZf0NqAZpRf0Ry3uTLjvjEAD4MJPP00EQCMAKiwB6Pxo+c0JT151gXfb0/rLZF+9NatyXbUAfBG/Iu+5isu3ewMPzdLv4q2W3gPytz3qpD4lb1tcFPRWiOe8pb5SdklvA7ow4ULD5Qn3Ld7OZgCi+NNPEwHQCIAKQwCabz30kXUVNyc+eVd6q5GSjQzJPHm9w/d2rnJdtQCsmDVrVuKZQor38tZja6oN9uDYcs9XuzGg7+Ij713IdvfqM6YUv+8dkUEuCXgd9Ddv7uXvkehtQB1KL46Qqp/7He5bAPjpZ4IAaARAZWsAqu7DnSDxyaumec+607yvkt2DY4cq11V/D6CqZ72RX6p2da+K1cuJlr6L1e3jX3b7veyGIr2ne7C/zj+93WguqListwGVbgo5QSofaUGpf/sWAH76mSAAGgFQYQ+A0hthvUPyJrsP9wFVrqs/AKvy4ne5odrVPq6C0v0uvK1TDb6ruKXIe5d1x0BfhD4oNTi15LZDpdLB0uKez8YAhPinny4CoBEAFfoALPTeg+y6NvlPcY6qcmX9AVDenkAjql3r5yooze9im7KXrmU+KFuVBaZ/TQFoVbK1xZv/rZXu/VZWBiC8P/10EQCNAKjQB6BkX/NRyR/H5bkqVyYRgH0rXtQmL4DvYp23g1Kls/AWe1slJqQ61QzMKz9ZbiXP6huPin91TaW7T689ANukFoB6uPHTTxsB0AiACn8A9M7leZ8n8+S90LvL/CpXJhEA73gBlyYz80QBfBffel99W+lG7w3ri1Kdagb0Z7u275vA26++9Ad6ilR9D+CR2gOwicUAhPWnnzYCoBEAFf4AqB+9HU92L6z/ybvOe4G2T9VrkwiAt/PizXXfpboAvovPvTv/VOlWr1VnpjrVDOwSX16TlYnXrPLOvNhYn2ZljFTdC+jiWgOwIc9iAML6008bAdAIgIpAAEoOR39b/U/ea717PFr12qoB+Cx+OfZL4j1WeuumF1P4BrQAvos/vC/frnTrNtW2uhj1tTeD4ypfd6x33SPeV945Eit9DkD1rjUAH4nNAITzp58+AqARABWFABR4x2Vv+t/6nrzfeK/y2q6tOlzVABRtXPVZ7B2VuOFqlaIAvosi7+CaYxJv/cV7eManM06ePr5blTbqU+Me5H21yPsqcZv4bKkcgM8qbrrCbgBC+dNPHwHQCICKQgDUTO/T/J3refJ+653MTx6oNly1TUDewUATzxRb6O1wUve5zmsSxHfhvdhuvyrh5vPjV+Slsb5MU/Hm3gQKKl+5oV38ylx92GXvG+iQ8CfAoCoBqDh48spN7AYgjD/9DBAAjQCoSARAf+RU6nzyFt3vrUmkf/W9tKsFwDshmBxRdtQYVXyJd/nDFL+HYL6Ll7xLw8qnqqZ7h98/MuWppu0db/kXVr32LO9afQggfUaXI8uPBvofSQiA95L7wLJvpPh0qSMAC1OfmQs//QwQAI0AqGgEYPUWdT15Cxd+OKaHvrnznOrDVX8T+CDvrkNLz2y46CTv0qDs/C5KDq95WOmxLNff2sB7CTpbBeZMb/HVToKos7CX99UGby0vB5Vs6i+8KScxAPqtgptKVqYbLpa6AvBy6jNz4aefAQKgEQAVjQCUnI61ypM3p9rBgDf7SVVXPQD61FHS+NRbn5t69zBvnxbZZnkND8yG7+JHfcbdBkdc8dgz159UchjrlHdXSt96b+3cs9ofVfoMMaLXk5/le182OfaB6ZPGdI1/tUO38gBM1bPt99z3K767ZzuRjc+oOQDeo1qfct6QH6oupW4O/PQzQQA0AqAiEgB92JkqT95qBsytabgadgN9qVHlB3b7Pmu/i5ntqtycxpkL0jbFW+D11a+/vOL6SXmJk9t4Tq/yABRX+gxxw/fG1hyAY0vv4MM5gRNE4aefCQKgEQAVlQAsalffk3frSTUfpaWmzwG8vWXiIwel9b5eQN/Fb/0Sb27zdDpTTddgqbrHbAm9h3zpQfemt6+YXc+vVUUA1LI+Fbd0flfVEoA5bQILQMh++pkgABoBUFEJgHq0jidvq237XTmrtoN01fhBsFU3dSt9bNOjPkr9O/AE9V0Uv3pI2R8s296yotrNBq3w9oncr6Zbtvdm82XpvUZ1Lpld+5GrVWIAVMFNpbe0Hb5Y1RYA9du52zVrsW3/mrbe1SH6P/2MEACNAKhsDEBWKP5l8h3XjnvojXX139W6dW/+56Zr736m6kEuskXxJ4/dOvahNwuq31L46QM3XP+fV9cHPycfZflPv0YEQCMAigAAziEAGgFQBABwDgHQCIAiAIBzCIBGABQBAJxDADQCoAgA4BwCoBEARQAA5xAAjQAoAgA4hwBoBEARAMA5BEAjAIoAAM4hABoBUAQAcA4B0AiAIgCAcwiARgAUAQCcQwA0AqAIAOAcAqARAEUAAOcQAI0AKAIAOIcAaARAEQDAOQRAIwCKAADOIQAaAVAEAHAOAdAIgCIAgHMIgEYAFAEAnEMANAKgCADgHAKgEQBFAADnEACNACgCADiHAGgEQBEAwDkEQCMAigAAziEAGgFQBABwDgHQCIAiAIBzCIBGABQBAJxDADQCoAgA4BwCoBEARQAA5xAAjQAoAgA4hwBoBEARAMA5BEAjAIoAAM4hABoBUAQAcA4B0AiAIgCAcwiARgAUAcjQotnvvPDondddOvy0QQP799+jV1y3bbz/9urf/9BBJ5916TW3P/Tcm1/OL7A90bAomP/lm889dPs1l5518qBD+/fXP8ptunn/3aN//4GDTht+6XV3PvrCO7MX2Z5omBEAjQAoApCOonnvT7p1xHH799w4R5LVqttfBp93/cS3fl5ve/bZaP3Pb028/rzBf+nWKukfaM7GPfc/bsStk96fV2R79qFDADQCoAhASlZ/+uTY0/pvmV+xGmrTtc9fh5xx6fW33fPE5Fdeef/juNk/eP+d8corU568/47rR5193KF79dgkt2LF1XGvE656+IOltr+X7LD0g4evOmGvjhUhzd2kx16HHnf2qOvvuP/JKa+8MsP7Wf4w2/vv+6+8MvmJe267/tIzhvy1T9c2Fb+D/C37nzb2yU9X2/5ewoMAaARAEYAkLX377uH9u8RKVzntdzvy3LEPvfjFgsKkB1jy9RsTb7loSN/OeaVjtOt76q0v/2Zwylnut5dvPbVvu9IfRl7nvkMuumXiG18vSfrxhQu+ePGhseceuVv70jFiXfoPv/ttwpoEAqARAEUA6lU8+4nLD+5Yso5psO3Ai+6cNntdJuMV/vza/aOG7NKsdMvQvuc+MHODX3MNhw0zHzh339JtPc12GTLq/td+Tj6kNVg3e9qdFw3ctkHJiB0PvvyJ2cV+zTWaCIBGABQBqNPcJy7er0XJimq3/xs37YeM1lNVzHttwpn7lrwCbrj7mQ986cSW7KIvHzhz94YlfwHte+aE1+b5OHbhD9PG/d9uJWFtsd/FT8z1ceyIIQAaAVAEoDbr373pqA56ZdLpsCsm/WDqJeW86WOHdNdbwFseMGb6CkNLyQorpo85oKV+F6T7kLHT/Vz1Jyr+YdIVh3XSv7gOR930Lm+514QAaARAEYCarPnf6H0be6uQtoeMmTrf/PL+fH3c4C76HdBe509ebH55wVs8+fxe+n3wLoPHvf6n+eXNnzrmkLbe8hrvO/p/a8wvL2QIgEYAFAGoquDtq/f1tlHEep7+n9lBLnje0yP6eLsX5ex80Qsrg1ywaStfuGhn72+c/D4jnjb1ur9Gs/9zek/vbfuG+179Np/DSEQANAKgCEAlP919pLfJP6fXhc9aeSG++rWr9mvkvdm83/WzIvE+ZvGs6/fz3pxttN9Vr1nZTXPxsxf28urT4si7f7Kx/OxEADQCoAhAuYI3Lt7W22jQffhkq7sSrn11VG9va8mmp04O+R8CKyefuqm3Xav3qFfX2pzH0snDu3u/2W0vfoM/BDQCoBEARQBKrHxyaGtvp8yj782KfUeWPHmK9z5mwwPvDuAdCDPm332gtyWt0ylPJr9rv0Fz7z3a2/G09dAnQ15VXxAAjQAoAhC35IFDve0uPbLrBeKn1/aJ/yGQs+e4EG66+Gncnjnxl/59rv3U9kwSxP/E6+FtjTr0gaxIkk0EQCMAigAseeCv+fH17F43/2h7JtX98eDh3s5Iu934s+2ZpOLnG3fzdr85/ME/bM+kuh9v3itepvy/Ot4AAqARAOV4ANY8flgDkbwD711oeya1WfXUsOYisT7js3BtWpM/xveJiTQf9tQq2zOpzcJ7D8wTaXDY4w7vHUoANAKgXA5A0cvHx9eteQfcl+V73q+ZPLRZfJ4HTcz6NdaaiQfF163Nhk7O8pkuvu+A+DybH/+yE5++rgEB0AiAcjcAs0d2Cs8r65K/VFqe+nYW7xta/PapLcPzyrrkL5VOIwP9qEfWIAAaAVCOBmD1Q3uJyFZXZ+F2/9osmbBHfMpdb8zSjVULb+wan94eE0K0bf3Hq7eKT3mvhxw8jDQB0AiAcjIAn57VSqT5yW9l8cvpGn1zWcf4S+xjXsq6eRe/dEz8D5SOl31jeyIpKn7r5OYirc7Kpn2VAkEANAKg3AvAuol7xl/39Xkga9+krEvh1CPyRLa+KateZy+5aWuRvCOm+nmo1MCseqBP/J/DnhMzOsJ36BAAjQAo1wLw28iNRVoO/8L2PNI379ouIo1PzpoXrZ+e3Fiky7WBHuTHX18Mbymy8UiXzs1DADQCoNwKwPtD8kV2uieUL/4rFD53YI7IvpOz4BV34eR9RXIOfC4LppKJVffsJJI/5H3b8wgMAdAIgHIoAEVP9RbJG/yu7Xn44fvzW4hsOd5yyVaN31Kkxfnf252FP94dnCfS+ylH9gslABoBUM4EYM2ErUXaXvar7Xn4ZcXt3vdzxQJ7M1hwRVuRrW+PzDlsfr3M+34mhGIn1kwRAI0AKEcCsPy6jUW2uiNSO/wVTd5TpPHZc+wsfc7ZjUX2nBypV8yr79hKZOPrltueh3kEQCMAyokALBrZUmT3SSHfUF2DdwfmSP6JFj7LNPvEfMkZGImtaZUUTtpdpOXIRbbnYRoB0AiAciAAC0c0Fen3P9vTMOOr4/MkZ+hXAS90aI7kHR/wQoPyv34iTUdk6cft/EIANAKgIh8Ab/UfO+wD29Mw5+czG0rOkADXxl8NyZGGZ/4c3AKD9sFhsagngABoBEBFPABLR8ZX/0fMtD0Ns349O56A434IZmE/HBdf/Z8dmffSazbziHgCRlo9L5xZBEAjACrSAVj5z1bx1f8ntqdh3m/nNJT80wNYK/96er40PMeBj0x9Ek9Aq39G9uRhBEAjACrCAdgwYRORAR/ankYw5pycJ40vXWZ2IcsubSx5J1va7ShoHw4Q2WTCBtvTMIMAaARARTYAxZO6ivR53fY0gvPt4Ji0ucngIW3W3dRGYoO/NbeAbPN6H5Guk7LuyHt+IAAaAVBRDcAH8Sdvt8m2ZxGsGf1ENn/C0Aqr+InNRfrNMDN4tprcLf4iIoo7EBAAjQCoaAZg7rCYtL87m87wHozpO4jsaWSj14d7iuww3cTIWa3g7vYSGzbX9jR8RwA0AqCiGIDVoxtL45GRfQOvLoX3xldYx/t+ZM55x8eDem/0PkiXhJUj4/+YRkfqI+SKAJQiACqCAZjURWJDo/eiLUkrLm8kzW9c7+eQ629sLo0uj8wxf1I1d2hMukyyPQt/EQCNAKjIBeCb/UV2fsf2LGz6aaBIt5f9G+/lbpElnrEAACAASURBVCIDf/JvvPB5Z2eR/cN2trM6EQCNAKiIBWD1yAbS9i4nt1UkeKm7yJDf/Rnr9yEi3V/yZ6zQKryrrTQYGaHtQARAIwAqWgGYuoXknJZVp0u0Y8MNTaXF7T50sPD2FtL0hojuDJ+KJaflyBZTbc/CNwRAIwAqSgGYP0hkZ3fO6lSnuUeI7JbxaSM/3U3kCGffTqns/Z1FBs23PQufEACNAKjoBKD4vtbS7DbXt/5UmNJF8i/L6Owmay7Lly5T/JpP6BXe1kxa3xeNz4URAI0AqMgE4Kf9RA7mxWqCleflyjZvpf/4t7aR3POc3Jm2NnMPFtkvEm+HEwCNAKiIBKBofFPZ5HHbs8g2H+4gOcPTPG/wquE5soMjB1JK3uObSNPxETgLGgHQCICKRgB+2Ftk2GLbs8g+G67Kly1fT+eRr28p+Vfx5m81i4eJ7B3QkbcNIgAaAVBRCEDx3c1k0+dszyI7fbaL5FyQ8jsBay7IkV0+MzGf8HtuU2l2d9jfCSAAGgFQEQjAvL/GX/5H+OQdmSm4Ol+2TfEYbjO2lfyr3TuSUpKWxv8I+KvvR9sIFgHQCIAKfwCeaiNtw/0dGPZxD8n/Zwp7RxX+M196fGxuPuH3ZFtp85TtSWSEAGgEQIU9AKtOETnYpw+9RtXaC3Jk76R3kJq7t+RcsNbkfMLv94NFTknz3fWsQAA0AqBCHoAZXaXxnWHfIGveKx2k1X+Tu+t/W0mHV8zOJgKK72wsXUN8cgQCoBEAFeoAFN/SQHb8yvYswmDxQJFTk3gveM2pIgPZnSoJX+0oDW4J7UsPAqARABXmACw+TGLnGjwHYqTc3Vi2q7eVX20nje8OYjYRsO7cmBwW1lYSAI0AqBAH4L3O0uZZ25MIj8+3lSYP1n2XB5vItp8HMplIeLaNdH7P9iTSQwA0AqDCG4Db8mVPDv2QglUniZxax7u7a08VOSnM72wGbu6ekn+b7UmkhQBoBECFNQArBkvsXD6pmpqHm8hOtX6Kde7u0ujeIGcTAQVjYnLEMtuzSAMB0AiACmkAvukuLSfbnkT4fLqNtHqh5pteaCXbZHz4aPdMbindQ3iuMAKgEQAVzgA800J2/N72JMLoz6Mk5x817LtS/I8cOerP4OcTft/vKC2esT2JlBEAjQCoMAag6IqYDIvQ+fmCVHxdrhxRbU3/5xGSe11o92m0a/UwiV0RtgOEEgCNAKgQBmDFYZJ3i+1JhNeLbaRHlTcCfughbV60M5souCVPDlthexKpIQAaAVDhC8CP20nb12xPIsy8H+CriVe82la2+9HWbKLgtdD9AAmARgBU6ALwejvpGa4nW9ZZcbjkT6i4OCFfDg/ZC9hs82NPafe67UmkggBoBECFLQAPNpBDWVtlqOjymJxXenzQwvMkdnnYNmFnnRWHSoMHbU8iBQRAIwAqXAEoHilyEWurzD3SUA7Tp/tdeZg0fMT2bCKg6CKRkeF5G50AaARAhSoAawdLHoeq8cVbbWXneUrN21naZnDeeFS4O08Gh+Yo2gRAIwAqTAFY+hdp+ZLtSUTF912ly5dfdpGufJ7CJy+1lL+E5cR0BEAjACpEAZjTQzpxqDLfLO4rzZtL37AezzILfd5JesyxPYnkEACNAKjwBODTDrL9r7YnESVr9hDZI+XzxaN2v24vHcJxOA0CoBEAFZoAvNVK9ltuexKRMiFHJGdC/fdD0pbvJ61C8ZYKAdAIgApLAKY2loGheYstFK6X2JjbYnKp7XlEyvrB0jAMp4snABoBUCEJwH/y5IxC25OIkuLhknufUvflyvDw7LwYAoVnSN5/bE+ifgRAIwAqHAG4IyZX2p5DpBSeJI304bQnN5KTKKufrpTYHbbnUC8CoBEAFYoAXC+xm23PIVLWD5KmL5d8+UZzOZzzKvvpjhy5yvYc6kMANAKgwhCAUZJzn+05RMrag6VV+cls32slB/Puip/uy5FRtudQDwKgEQAVggBcLPmP2Z5DpKw5QDb6pOLiJxvJAewN6qfH8uVi23OoGwHQCIDK+gAUny8NnrY9iUhZ3V82+SLxim86yN4rbc0mkp5vKGdm9XvrBEAjACrbA1A8XBpOsT2JSFm1j3SochbbeAH2WWVnNhE1pWF2711FADQCoLI9AOdLo1rOYo60rN5XOn1X9crvOsm+nGPTTy80kvNtz6EOBEAjACrLAzBCGk6zPYdIWdNfOtZw+LfvO0p/3gfw07SGMsL2HGpHADQCoLI7AJdJg6m25xAp6w6UTb+t6YZvN5UD2RvUT1MbyGW251ArAqARAJXVAbhG8p+xPYdI2XC4bPJ1zTd9vYkcviHY2UTcM/lyje051IYAaARAZXMAbpXcbJ1aOBUNlbZf1HbjF21lKCdb89OTuXKr7TnUggBoBEBlcQD+E4vx+S8/FZ8uLT6q/eZZreWkbN5zJXweyondY3sONSMAGgFQ2RuASbky3vYcomWENKnzWMVvNcnm9y3DaLzkTrI9hxoRAI0AqKwNwP8ayrW25xAtN0qDF+u+x4sN5MZg5uKKa6Xh/2zPoSYEQCMAKlsDMKO5nG17DtHycCz2UH33eTwndn8Qc3HHRdLkvfrvFTgCoBEAlaUB+G4jOY7t0X6akpfMFrXxksfnrv1UfJxsVO1zd/YRAI0AqOwMwMKt5CD2SfTTB02SO6PCldLkA9NzccqGg2SrhbYnUQ0B0AiAysoArO4tvTg6mZ9+3EROSe6eZ0q7Gj8phjRl5T9mAqARAJWNASg8RLZcYHsSkfLH1nJQQXJ3LThItv7D7Gwcs2BLOSTbTrpGADQCoLIxAOfwItRfa/um8CJ0ZS/pywli/PRtOznH9hyqIAAaAVBZGIDbpMHrtucQKcXHScffkr/7/M1kEG/A++mdRnK77TlURgA0AqCyLwDT8mKP2J5DtFwpzT9L5f5ftZTRpubipidjOc/ankMlBEAjACrrAvBFc7na9hyi5bFY3vTUHjE9L8ZJOH11tTSv9SBMNhAAjQCobAvAoi3kWLY/+GlGY7kj1cfcIY1nmJiLs4qPlS0W2Z5EAgKgEQCVZQHYsJ/04tRUfprfSU5O/VFnyKa/+j8Xh63tLXuttz2JCgRAIwAqywJwlnT83fYcImVdb9k3jY/UbdhXenN+GD/93lHOsj2HCgRAIwAquwJwP5sefHZKmpseFm2R7CfHkJwZjSV7jrNEADQCoLIqAB80lH/bnkO0TJDGM9N75GdN5S5/5+K6iZL/ju05lCEAGgFQ2RSABZ3kXNtziJZ3G0jau/M8Jg3e9XMuOFc6ZcsH3AmARgBUFgWgYF/ZmyPA+WlBB7kw/UdfKB2yZX0VDRv2ln2TPCCHaQRAIwAqiwJwmWzKCsdPhf1knwxWOAX7SL9sO4ZNuC3YVC6zPYcSBEAjACp7AjA1lvem7TlEy0jZZF4mj4//ATHKr7nA815+bLLtOWgEQCMAKmsC8HNrTkfor2k5ea9nNsLreTnTfJkKSt0orX+2PQcPAdAIgMqWAGzoLUfwCWA//baRjM10jLGyUQpHkUO9io+Q3tnwPhcB0AiAypYAXCydF9ueQ6QU7S9/Lcp0kOLDZG/eBvDTss3lEttzUASgFAFQWRKA6bG8rNlHOhpGyybzMx/ljw4yJvNRUOHD/FgWnHWZAGgEQGVHABZsLNfbnkO0vJWb+5of47yWm/uWH+OgzPWysf2d3QiARgBUVgSg+CAZkPHmCiRYtplc4c9IV8hmy/wZCVrRADnI+rtdBEAjACorAnCbtMtof0VUNVR29em9xoI+cow/I6HEgk3snx+MAGgEQGVDAL5oJM9YnkLEPCzNf/BrrB+ay8N+jQXPM9LI9tlhCIBGAFQWBGD9TnKa3RlEzdyW8qB/oz0oLef6NxqUOk12snxuAAKgEQCVBQG4XLZcYXcGEVN8oBzh53jHSD/eofHTqm1kpN0ZEACNACj7AXgvN4dDQPjqVtnI1/1MFrWX2/wcD/F/83b3rSIAGgFQ1gOwpmu2HCArKr5tLM/5O+Jz0vhbf0d03WXSdY3N5RMAjQAo6wG4UHbIonOlRkDRXnKS32OeJHuxEchP63fI5EDdmSMAGgFQtgPwfm4eJ4H01a3SYanfYy7vzEYgf83Kz3nb4uIJgEYAlOUArO3OEYf99X0Ted7/UZ+XJt/7P6rLRkn3tfaWTgA0AqAsB+By6bnO3tIjqHg/OcHEuCfIftY/vhop63rK5faWTgA0AqDsBuCz/JwPrC08kh6QjZeYGHfJxvKAiXHd9UFO/mfWFk4ANAKgrAagqA9ngffXgtbyuJmRH5OWHK7DV8NlN2uH2iYAGgFQVgNwm3ThI2C+GiwHmxr6YBlsamg3rehi7511AqARAGUzAL81l6mWFh1RL0qzOabGntNMXjQ1tpumSnNb51sjABoBUDYDcIwcbWnJEbWum9xkbvRxsrXF/Vai6CgZZGnJBEAjAMpiAF6SJsZerrpptGxn8ISzBTtydjB//drMxC67ySAAGgFQ9gKwdiuTL1dd9F3DmNHzar4Ta/idyfHdc5NsZeePKgKgEQBlLwD/kO0LrCw4sg6Wk80u4GRzbzG7qWB7+YeVBRMAjQAoawH4tan4ctJalJkqLX43u4SFrWxtsoiqt2ONrWwGJQAaAVDWAjCIvQr9tb6r+b0Kb7W1ySKy/mZnTUwANAKgbAXgDWn6i4XFRthY6WnwHeASG3rKWNPLcMsvTeUNC4slABoBUJYCULSLpY2fkbWghbxifimvSAtfzzWDf8guFo60TQA0AqAsBeAB6bQ6+KVG2d/l8CAWcxjnb/bXms3k38EvlQBoBEDZCcDKTeWxwBcaaV/l5Qdy0q4fGuTaO4RZJD0qm/wZ+EIJgEYAlJ0AjJbeHFzYVwcEdVi9c+WAYBbkiuLeMjrwhRIAjQAoKwGY30zeDXqZ0faKtDJyFOjqlrQK4r0Gl7wrzeYHvUwCoBEAZSUAp8uRQS8y2op7yY1BLesG2ZHzA/tqoJwR9CIJgEYAlI0AfJuf+1XAi4y4R6RjYO+pr+0iE4Nalhtm5+V+HfAiCYBGAJSNAAxiTxJ/bdhSHgxuaQ/KlsY/cOCW0wI/KigB0AiAshCAT2KNObeUr+6SHgGeW6qwh9wV3NJcMK9x7JNgl0gANAKgLATgYBkR7AKjbm0neTrI5T0lm/IhDl9dJIcEu0ACoBEAFXwA3pVmCwNdYOTdJL0C3am2eHe5OcjlRd+iFvJmoAskABoBUMEHYH8Luz1H2qqNZXqwS5wuG68KdolRN1r2D3R5BEAjACrwALwrLZcGubzou1H6BL3IvWRc0IuMtuWt5a0gl0cANAKgAg9Af7kqyMVFX/wPgJeCXuaL0m5l0MuMtjEyIMjFEQCNAKigA/AefwD4bJz0Dn6he3E6T38F/CcAAdAIgAo6AH/lxOL+WtM+6HcAPNOl/ZrglxplY+SvAS6NAGgEQAUcgFmxpouDW5oLxsvONo6rt5vcYWGpEbakucwIbmkEQCMAKuAAHC2XBLcwF2zYXCbbWO7T0nm9jeVG18VyTHALIwAaAVDBBuCbnIZ8CNhXD8q2Vg7NVryd/MfGcqNrQeOcLwNbGAHQCIAKNgD/J2cFtiwnFPeQh+0s+WHpwSkdfHWW/F9gyyIAGgFQgQZgXoPcH4JalhumSCdLB2Yr2Eym2llyVP2Ul/9rUMsiABoBUIEG4FL+2flsb7nF1qJvln1sLTqiBsllQS2KAGgEQAUZgBWt5P2AFuWIGdJiua1lx3+bH9hadjR9JC2COjswAdAIgAoyALfL3gEtyRVD5FJ7C79UhthbeCTtLbcHtCQCoBEAFWAAirvKs8EsyRXz8vMC22qcbUuPomdk64B26SIAGgFQAQbgOdk8wNOWuOByu6/BB8tIm4uPnqItZUowSyIAGgFQAQagn703LKNpTVu776m8J204MYyvbg7qqNAEQCMAKrgAfB1rZu0Ny2h6QHa3O4Hd5QG7E4ia5c1iwZwengBoBEAFF4Bz5OxAluOOXrY+BFbmIdnJ7gQi5ywZHshyCIBGAFRgAVjZUj4PYjnueF/arbU7g3Ubsyeov76KNQ9kT1ACoBEAFVgAJvC5IZ+dYHMf0BKXyIm2pxAxe8tdQSyGAGgEQAUWgB3lv0Esxh1LG+X8aHsOP+Y04vQ+vvqv7BjEYgiARgBUUAH4UNqtC2AxDrk90DOI1OJA+ZftKUTL+o3lowAWQwA0AqCCCsDfZUQAS3HJjvKU7SkoNUm2tz2FiLlITgtgKQRAIwAqoACsaiHB7N/mjA9kE0vHAU20ob18aHsO0TI71myF+aUQAI0AqIAC8ID8xfxCnHJqdpxb7RI51fYUIuYvQXy4ggBoBEAFFIC/yIPmF+KS1S3kG9tz8HwjLfg0sK8eDOK1EgHQCIAKJgA/xZoG8HetSx6RPranUKK3TLQ9hWhZ1Sxm/qxJBEAjACqYAFwpJxlfRtLWzJhRxzNs+YwZs4KbS9r6y922p1DiLhlgewqV1fLrXXjH2Uf0P/GK96qfx7L4y3FnHTXo3Bu/qOEUl7U/ypwTZbTxZRAAjQCoQAJQvLm8ZnoZyXtQZHCtNxYfJNI2wMmk6ZecRstsz6HEskY5v9ieQyU1/np/PyZPSmxTZd+pov92K71Fuj9anOyjTHpNNjfeGwKgEQAVSADels0COs55MgbUFYDbJRQBuDF7nsB/kxttT6GSmn69L28kFU5P3Htq0T4Jt8jhy5N7lFFFm8nbppdBADQCoAIJwBlyuelFJG9+Th0B+KxhOAKwkzxnewplnpWdbU8hUU2/3k8aJ67l5ZyKW37ZstItst+6ZB5l2GVypulFEACNAKggArChnXxheBEpOEdqD8CaHhKKAHwtrbPmc9Xr28qXtueQoIZf79Iu3m/1gGnzV356cVPvy/KDqK7bzbvY/vovVi59/yK9vv97Eo8y7Stps97wIgiARgBUEAGYKjsYXkIK7o/VEYCzJBwBGBXIx0WTdJqMsj2FCjX9ekd5v9SrS7arz/Q262xadhTVK71bBpbuoDZnh/iF2Gf1P8q4HWSq4SUQAI0AqCACcJyMNbyEZK2ZerBexdcSgCkSkgBsLa/bnkKF12Vr21MoVfOvd0nz+FXl67uXvDtMSLhl34Kym5ZtEb94aL2PMm+sHGd4CQRAIwAqgACsaynfm11CUlZeeWTXnNLtuTUH4Pd2IQnAx9I+i86uXLSpzLQ9h7p+vbfEr8n/vfzi0fGL25Z8eWv8y9yfK+75mvcnwML6HmXej7Hmhv/aIAAaAVABBOAZ2dXsApLza8IbejUGoKh//JZjwhCASwN8RzIJZ8tltqdQ1693//g1gyouvuLd42f95V8TX+THFe8ev+L++h4VgF7yrNkFEACNAKgAAnCsXG92AcmpNwDjvNXBlDAEYCt5w/YUEr0hW9meQh2/3hX58WuerrhctFHZ1pziJvGv/p1433/Grzi8nkcF4Xo51uwCCIBGAJT5AKxvKeY/2p6EJceW6FZLAGbGn/Kdl04NQQBmyaZZ9LEKvQ3I/oena/316s33CxKuOKLstf1y75b3Eu87PX7FZvU8Kgg/SEuz+wERAI0AKPMBmJ5lZw4/r+YArOoqEntThSEAo83vJ56aM2SM7SmUq/br/Vf5Sr3U2PgV+rRb33sr+Uq7sM7wrllV96MCsaO8aHR8AqARAGU+AKfLVUbHT1UtATg1fvVIFYoA7CAv2Z5CZS8GuGqsT7Vfr/fBgL0Sr5gYv6Kpt3vnHG91Pz3xpre8a2bW/ahAjJEzjI5PADQCoIwHoGhT+dTk+CmrOQBPxa/ddUMoAvCz6e0DKdvQSqyfnrhMtV/vgeXb9UtN89by8+JfrPa+qHRKy4e8a6bV/ahAzJJNjG7lIwAaAVDGA/CBbGFy+NTVGIBfWsdf332nQhGAW2Wo7SlUNVRutT2FMtV+vb3iV5yYeMUH3qr8E++rTeNfVNqadqx305P1PCoQW8gHJocnABoBUMYDcIWcZ3L41NUUgELvkGD6REwhCMD+8rjtKVT1mPS3PYUy1X693eNXXJB4xbfeqvwd76sT4l+0W1Nxyy8NpGy/oDoeFYhz5UqTwxMAjQAo4wHYSV42OXzqagrAtfHrjtYbeLM/AH82yF1iew5VLc3LX17/vQJR7dfbOX7FNYlXLPJW5fpdlGe9ryrOrFmwv5RvFKrjUYF4yewh9giARgCU6QDMizXLmsOWlaghAB/kinRcrL/M/gBMkn3Se2BdJz7J1N4S4AHz61Tt19s2fsX4xCsKvFX5ZO+rou28L28q/XksO6zkUwT31POoQKxvHvvV4PAEQCMAynQA7pGjDI6ejuoBWLGlSOzVkq+zPwD/Jzek87BaTnwye1ZNPqtjoBrdIP+XzqQMqPbr9T7BdXviFWu8n8Ek/eVr+uARfR6Zu27ZR6PblP54Hq3vUYE4qiREhhAAjQAo0wE4Uu41OHo6qgfghIQNAVkfgOIO8nkaD6vtxCe9pCZNUx3+M2kf5FkT61Dt17t5/IpKOyLP877D0t3sb678fV/unQ7iuXofFQSzr5wIgEYAlOEAFLSUn8yNnpZqa4jH4lfsXLZjZdYHIL1Vba0nPvEpAGlmyYBqv96e8Ssq7Yfwpfcdlr2de29ewrc9aoP331frf1QA5kgLg+cgIwAaAVCGA/C2dDc3eHqqriF+biHS+JuyS1kfgBvT2dhS+4lPfAqAOknGpT4tE6oFwDvA2/GJV7ztfYflx6744vCyb7r7G2qp9/9vk3hUALqZzA0B0AiAMhyAK7NtJ9Dqa4iT4pfvLr+U9QHon85OoLWf+KTmAOyS8hIez5YdQasFwDuIz6GJV+izPvxWcXnuXaccut+Qy94v9v68EskvSOpRxp1nckdQAqARAGU4AHvK8+YGT0/VNcTgGleBabwIDsTaxjmLUn5QXSc+qapwb5FWqR+9b1FO48BOmFWnagG4JH5F38QrvI/7Nqt5M9qk+E09U36UGc/LnuYGJwAaAVBmA7AyP+9PY4OnKdwBeC2dQ+vVdeKTqq6L3zQtjYntmCUnKasWgPvjV3RIvOKa+BW1nKFijJQd8jOVR5mxIj9vhbHBCYBGAJTZALwgfYyNna5wB+BKuTD1B9V14pMqZuRJegfvu0BGp/Mw31ULwPvebzNxn/pD4pdPqPnBfeI33ZfyowzpLemEODkEQCMAymwARngH2MwyVdcQl+yYaPP4rTneF72tTbBOfdM4X3hdJz6pwjsodp+Cmm6pz9TKW0ysqRaAgpbxax6ruFzonfjzEf3lj88888yrCXf9w/tYwPz6HhWUkTLC2NgEQCMAymwAdpX/GRs7XbUcDrpUlr8JvLpBburb1Oo68UkVp4k0+S6tmf2Z22B1Wg/0WfVf79/i1xxWcfFFb3vY4vIv8xZX3ORtAdq93kcF5X8GNzkRAI0AKKMBWJmXv8rU2GkLdQDSWinUdeKTyryD46R73sNe8mr9dzKv+q/X+5xH7pzyi0fGL+5X8uVS7xX/XeW3LGyT8Cq/9kcFZXUDc28CEACNACijAXhRsnBDSqgDMKbyISqTM8db3ddy4pNKFrYT6Zvuni7nZ8eJf6r/ejd4Oz0dWXbJeylf/ole7+g/beeWXig8IH6pe2H9jwrKHuYOPkcANAKgjAZgVMKhFrNGqAPQL53jkdV14pNKzhDJSfuzTk/L/uk+1E81/Hof8L7b0SVh+9g7yM+eZZH7n3fLTiWfAlzsrf8Tfry1PyooF8sVpoYmABoBUEYDsG8a71gaF+YAFDSL/ZHGw+o48Umir3NFzk57bn/EmqX17rHPavj1lhzmuf/0+Us/vtB7P7xJxSnqjvFuyTt5wrQHT2/qfXlhUo8KyFTZ19TQBEAjAMpkAAqaxlL/0JJxYQ7Ax9ItnYfVceKTRIeJtM7gVANda9ioFLyafr2Lt6i0h+/TFbcs277SLYcWJPWogCyONTGVVAKgEQBlMgBprq4MC3MAxstJ6TysjhOfJHg9ft3YDCZ3otyRwaP9UuOv97f9Klbk7aYk3rKwX8UtOdcUJvmogJhLKgHQCIAyGYDxlc+qmiXCHIBhCUctSkEdJz5JuFOv+GpuZQaTu0uOzeDRfqn511s4YaeSb7rtOVVO7F74721Lbmn6fx8n/6hgnGAsqQRAIwDKZACOS9jFDn7YStLbEF37iU8qTIxfldERPT+VrTJ5uGlfPXX72IffWF/9huLvH7np+olv1Ny+Wh8VhLvkOEMjEwCNACiTAeiWFRuFI2RJrElh/feqSa0nPim3bjOR1hl9aqOwSSzrTlYcbjONbUMlABoBUAYDsDynkcFTWrjoRdkr3YfWduKTco/Gr7k4s+n1DfCk6U7Y0Ci2zMzIBEAjAMpgAF6TPcwM7Kxr5fy0H1vLiU/K7SmS83Nm0ztPrstsAFSxu6lDrBIAjQAogwEYV3nfc2TsKHk4g0fXeOKTMrPi1wzMcHoPGz2NrYvONHWeNQKgEQBlMABDazniMNK1hXzlz0AVJz4pc1r8mkzP3fOVbJHhCKjsfhlqZmACoBEAZTAA2/IesL+WxRqn+R5wVRUnPikbuolI20zfsSlsElua4RCo5GPpYWZgAqARAGUuAGty87LjJIGR8Ub5sYozVXHik1K3x684I+Nhd5M3Mx4DCdbl55o5xjYB0AiAMheAD2U7I+O66zb5e3oPrOPEJyWKu8WvyHzlfarcnvEYSNRTPjIyLgHQCIAyF4D7s+KDoVFyioxP74F1nfhE806A2DbzzUvj5ZSMx0CiYw29j0YANAKgzAXgAnYK9FnvdHcKrOvEJ9qV8SuGZDK1Eq9l4Smgw+3adE4BnQQCoBEAZS4AB1T5qCkyVNxS0jkWtKeOE59oveLXPJjR5LSF0iLoY+ZH3LNyoJFxCYBGAJS5AHSUH4yM66xfpF26D63rxCdxC7xr/Djc2UbyaYmgQwAAIABJREFUqw+joNz30snIuARAIwDKWACW+7bPIkq8KPuk/dg6TnwS95/4Nb4cyG2fwE+bGHGFjWPLTYxLADQCoIwF4CPZycSwDrs9g09W13XiE6X+VucRslNwRrWTDCAzO8oME8MSAI0AKGMBeIR/Yj47W25N/8F1nfikoJV3toAMZ6fdIuf4MQzKDZKJJoYlABoBUMYCcKVcaWJYh/WXFzJ4dB0nPnlbfPkUQNzzMsCPYVDuChltYlgCoBEAZSwAgyvvaIiMdcnwXfU6T3zij+9lM4Oju+hhP3bPrY4AaARAGQtAL/nAxLDuWpuTb+oU4b4pyM/h8B+++kB6mRiWAGgEQBkLQKu0d1pHjb7J7jMulthSZtueQrQslNYmhiUAGgFQpgKwTJoZGNVlL4Rh+3p/mWZ7ChHTTEycFIwAaARAmQrATNnewKguu0NOsz2F+v1d7rQ9hYjZTj4xMCoB0AiAMhWAp+VwA6O6bISMtT2F+o2VEbanEDGHy9MGRiUAGgFQpgJwi5xrYFSXDZLHbU+hfo+xYvHZ8Ew+/VErAqARAGUqABeYOpups3rLO7anUL+3OR6oz240cjxQAqARAGUqAMfIEwZGdVlH+cX2FOo319DBy9z138rn7vQJAdAIgDIVgN7yroFRHVaQm5v1HwMIyyzD5F3pbWBUAqARAGUqAJ1ljoFRHfardLA9hWR04IDQ/pojnQ2MSgA0AqAMBaA4P7bO/1Fd9qGZj4T6bRdDJ7F11rpYfpH/oxIAjQAoQwH4Q9r4P6jTnpNDbE8hGQfLFNtTiJjWssj/QQmARgCUoQB8Jj39H9Rpd8uptqeQjFPkHttTiJge8rn/gxIAjQAoQwF4Rfr5P6jTrpFRtqeQjFFyje0pREw/ecX/QQmARgCUoQA8ZuYotg4bLrfZnkIybuUDgD4bbOIDgARAIwDKUABu59RQPhsqj9qeQjImyjDbU4iYs02cZpMAaARAGQrAaLnK/0GdNkBesj2FZLwoB9ieQsSMkTH+D0oANAKgDAXgbBnv/6BO20WqnskxK30su9ieQsSMl7P9H5QAaARAGQrAkHBssAiRzeQn21NIxo+yue0pRMxEGer/oARAIwDKUAAOkuf9H9RprWSJ7SkkY7GZM1g5bKoc7P+gBEAjAMpQAPqE4dCVYVKUEyu0PYdkFMZyDHxw1WVvy57+D0oANAKgDAVgW/nS/0Fdtlya255CcprJn7anEC1fSA//ByUAGgFQhgLQSeb6P6jLfpWOtqeQnI4cDc5fRo6wTQA0AqAMBaC1LPV/UJd9I91sTyE5XWW27SlEyxITh9UiABoBUIYCkC/r/R/UZaHZvXJnmWl7CtGyThr4PygB0AiAMhOADZLn+5hue1P+YnsKydlL3rI9hYjJkw2+j0kANAKgzARgubT0fUy3TZcDbU8hOQfKdNtTiJiWstz3MQmARgCUmQAskE18H9Ntz8hA21NIzhHyrO0pRMzGstD3MQmARgCUmQDMNXIeO5f9NyzP2EHyhO0pREwn+cX3MQmARgCUmQB8J1v7PqbbHpLjbU8hOcfJw7anEDFbyfe+j0kANAKgzATgS04I5rP7wnFCMO+UYPfbnkLE9JCvfB+TAGgEQJkJwCzZyfcx3TZBzrQ9heScKRNsTyFidpJZvo9JADQCoMwE4GPp5fuYbhsfljPsnC132J5CxOxi4JMVBEAjAMpMAD6S3Xwf0223h+VUi8NNnMDKabvKDN/HJAAaAVBmAvCB7OH7mG67Tc6zPYXknBeOcxeHyB7yge9jEgCNACgzAXhfevs+pttukQtsTyE5F8gttqcQMb3lfd/HJAAaAVD8BRAO/AXgLP4CMIYAKN4DCAfeA3AW7wEYQwAUewGFA3sBOYu9gIwhAIrPAYTDBDnD9hSScwafA/AZnwMwhgAoPgkcDnwS2Fl8EtgYAqA4FlA4cCwgZ3EsIGMIgOJooOHA0UCdxdFAjSEAivMBhAPnA3AW5wMwhgAoU2cEa+H7mG7jjGDOasEZwUwhAIpzAocD5wR2FucENoYAKDMBUA1knf+Dumym7GJ7CsnZWT6xPYVoWSsN/R+UAGgEQBkKQGtZ4v+gLpstXW1PITnbyLe2pxAti6WN/4MSAI0AKEMB6Cxz/R/UZb9KR9tTSE5H+dX2FKLFyB51BEAjAMpQAHrK5/4P6rI/pZntKSSnqaywPYVo+Uy2839QAqARAGUoAHvK2/4P6rLiXCmwPYdkFEhuse05RMtb0tf/QQmARgCUoQAcLFP9H9RprWWx7SkkY5GJLdZOmyKH+D8oAdAIgDIUgKEy0f9Bnba5/Gh7Csn4QbawPYWIeUSG+T8oAdAIgDIUgLNlvP+DOm0X+dj2FJLxcVh2Vw2N8XK2/4MSAI0AKEMBGCNj/B/UaQfIi7ankIzQfGI5NEbLVf4PSgA0AqAMBcDIyxanHSuP2J5CMh6W42xPIWLOMnGGHQKgEQBlKACPy2D/B3XaeXKr7Skk4xY53/YUIuZv8l//ByUAGgFQhgLwivTzf1Cn/UNG2Z5CMkbJP2xPIWL6ySv+D0oANAKgDAXgC+nh/6BOu1dOsT2FZJws99meQsRsK1/6PygB0AiAMhSARdLa/0GdNkUOtj2FZBzEB0B81srEB0AIgEYAlKEAFDeQtf6P6rIZ4di/cudw7K0aHmulgYGPVhMAjQAoQwFQneVnA6M67FfZ1PYUkrEpx4Lz189Gzq5KADQCoEwFoLe8Y2BUhxXk5vp/XhDfbcjNDcUhi8LjHeltYFQCoBEAZSoAg+RxA6O6rJPMsT2F+pl5veqyx4ysqgmARgCUqQBcJDcaGNVloTjAqpFDVzrtBhlhYFQCoBEAZSoAt8lwA6O6bLA8ansK9ZsoQ2xPIWLOkdsNjEoANAKgTAXgaTncwKguu1jG2p5C/cbKxbanEDGHy9MGRiUAGgFQpgIwU7Y3MKrL7pDTbE+hfn+XO21PIWK2k08MjEoANAKgTAVguTQ1MKrLpkl/21Oo3/4y3fYUIqaZLDMwKgHQCIAyFQDVWhaaGNZd38hWtqdQvy1ltu0pRMsCM2dYIwAaAVDGAtBL3jcxrLvW5eRn/S72Bfk562zPIVrel14mhiUAGgFQxgIwWB42MazDusj3tqdQn+9kM9tTiJiHzOxWRQA0AqCMBWC0XGFiWIcNkBdsT6E+z8sBtqcQMaPMnFqPAGgEQBkLwET+ifnsbLnFj2H+XPDjpx9/+ErcU08//ZT3/w8//vTHBX/6MfbNco4fw6DcIDOf/iAAGgFQxgIwQ3Y0MazD/iVnpPfAtXPee/aef15w/EF9enRoKrVq2qFHn4OOv+Cf9zz73pw0D+V6hvwrvQeiFjvKDBPDEgCNAChjAfgz1rjQxLjuekn2Se0B89+beO2Zh27fpvJ6vvlGW+7Qa7f+cUcNGnSU9//deu2w5UbNK9+rzfaHnnntxPfmp7bEfeSl1B6AuhU2jvnyp1lVBEAjAMpYAFSn7H/PMlx+lXZJ3nPpu/++7Ojtm5StzBt02uPwU0fe8tAL73zxy4raH7Xily/eeeGhW0aeevgenRqUPbbJ9kdf9u93lya54HbyW5L3RFK+M3RwPQKgEQBlLgAHyrNGxnVXy/o/WrHmo3vPH9ChdOXddre/XTp+yqw/0lnWH7OmjL/0b7u1LR2qw4Dz7/1oTX0PWiAtDJy8xGXPyF+NjEsANAKgzAXgArnOyLju6i2v13HrijdvHrptrl5dN9t12DWPz1zuxzKXz3z8mmG7NtPD5m479OY36/gTQr0mffxYJspdKxcaGZcAaARAmQvA/TLMyLjuOlXG13xD4ef3nNQjx1tH52137A3P/+T7y/Din56/4djt8rwl5PQ46Z7Pa3l3Z7yc6veSHTdM7jcyLgHQCIAyF4AZ0tPIuO76V03r1zVvXD1Av4HbYNcz7v/Y6Odw1318/xm76ncHmg+4+o0aNgidUluhkKYehk6xTAA0AqDMBWBtXu5qIwM7603ZtfIV616/sq9eIW8x7F8frQ9mEus/+tewLXRw+l75epXe9JK3gpmEK9bk5aW5Q249CIBGAJS5AKieZnZhdtefsYYVRwMqnnVD/8behvmdz30qxZ01Mzf/qXN39t5uaNz/hlkV25sKGsV8ed8BZT6S7cwMTAA0AqAMBmCY3GdmYGdtIV+WfLH08RPax9e/sR0vmGpkN/Fk/Dn1gh1j8Um0P+Hx0r1Ev5QtbE0mou4z9T4aAdAIgDIYgHFyppmBnXW0PBT/7+xx+3pvx3Y65YlFtie06IlTOnlvPe87zjsK9H/kGNsTipgz5CYzAxMAjQAogwF4XXYzM7CzrpNzP7yse3yNm7//zV/ankyZL2/ePz8+pe6XfTg8DCetDJVd5Q0zAxMAjQAogwFYkdOAg8P7qehW8d7ybXviJGvbfWr256QTvU+MNZDbimxPJVLWN8wx9JsmABoBUAYDoLob2ofNTR+e721t2ezc17LyEEuFr527mbdd6vwPbc8kQj6W7oZGJgAaAVAmA3C8TDA0snO+HbNNfPW6eSuZZXsmtZslrTaPT3KbMd/anklUTJDjDY1MADQCoEwG4E45wdDIbll65+7e4Xgu/LD4uGxO6p1yfPGHF3oHItr9zmSPHoe6mHsFRQA0AqBMBuAT2cbQyA4pmjaooUjLk1/1Nq9ndVJLVldFr57cUqThoGm8HZCxrY39wUcANAKgTAagsFksrSNRotwvV3URyT3wsdLjLmR1UstXV2seOzBXpMtVv9idT+gtijUtqP9eaSEAGgFQJgOg9pMppoZ2QdELh8RXpFtfV3GM/YIsTuofsWYVq6vfrts6Hq5DXuDPgAxMkf1MDU0ANAKgjAbgCrnY1NDRt+iGLUQaDn210qE995enbc2nPk9J/8SLxa8ObSiyxQ3WP6wWXiPkSlNDEwCNACijAXhJ9jA1dNR9fkojkS2rrT6vkvOtTCcJ58nVVa5ZdMOWIo1O+dzKdCJgd3nZ1NAEQCMAymgAVublrTQ1dpQVTeknklPTBpRXpZeF+SRlF3mt2nVFLxySI9JvCluC0rAqP6+us+9khABoBEAZDYDazdxrmOhad193kebDv6vpttUNcrP0gJvLcxvUePTv74Y3F+l+H58JT9nLBg+lQgA0AqDMBuBiGWls7Ihadm17kc1uqW01v1e2vq/+nPyllluW37KZSPtrlwU6nQi4XC4xNjYB0AiAMhuAadLb2NiRtPDyFiK7PFb73n+j5YIAp5OC82VMrbcVPLaLSIvL6z2lPRLtIdONjU0ANAKgzAZgVYO8LDtuWVb77bzGIv3/V9ddXpcdg5pNanao+8CV/+sv0vi83+q6CypZkZdv7g00AqARAGU2AKqvTDU3eMT8dk4jiQ2s52Bq65pk5ycB/og1qWcz/4cDY9LoHBKQrKnS19zgBEAjAMpwAEbLueYGj5Tfz2koOYPrP8r/AHksgNmk7DEZUO99vhycIw3P+T2A2UTBuTLa3OAEQCMAynAA3pFu5gaPkMWXNJGcIV8lcc9xcqLpyaTjhKTOXfXVkBxpcsli47OJgq7yrrnBCYBGAJThABS2lp/MjR4VK69uIbGjk1n9K/W5tC+u/15BK95Uvkjqjl8dHZMWV/PpkHr9LK1MHQhIEYBSBEAZDoA6Su4xOHokFNzVXuSgpM+d01k+Mzmb9HwqHZPN0scHibS/y+DKLRrulqMNjk4ANAKgTAfgXhlocPQomNxNpPdbyd//ZLne3GTSdb2cnPyd3+ot0m2yuclEwkC51+DoBEAjAMp0AObFmq41OHzozdwnvjJ8KpWNOk/X+okri/aSVFboxU/Fo7fPTGOziYB1zWMmd5giABoBUKYDoHaRF00OH27zTsqRje5MbXPIyoa5Wfcu6pK8Bqkdtqbgzo0k56R5hqYTAdPNHvSJAGgEQBkPwGgZbnL4MFt/Q3NpOCLlY/sMkEdNzCYTE+WAVB+yfERDaX7DehOziYJz6vhgtQ8IgEYAlPEAfCibmxw+xKZ3Exn4Q+qPu02G+D+ZzAyR21J/0A8DRbqZO9pBuG0u9XwiMDMEQCMAyngAijvJJybHD6tfjhLp/lI6j/w51jzLjq25rkV6O/u+1F3kKE4cWYOZ0sHozr4EQCMAyngA1JkmP9EYVhtuaibNx21I78E7GTxKWFqmyc7pPXDDuObS7KY0fwxRdqWcZXR8AqARAGU+AC/J9kbHD6P3txcZlPZeHlfJaX5OJnN/r3YysKT9Nkhk+/f9nEwkbGf4RBoEQCMAynwANrSS740uIHRWDM+RrTPYN+ozaV/o32wyV9g+k8+mvbi15Aw3duqrcPpeWpn9s4gAaARAmQ+AOl6uM7uAkJnaWfIvX5PJCFvL6z7NxRevy9aZPHzN5fnSmYPGJrpOjje7AAKgEQAVQACmpLuFOJKWHCeye4YHcxhpeAtxis6UUZkN8NnuIsct8WcykbCT6aOoEwCNAKgAArC+tdR4flsnTW4vTW7JdAPOLNko82PpLLzj7CP6n3jFe7XsbbJmxowkd1Et3EQ+zXAuhbc0kfYcHKLMD9LK8H5eBEAjACqAAKjj5VrDSwiLpcNE9vbhHZGu8mo995g9qyYVf3n8fkyelNjmqRoHeFBkcHKTeVW6JjntOny/t8iwpZmPEwnXmt4CRABKEAAVRACeZz+gEi91lKbji3wY6Er5ez336CU1aVp288sbJVx7ek1vOA5IOgB/lyuTn3mtisY3lY5pfS4ieraX5w0vgQBoBEAFEYCCjeVzw4sIg9VnxaRvGp/8rcE30rqebQR1B+CTxpWuPqf64+fnJBuA9W0kuTMZ1OeHvhI7a7UvQ4XbZ7KR6Y9GEACNAKggAqDOkktNLyL7fbKtNBzr1+6bO8uzdd+hzgAs7eJdOGDa/JWfXtzU+/Lhao8/R5INwDOyS6qzr0Xh2IayLR8bV5fI2aYXQQA0AqACCcA70sWPDR9hVnxTQ+np35lcbpJBdd+h5gCUrqpHeV9fXfLu70xvY9CmVQ/ZfX8s6QAMSupkkMn5rKc0vCkLT3gWqKIu8o7pZRAAjQCoQAJQvEW9b1pG3IIBEjsno33/K/stp1GK75gW7i3SqmQD1JLm8bV7+QrgJa8GExLvumbqwToXSQVgaaMcHw9cv+acmAxY4N94YfSqbGG8gQRAIwAqkACo0XKC8WVks1fay8b+vq83oPI6u37XicSmlXx5S3zlnv97+S1Hxy9uW3Zh5ZVHds0p/XshqQDcmfqRoOv0/MbS/hVfRwyb480eCVojABoBUMEE4KdYU4c/7F8wKkf6/V7//VIxUfZI6f4z8kSuKv16//jKPWEL0iveyv7n0gu/JmwwSioAu/t9doLf+0nOKIdPGbyyWcyfPQXqQgA0AqCCCYDaRx4wv5As9fs+knuN3++BrGkpX6dw91VdRfqUrlVX5MdX7k9X3Fa0UcI2oFQD8LW09HHLVsl8rsmVfXzuZYg8IPuYXwgB0AiACigAD0pf8wvJTm+0lw5v+j/saTIipXtLk7KPY+uN/onb2Y9I+ItgybEluiUZgBEmjkz6Zgdp/4b/w4ZDX3nQ/EIIgEYAVEABWNXCp53Fw6b4hjzpZ+JdzQ+lXfKHC3g28X3ef8UvbJZ469j4FTtWecR5yQVg/cbyUdKzSN6CfpJ3g5t7A30Ta77S/FIIgEYAVEABUKfLRQEsJeusHCSxkWaO3byTTEr2rgvbifQtX596u/jvlXjzRO8TAlVWt0kG4EnZIdlJpKRwZEwGBbAizD4XyhkBLIUAaARABRWAGdI2y85jGITvt5NWpo7rOD753W/OEMmZVX7pwPi6/fDEm6d524TmVX5IkgEYIHckO4kUTW0l2zl4Hon1G8nHASyGAGgEQAUVALWzPBbEYrLK9FbS09iBUJc1zklyBfl1riR+ttT7jNiJibd/4AWgyidwkwvA9zmNlyU3h9R911NaZdmpLwPwWDDHTicAGgFQgQXgnsqbHVxwc64cbXAzxv8l+zbwYSKtE4623z2+br8g8fZvvQBU+fBpcgG4SE5ObgrpWHm05N5sbvjs1FfuDWIxBEAjACqwAKxuXfVFZsStO1lil5o8AsYn0jqpQ6e9Hl+Xj0243Dl++ZrEOyzyAlDlQJxJBWBNW5mRzAzSVHx9jgzzeyfT7PaZtFoVxHIIgEYAVGABiK9Sgnh3K2v80VeaPl3/3TKxW1I7DBb1EmmX+IdI2/i6fXziPQq8AFQ5HUtSAfi37J7EBDLwdFPp+4fZRWSX0+X8QJZDADQCoIILwDexpsa2F2efb7aSLrPqv1tG/i27JnEvbx+fcYlXeJ/7uj3xijVeAKrsUpRUAHaVfycxgUzM6iJbfWN4GVlkWdNYMN8tAdAIgAouAGpA5fVQpL3dTnb61fRC1m2SxGEj120m0rrSZoXNpeKoENo8LwAvVn5YMgF4WzaqehRR383fTVq7cyDBG30+sFKtCIBGAFSAAXheNnPlEC8P5ctRAZzaZFR9B4WOezS+Jr+40jU949ecl3jFl2m+CXyMXJHUNDOy+ijJf8j8YrJC4RbyQjBLIgAaAVABBqC4uxjeKJ4t/hmTEUGcAGFeg9yf67vPniI5le+0e3zdXumcs297AaiyvSqJAMzNyzf+R05c0QiJ/TOA5WSBp2SbgM6bQQA0AqACDIAa78aeoIVnSu74+u/mh2FVXtxXNyu+Ih9Y+Srv0D+HJl4xxQtAlYP6JxGAi2VYktPM0H15crITfzvuJQH9uyEAJQiACjIAq9rKewEtyqK1A6VxUH/pfCwtltd9j9PiK/IqZyK4JH5VpUPzPRS/olnKh4JY0VI+THqimXm6sQw0/m6DfR9J66COfkEANAKgggyAGilHB7Uoa5bvI22Mn9Gv3H71nI9xWRORtlXOMH5/fN3eIfGKa+JXVN2fqP4AjJN+SU8zU++0kX3qKV0EHCWjgloUAdAIgAo0AAsb5Rg7MkKWWLCzbOrfqX/r9YJ0XF/X7bfH1+NVP37xvrfFJ3Hr/SHxy1XP2FZvADZ0kWkpTDRDX3eW7Xw882RW+jG3YWBnQSAAGgFQgQZAnRL1D4PN3Ua6zQlwecU9pa5dZIq9w/pXPRlBQcv4lQkHZipsF7/8SJU71RuAh6RnkMdrntNNtpkb4PIsOENOCWxZBEAjACrYAMzOaTiv/nuF13ddpFewn1x9SLrXseOI92K/bbWjUf8tfu1hFRdfjF/MXVzlPvUFoKinPJzaTDP0Ry/pEuk/H+c3/n/2zjtAiiL7429mEyw5JxXJ8QcqwoGCShJFMCCIgIJnQBQxYkCCgHKIooioKOp55gCCJElGFAEJioCgoEQlS4Zlw7xfd83s7uSwM9OvZ/r7+eOuu6u7+vXg1memuuqV3bglMyAABQTAxgpAu1kk61glGr9Wp7YGd1Xn1KIZgUtHas34jT5HP9Bb/MLfKddpu+29zwklgOl0TnaQ4jhwvANVMbBzzXAeMrJNhgAUEAAbLICfbSUOGHc3g1lbgTobksrLnZfpvMBdMXrm57d8jmbX0g5fl7+30M884NACuLBwhTGjONGZKiRvPsFDpQxZCMAFBKCAANhgAfCVNNLAuxnKqnJ0tfGL3pyuFnj26F4/K73ovKkfH+X0xmo9NdBFPg4JIYD5VM34cZlZV1O5eGYfFWUkXWng3SAABQTARgvgByp9KPRZicjq8tRNYtGzidQi0E+A/2mteB0/x3M66gbotGDPP6sfzNS2Mn/2OSWEAP5FEpn6s3tQmeUC9zWAw2XpOwNvBwEoIAA2WgB8OY0y8naGsaI09TK4V9zJ6eoUaOGsGwK14gf1TqBC/MxbCy6Az6mKAamOfMnuRaVXSNw47oykLkbeDgJQQABsuAB+oDL/GHk/g1hVlm4USlcwkS70/xMgp6zWivufKLa7fWHzX3GOnxOCC0DmB4BGzo1UNhl7gY4Y+wMAAnACAbDhAuDORuSQNJqfKtD1UulqTlbxTvbgQiV5854F4CL3lfOczX+Fe/wOzA0qgHlCPwA0cvsmpQFGUGdD7wcBKCAANl4AP9pK7jP0hgbwSwXqIdL/o3iemhUlieTGGZPHv/NN0InE/nGcT5OKcL/YkN2DKvwidvc4caCUwVmyIAAFBMDGC4C70YPG3jDu/F6VrpFr//n02d7recWXT6i64Eq92ddQ1WSbEfaA+8Q8I4AAFBAACwjgZ3ux5ErrsvNc6iSarPI1auQz3Td+5Dai14y7my9nrqSztkkGEHN2F7P7jsOKKxCAAgJgAQFwb7rd4DvGlT31qK1Ul7iT7Dr0pnF3e5PqCP7c0TjZlurtEY0gxtweevnlGAMBKCAAlhDAH+kpGwy+ZRw5ch61kE5V/CFVN0xBp86mj4y6VwCOtKDzpD/yGLIpNc3oPi0IQAEBsIQAeDBdbfQt48bpS6juXukgHK3pP0bda1ygUacGcqAhtZH90RVLutM9Rt8SAlBAACwigH2laKnR94wTuddSDSPzPwfgSypjUI6lA2XoS2PuFIztNehaA197xJWlVMrwYXEQgAICYBEB8BhqKf4tMjbcSeVN0Z11pVHfIu8xNGdNQDaUpzulY4gNjpY0xvCbQgAKCIBlBHDqHJ8VSBKTcVTcuPUfg/FraqohItqUlrLeiPuE5PviNE46hpjwDtUwPIUsBOAEAmAZAfDbEv/Vx573bfYg2fgNZRBdZcRtutJdRtwmDOak2N6SjiEGaN+FjF1ZRwEBKCAAFhJA3oU02vi7xpqv0uhF6Rjy2V+GFsX/LouojLErngXhRUr7SjqG6BlNFxZlGneUQAAKCICFBMBLbZkmeHcaHZvK0cPSMRTyDDWK+/D87Eb0TLzvET4PU7lN0jFEy/ZMm8R4CAhAAQGwlAD4RuolcdsYcrAeXS/w5S0QZxrEP0XnRKorseRBABx9qFaip5XqSX0kbgsBKCAAFhPArpKeuQkrAAAgAElEQVRGdFnEkayLqJVgShxfFlGpv+N7h71lAq8+JsGpVnSRiYRUBL4kmR/CEIACAmAxAfA4aiKbUSBK+lNN8QlgnnSnAfG9wQCjc5aFYm9N6i8dQzRkNxEaygQBKCAAlhNAVj0z9SdHzDNU3MBFvMNiS7H49icvtRXbEs/6i8DPJehZ6Rii4BmqJ/MLBgJQQAAsJwBeTJnbZO4cAz5PsflZSFGY0XH9UZXTTGDGUig+taV8Lh1DkdlZUqpLDQJQQAAsKAC+ga4VunPU/F7WhI0hZzWgCfGr/WmqK5r02j9jqGzCrg5wjeFZQPOBABQQAEsK4K/SNFvo1lFyvAn1NGMui8VUYlu86t5WghbHq+4ocPSkJselgygas6m03+U4DQACUEAALCkAnkJnHZW6dzQ4bqCG5gy8L10Rr6qvoL7xqjoqjjela80o45AcPYumSN0bAlBAACwqgLyLjE+EGwueNm23w4FK9H58an6Pypt0zP3vZelp6RiKwmBqJZbQFAJQQAAsKgBen2Y3djHsmPB1qn2edAyBeIsqHYxHvQcr0VvxqDcWzLOnfi0dQ+T8YE+TS6sHASggAJYVAA+nxgk3k2dvNRopHUNAHB2pXzzq7UcdzdvPMoKqSHWmF5msxjRc7u4QgAICYGEBZDWhx+TuXiRyLqGOJl6LZFtJmhn7WudS5tbY1xorcjvSJTnSQUTIo9RQcEwVBKCAAFhYALwiJfVHwdsXgWFUI8LO8FOrVvlpPY99PvzWa3rcMW5pjH8CvUjVDsW2RubDNYK/r/T/hLzvpcHXdBow4gff3w6Otc8N6Nqh99C5xyKpMOBV+2rQsGDxmY+1aXbJhSQgAAUEwNIC4IepaUJ1Ai22p0Y63fYt8h3v/fd9xchFpTHeI4p2TLq+XoXU8g16v16EdR7zLqGbI78qODfTJUHT3vl7Qv67Z6rrCet5LZrg+LhZ/sOXfNjvKwt/FQa7ammq3YxjVAOS1VQ2kSwEoIAAWFwApxuaKadySPZVo6civaazb2v2bUVyo+5a97K9N6cWlGQ+GPlw0y2Zse4EmkmZwXNA+HlCXlzJ7QnvdJ+hfLSX+8PX+Da8CoNf9SRVjnMmvJjysGgHEATgAgJgcQHw6jT7N6IBREJeJ+oYaQroPXaf1mx5GnlQ7rfCspU1PIrqrOVImUIV90R8URD2V6GXgp7g5wl5bXGPx3Ab7nv6Us+HL748nApDXJXXkTqZKDd3CL5PSV0hGgAEoIAAWF4APJJqBegJNh/PUpWI29Z7yLs1O1JTb8JavfPnyT1fjM7Ut5sWvFbeUUG1byUuaN/MaYnymyO9oePK2Gbt7EGdgo8A8n1C/uccPfbLP99z/OeHS+ibhese3qvvpgxZsOPIilfVB1HF51eOnwpDXbWnSuKkhTtRl0bJRgABKCAANoEAsi+g22QjCJu16ba5kV7zhs2nNZugN2CPuxrVP1u5t4+Oi/S9JnPOaNvHJpfSdyJPGLmrLL0R6TWBeYPK7gp+gu8T8nA98jHOR1yjdwZVy+/y2Jyi7dX8xblz8g79PO8XuH4qDH3VQltaogwnuI0uEM6EDgEoIAA2gQB4Y3EyX2ZNf5xsSPdGdsWpuV3V13iP1iz3LO1It4Iv1VsytN0Orp0l+tnt85Pb7Gqj70aeNft9Khmzqcq/lww6udjvE/IhXV0Fbcwi/YRXXDvDtG1bQQ/+mea6HNw7b/xXGOoqjSFUNzGSAn1KxTcKhwABKCAANoMAeAqV2yEdQzjcRU0jeHV3fOR19e2uHmuP1uxn/YjbYgKPaLvpJ53bV+mdPoULzewoo+2fFfkUrH7U4kzEF/kl5190U6CygE/Iz2tH0grfyl6v7TZybettt1sW2Pn6xWtCVhjsKhenm9JdYT+WILsrhHilYgAQgAICYFMIwHEVdUiAN3gLbRnrIjh9l9srS4/WbIp2oLpboz5bP8O5vPkZ/Y2A+wzRaV6yCJMjtWI1MH4Y1ToSqCzgE3JH7Yjbms/qd80253ZpbfPJwqK9elH+MNHAFQa7Kp91GbaFYT6VIHkd6CrxSdUQgAICYFMIgPdVEVoaLxIOnx1Ztv2Ardnd2oF2bvu/62c4R0It0zd/cis7pr8JfjPyYL9PsS+J/CpflthTAk9YCviEKmq3br28SgV9QLn6yR+6nas37dNCVRj0qgKepuoxnwMXc8ZRFfmsehCAAgJgcwiAv7KnficdQyj60sURpYA41M9JA+/W7AbtgPtStjv11m2l2nxd27J7dDPV8fzqGzZjYjIwfl81Ghu4NOATqk5/9xWTryn8RVBO23Sz/SH91FmhKgx6VQG5F5s0ZbUbK9Lsi6RjgABcQABsEgHwY3RWXLJYxo6ZVLJo6XDu827Nnh0wYMB0t/0v9dbM+a3wKW2rvsfVtbUjE4tw17xO1D7qlEV5l9OlYVTi84Qvagdquh8Yrx1o7tw8X9vsUViyWH9477kOPhWGdRXz1rgkQool/9Q0RdIKCEABAbBZBJBzEXUX7xkNxsGqBeNYIsS3NfNiYuE7gWeaN2/uMdAoS38nGvHQU52/K0c+Z9mbp8L7GeHzhPo4/rbuB97TDpRwPuJz+o+cgm6l7Au13Ube//K+H1k4V2m8TJX2hxGwGI7udJEZ0tZBAAoIgM0iAN5RnsZLxxCMfnRZEQUVSgA7qmonBFrSZIb+VbdoQzoX2lO+LNKFBXyZYg/rrarPE3bRDlztfuBz/TGcKZsP6zOda7nGQZ4cqBe8F7LCsK7ScHQOPGbJDIyn8qYY7wYBKCAANo0AeL49xcT5vOZQiT+KeGlwARx6tZpW3uCw/9JcffjjeUU0zyiqvLtoVzrZU42eCOtEnydsoR0Y4H5ghVuXzc/6HIHU+xbvPPrja2pO7+OhKwzrKp0/StCcsGIW4etU22fSMSggAAUEwOYRAA+nqqbN53X0LJpc1GsDCmDZgG4X1dMnvVLtAFNtHXfqpUVtM/I6U9soZpxmt6XO4Q3O9XnChtqBB9wP/KY/R34Pzpq6boN9KO1ZX7/5+8hCX6WYbOJ1pv+uKrkIjDsQgAICYBMJILcjXRyj2UsxJ5r1WwMK4HVXY1Zi9An/V2apBDgti/xuZP9Zkc5cdudeOivM/nSfJzxbO+AxeuiA/iAFo1+OtS5syYv5y4rm9yMLeZXCxOtMn7nYNEsJQQAKCIBNJADed7ZZp3KuSEn9KfRZAQgpgDIj/De06/T+Hzo3im6c5RluSdgi5B3K8E3T6R+fJ9QT2nmsIJOjP0n+AJ09fd2/yzf8KowKw7rKyfp00aVWgnAXnS0/A8AJBKCAANhMAtBTCL8uHYM/sptG89M9pACIir/mW7rvLpUUoUrwTPwh+B8VW1W0K3/K9J1oFQifJ9TnfXl0mZ3SH8U19HVpGdWH06jHLW3Kqqd/yOcnjp+PLIyrXAynpsKp1vzzDhUzTbY6CEABAbCpBMBvUbFwv3UayTNUL4rlO4K8BHbsX/nhLXouOJ+Eb6cnlFbNXNuo2n/mgVSzSN8699WkgWGf7POE52oHRrsf+Et/FueIoh/1t7kVp6kP1LG8g17wSOhhoOFc5eJ0vSKkz4s/y4vRW9IxFAABKCAANpcAeAhVC556WIKdJWl+FJeHGgb6WxO9OfOc1bSklvOXwaRoUyRlXUxti/Bi5Uxbujj8LNQ+T6g/0X3uBzboT6N6Zk7qg14bFLztz3tIL/H+L9CnwrCuymcxZW4LO3aj2FWNhkjHUAgEoIAA2GQCyOlA55+UDsKba4PP4wpFyIlgu/XejT5uB44OdPYM9Sza1GMP9pztOSAzPAZS9QhePfg8ob7EgcfCxN/pj6Neo0zWNtLdJjbkddIONPf6Mu9TYVhXFXADXRd+8MZwqhW1M9EIBwhAAQGwyQTAB+tQb5PNCJ5Ppf+K5vqQAlCrp6QWjg9ZrFbToktjs2rgmkyaFOk1kyhzTeizCvB5Qj31Tzf3A3P0B1JKqadteHQuqSkCXiv8+lQY1lUF/FU6qp9sccDRm+qYKdUJBKCAANhsAuANpaWXy/PiTH16LqoKQgtgrt6a7XTtOIap5r/J/Fh58GNbyrzIrpiXYvs4kvN9nlBf4eBi9wNvawdK6g+Upc978GidHXrvjleWDe8Kw7uqkOeovom+brM+J6/0BukY3IEAFBAAm04AvDDVVuShi/FgPDWKblCJd2v24/jx4//rccYOvcV3ZUN1zv1KfzKGA1lGU8mIBrFuKENjIrqBjwDe0A5Udz8wVjtwob6hZoT95nF1W31IT/AKw7uqkJymAXNriPCRLcVc85MhAAUEwOYTAE+jtICDvI1nd0mKMkOFd2v2gbZfxuPrvZomtcy5/ay+/X8xXTLQcTNVj+DV+t9nR9oL5yOA5fpDuN9SX+hMZcD+RS/50+Pq9toRr/kf3hWGd5Ubi6lkVFkwYst3GZ6zIuSBABQQAJtQANqff4VN0jEU0N89C3GR8G7NVOu43f0MtUak84XvGn3x80sDrsFVNLLa0fnHwj352PnULsJl6H0EkKO/1v6gcD+3orb/rr613+3Hjgu9f99r0QHvCsO7yp0eHisuyLKpgueQKBMAASggADajAHKvpnP3SAfhYq09PcqR+D6t2dFUIs+09S/oIz6djW5nbTOShYfD42B9ujzMPqXsy6l+pK8rfd9y6GvedC/cXajtpqha8/SVXZ5wP1Uth/Ohx9U+FYZ3lTt/FrOZZdbVnnPpapNkgCgAAlBAAGxGAfCpi+j/YvwluKhcQo9GW4VP83iZdqCr235O/YLmcp22ZY9Dy/VnVeobVreO4xaqFHH2aV8B6N1cKYW/cq7Tdts7N/tpm1Xdcx/drw+B8kqG6lNhWFd58AhdZI7RZMcuoJYBcj3JAQEoIAA2pQB4fz263BTDOD6lylGbyKc1m+I1i0kfM0MfqU19QKjHSiqxYlXJAPmTvXicSkaeO8JXANn6RLaCwfj6DwDXPGDnapF9C+e3LUhxPzNQhWFd5cGRyu6LEstx5nKqZ741aiAABQTA5hQAb61CfaKdBBsDsusXdRkwN3yntVbRx/m85uoWOKxmfZ3vfNo22ubtq7yJxa+h+Wn0QuizXqC0Ioyg9zPQ9U39oUY5v4Ov1lMD5X8fd+hTuKi7a2bFmUnp+lf5zaEqDOsqT16h+iZICZTXh6rEYDpfrIEAFBAAm1QAvK6sGTKDvkQNol/Az7d5/J8a6V/3zomzPhrdW09yUzBOswr5Y0HUMWi8Z7f9N9Q574dxjh/8CCCnox54pwV7/ln9YKa2lflzfskflfWS9GtGfDDr6VtqqOfzmWfhW2E4V3mS25heLsKzxJj7qXQkU+qMAgJQQABsVgHwV8UiHIweB45XpVnR1+KneXzAq4Uv4UqVf9xv+x8bAfBzIb/da78SijTnzd9Ut4O1PB7BrTtmTUWvx/NdJd1PhWFc5cVMqiS+NMwYKmaiIc2FQAAKCIBNKwCemRJ5CoMYM5ouikEtflozx/Op7m3Z+fmdGb/EUwD8GBX/Olj518XpsSJV7Heu8+72hQ9Q0WMa1O4O7g9X3k9Xvb8KQ1/lzUWeGUkFmEQpM0OfJQAEoIAA2LwC4LftNj9p8g3kQGmvsedFw2/zuHVIOVdTlt5hdsHbjs/iKgDHXVQiyAOtLEW3Fm3gjP9kF7mvnOcMv8I9XrmUHF9eVcz1aI2e9zdBwW+FIa/y5jsqfSDMJ4gP/7PZTLm+BQTgAgJgEwuAp1BKkJHe8WcoXRXH2vM2vj/lqYlvfXUqjvfwvuVNVH5doMJ15emmWL933zhj8vh3vvE3nivr2/9NHPfqrAine0R4VVd6OLL6Y8uHKWabAFwABKCAANjMAuD/UOoMubv/nWlbG/qshCLnOqoUICnZhkp0XfQvvM3FOnsxwdUlZqTSf+TuHhwIQAEBsKkFwCMo7TOxm99NvcTuHS+yulIVv2k2NlWhrhEmgEgAetHdYvf+LI1GiN08FBCAAgJgcwuAH6P0uUK33pmR8qvQrePI6S5U7Tffw79Voy4xT0Ahz68pGTtDnxUX5qYX8Y26IUAACgiATS4AfogyhBLp3k19ZW4cX051pOo+vwE2VaeOBr6LMI4+NFjmxnMyAierNgEQgAICYLMLgB+gdJGRdMn5A0DjZAeq6pVtemNV6mC6hThjwm8p6dtDnxV7ZqbTAxL3DRcIQAEBsOkFwMMp5T2B2w72WKU3mTjVmSp7jAX6tRpdarp0ZTFC5ifA9DRTf/+HAFxAAGx+AfAwSn3X8JvuKWaP6aIsZuL0lVRxdeHu6op0ZRL2/zvZaC9mfGbxd1NDz1OWBQJQQACcAALgJ8g+1eh7PkLXG31L48i6msoUzAj7rgxdnXzjfwroEX0+70iZavdcu8CEQAAKCIATQQA8xRZs8ad4cKQMRZ4VOXHI7U+ZrvTMX5Wk3ibImhk31tpK/WPsHZ+x2Z419o6RAwEoIABOCAHo36mGGbq8x5N0uZG3M5zc2yhjur4xPYNuM9tyVbHlcnrSyNs5hgn8Xo0YCEABAXBiCIDfS6PbDWynTlcmUyZxjB2OByhFa6emptAD5lg4K258RZUNfMORezulSYxZiBAIQAEBcIIIgJeUpKuNG6n+Kl1o2L2keNpGjz5NxveQG86/yLicglm9KHOeYXcrOhCAAgLgRBEALytHlxjVmetoRB8bdCtBpqUQpUyTjiL+fET1jVpc7p9LqNwyg+4VFRCAAgLghBEAr69BjXcYc6vPqFay5UXzw8lWRK2Sc/6XBzm1yKCEUjsaU431xtwqSiAABQTAiSMA3tmUqv8c+rQYcFk4y+cmOgdaU+nS1Fo2Y74hvECXGXKfn6tTU6nUQxECASggAE4gAfDhy6jU5wbc5xcqJb6WYNzZXJfO3bTpXKobfGn1ZOBYGfrJgNt8XoouO2zAfWIBBKCAADiRBMBZfSnlpfjf5hZz53GJCV+XpxZ/M//dgsp/LR1L3Lmf/h3/m7yUQn0TZkIdBKCAADihBMCOJ2x0b7yHg+4rZt8a51uI8990ulal/zlxLaX/VzqaeLPVXmxfnG+Rey/ZnkicAbUQgAIC4MQSAPO7GXTFkfje4j/UPb43ECd3KNFQ18iYPH07uaeCMXeP99pcR66gDOMTVhUdCEABAXCiCYC/q0wNf4/nDfLOpYXxrF+eo10p3W2x8tfTqWuSv/NYQOfE1XG/N6TK34U+zTxAAAoIgBNOALy9OZVbHMf6Z1Mdo4aNy/B7I6r0rfuBbytRo7g6VRxHfYrnskKLy1FzkWUHigwEoIAAOPEEwCd6UMqE+HW3XkmmT+UVFfPKUrNtnoe2NaOyiTB/teg8S1fGrW7HhBTqkWDrKUAACgiAE1AA7BhtpxuOx6ny7fZih+JUtRlwjLVTT5/P7nhPso9NnFeYkXOomD1eX9GP30D20Yn22UEACgiAE1EAzHPLUNM4jV8fSTfFp2JTcPhqShnvp7VyjE+hqxNlEHtR6Eej4lPx5qZUZm58qo4jEIACAuDEFAD/1phKxSXsvHPom3jUaw7W1qbyi/wXLSpPtdcaG42RfE1nxeU18CelqPFv8ag4vkAACgiAE1QAfLwP0cAzsa93HtVPtJ/z4fN2Jl3wR6DCna0pI3kzYDjqUxzecuQ8aqPr4jwqOS5AAAoIgBNVAMxT0ulf22Jeaw+aEPM6TcKxm4gGBZmrmjWI6KZjxsVjLBOoR8zr3PYvSp8S81qNAAJQQACcuALglTWp7IwY13koI+WvGFdpFtbWp5Ih5iq9W5LqJ2s30J7U9FjnvZtRlmqujHGdBgEBKCAATmAB8D/XEd0d21ViXqSuMa3PNDimFKPmId+bb25OxaYkaRfYlRTbL+un7ia6zuDlhmMGBKCAADiRBcA8JYOarItlhS2SdCWY/d2I7gpjZcTTdxF12x//eAT4KLarvK1rQhmJ2f2jAwEoIABObAHwT42o2Aux+8r6K5UzcP1Y41hYlcp/Gt6pn5anqkmZCuN0Ofo1ZpU5XihGjYzIMR0nIAAFBMAJLgA+OYioy+5Y1TaC7ohVVSbi1BAbtd8V7tm72pNtiHHLLxvH7TQyVlXt7kI0KJEXU4MAFBAAJ7oAmD+rSOU+iFFd9ZJxEsDKBpT+dATpjfKeTqcGCfpyMxhfU50Y/Vb8oBxVNGiVyTgBASggAE58AfCebkQ3HIxFTT9Q9aTLA5c9MpWaRji0Z21TSh2ZHZ945Mg7i5bHop6DNxB12xOLmuSAABQQACeBAJjfKEVVwuziDsoQejgGtZiKtc3J/nDEC1VlPWyn5kk3IPRhGhKDWj6tQqXeiEE9okAACgiAk0IA/GcH7UdA1INX8qrT6lhEYx7OjEijekVKVP9dPUobEYeZ1pKsoqpRp4PYr3397/BnLKIRBQJQQACcHAJgx9RSVCnaJZm+odrJNQZ+WROyP1DEd5UnH7BTk2WxjUeauvRt6JOC8m4lKjU1Cf4jgQAUEAAniQCYt3cm6hLdV7PB9FiMgjEFRwfbqUEUTfiyBmQfnFRLhT1K90R1/Z9diDon1sovAYAAFBAAJ40A2PFWBSoxMafoFeRVS6oeoJlnUdqIqGY1nB6RRmfNjFU8JmA1VYviJX/OxBJU4a0k+PrPEIALCICTRwDM+/oQNfu+yJf/QLViGIwwf3Yjar0+2lrWtybqlvg93gXUoh+KfO33zYj67IthMJJAAAoIgJNJAMwL6pDt1qLm/BpKD8Y0GEGyxmVS2ZdjMKQ17+WylDku4lFEZuWBIg/zOnCrjeosiGkwkkAACgiAk0sAfHpUBpWbUrR+oPpUpPEyJmR+PbLdtDc2de29yUb15semLnGWUt0iXZczpRxljEqiLCEQgAIC4CQTAPPvXYiaFWU+7waqHJc1owxnSzeixl/Frr6vGhN12xK7+gTJrUwbinDZN82Iuvwe82gEgQAUEAAnnQCYZ9UiW6/IO67H061xCMZwjjycQWWej+k03uzny1DGw4m48JUPt9L4iK/5s5eNas2KQzCCQAAKCICTUAB8emwmZTwa6QDGiykJ/shzplYi+y0x6v0pZO8tdqo0NYoRVmZhJrWN8Iqjj2ZQ5tgk6v1RQAAKCICTUQDMu/rbqfJLEX0NPpSSkfjLIc5tQnRJXMayrr6EqMnceNRsKCcyUiIaI5D9UmWy9w87k2rCAAEoIABOTgEwr2pHVPeTCAZtv0eXxy8aY1ihNdJ1Yr1IZgEz6mhyWRGv2o3icnov/JMdn9QlarcqftGIAQEoIABOVgEwz2pE1GpJ2Kf3pRfiGIwB/Hq9jSq+EMf0PWdeqEi262O3qIoIL1DfsM9d0oqoURL0C/oBAlBAAJy8AuCcadWJ2oeZCyGvMoVcMdfM/Nk/hTKHxzlxw9HhmZTSP6Enhm2iimFOj1jWnqj6tCR47+EPCEABAXASC4D55NPlia76MZxTV1HNOAcTT3YMSqf0wX/H/0Z/D9ZuNGhH/G8UN2qFl+/jx6uIyj+dyIt+BQUCUEAAnNQCYD4yqlR4CniKBsY/mjix4850SrllmzE323ZLCqXfmbgKuIPGhT5Jb/5LjUqKga/+gQAUEAAnuQCYDzxWkqhryAxBl1EsVpSRYOsdWvN/k4H9V5tv0hRwx1bjbhhTPqXLQp3yfVeiko8VNaNIQgABKCAATnoBaAoYpv0KuGRh0HNOF7MfMiic2PJL3xRjm38dXQEpfX8x9qYx4nBKRvAV7xdeon37H5bUzT8E4AICYAsIgPnQqPJEF3wY5IXeYmphXDix45tuNkq/TSBNw5bb0snWrSgZN8S5gIIMDcv58AKi8qMS88tABEAACgiALSEA5mPPVCU694XjgcqH0SNGhhMTcj9pSZR5306Zu++8L5Oo5SeJlz7pYXo8UNHxF84lqvpM4k8IDAkEoIAA2CICYD49rSFR2aHb/Je2ps8NjSZ6Dk/UGqtKYwS7Kg6MqaRJdeJhuQiKxOfU2n/BtqFliRpOS7asD36BABQQAFtGAMx5s9sRpVzvb1nYk+mpifW1b/PgkkT1pgbvzY47p6bWIyo5OLEmUBxPTTvh5/C316cQtZsdgzUUEgEIQAEBsIUEoLH65nSipq/4NPZfUEuJcIpIzqedbGTrNNcEjVXeXBXKp4k0X+pC+tL70LFXmhKl35xMK4IGBwJQQABsLQEw7xlVlajUXT95Hn0igRYD2zW6BlGJgVEv9xgr1g8sQVRjdOIkTHuAnvA88NNdpYiqjtojEo0MEIACAmCrCYD5zEeXElHL19x/BnRMlFTQOZ9dlULUcLKpOt4PT25IlHLVZwnyM2AWdXTbO/ZaS+0/h0s/imMSJRMCASggALaeADQ23Fte+xLd/6v8PpSckrb9ogGFyfqHtJ8vGTd+GUGSU2NwfHljhvYl+iHT/CwJxn5byXxV5X3VX/v5Uv7eoiwTltBAAAoIgC0pAObT711mI6o5yrnO31qqJxxPGOx/sYX2VbXx8welA/HPwecba+G1eDEBTFqXnD2Av4+qSWS77D1LjPvxBAJQQABsUQFobB11rtZitXphD/PL1F86mhAcf69rKlG5QculAwnG8kHliFK7vhdwtoVJuJleYd7zQivtn//cUYma0iI6IAAFBMDWFYDeAfDvMkQpHab21FsE83Lyk16ZROndPzb9V9XTH3dPJ8rs9Ymp02i+TL2mdkghKvPvr0wwkEoECEABAbCVBaBxesZ1GdoXQRr2l3QkgTj20Q1a629rN9WkXT/eHJzazqY54IaPTDux4q9h+r94xnUzTO/T+AEBKCAAtrgANI68fYXWHthbP23C+Ux7p3XV/GRr87xQvoeisfP5NpoDMrpOi/ni9NGz+enWdu2fu8vbSZzrOQwgAAUEwBCAPg2szrXat2yq98AXEa0jH18ca8a01NqqlEsmJWDy/R2TLknRrNpyzBoTjVjK/uKBeto/c+a1dXynglkMCAwZbXcAACAASURBVEABATAEwPw03cMnZ/avqDUOpa55xRRvBfd/MKCa3lZ1fyMBRtX4Z/8b3XWrVhvwgSkeYesr15TSwqnYf+ZJHkwTpMMRBgJQQAAMATDfQG/p/5e7bFgzvXe47qBPRJusEwsfaaF3U5w9aJ5wrp9oOTVv0Nl691qLRxb6S79jGPs/GVRX/5dtNmyZyl76luWbPwhAAQEwBMBcj37O39z1xg3ltZbC1vy+GSId2McXjWyXrgVQ7PKJCTGpKjTrJ15eTHug9HYjF4kMD907477mNi2A8je8UZCt4ieqLxGKiYAAFBAAQwB8wp7ungcgd+V/OhXXvy82vO3NjUYOE9z58f0tU7X7prR6bHGCf/X35NTix1qlaA+W2vL+j418m5238c3bGur/ksU7/Wel+8IFZ9LtZp+rEGcgAAUEwBAA/0DneR/K+mZM55J601Gmy/BZBqQ5O7xkfI8a+v1S/zV0TlKOTzkyZ+i/dLtRjR7jlxiQyWjXrOFdyuj3K9l5zDdZ3qXNydQz6uIPBKCAABgC4Ff9zwPOWTmpt96DTVT1ysc+2hSvpa92zHmyp+qgpvJdx34h2lUeb058MbZrefWodXs+OSdeY5tyN3302JVV1W3O7j1ppd8Mdf3p1TjdPUGAABQQAEMAfA89F7Dsr0+HdS6nGpPiF9w8fvZvMRwm6ti+ZPLAi12Vtxny9iYTDZiMH45Nbw9po3rYqNzFAycv2R7Dp87+bfb4my9wVd552KeBJ/c9R/fE7raJCASggAAYAuD2tDD4CVtnjLy6pmpWKLXeVfdNnrMhqkwH2VsWv/pIz2bOhooqdnzonXUJkkg5VuSse+ehjhWdz1+8Wc9HXl28JSqzntwwZ/J9V9VLddZY8+qRM0KM5V1AHaK5X+IDASggAIYAuDKF08t/dMUbD3aplUKuZvu87oPHvjlvzW6f7uVA5O5dv+jtCff3bF3d7qqj2qWDpny5L4rAE5x9X04ZdGk114dhr9665/0T3l60fm/YfW1Zu9fMe3Ps4O7nuVRCKbW6PPjGiqNhXLqTqkQReBIAASggAIYADlDp8LshsjbMfPbuK+oXowJK1rqwU6/bHxoz4bV3Ppm3ZMnqAr5esvCTD157btyjA3t3ad2gfOEVqTXb3/rUB6vDaagswNHVHzx1a/uaqYWfT/kGrbv0HvjouOde++CThUu+LvxElyyZ98k7r00Y89DtvTpdWKtk4RXF6l9x97MzN4QtY3aUoQNxfCbzAwEoIACGAL6l1pFftHf1Z5Mfv+XKZtXTKUzslRt3uOnB5z5atjter5MTmtzdyz567sGbOjSubA/9WTpJr97sylsen/zZ6iLM2GhN38b+GRIICEABATAEMI0GRHP5sa0rF33y2oSRQwf269W1U8cWBVza6fJevQc+MOzpqR/MX7bZ2l84I+LA5mXzP5j69LAHBvbudXmnSws/0Y6duvbqN3DoyAmvfbJo5daoso32p9djFW5CAgEoIACGAB6mcdIhAKN5ih6RDkEUCEABATAEcA1Nlw4BGM0ndK10CKJAAAoIgCGARrROOgRgNOuokXQIokAACgiALS8ARzGyeF4YK3Kcill1NUgFBKCAANjyAthl9SHh1qQy7ZYOQRIIQAEBsOUFsJTaSIcAjKc1fScdgiQQgAICYMsL4H/UVzoEYDx96G3pECSBABQQAFteAGPpcekQgPE8TmOlQ5AEAlBAAGx5AdxOr0mHAIznVbpDOgRJIAAFBMCWF0AX+lw6BGA88+kK6RAkgQAUEABbXgCNKEkW3wWR8As1lg5BEghAAQGw5QVQmv6RDgEYzz9UWjoESSAABQTAVhfAcSouHQKQoLil5/9BAAoIgK0ugN+ptnQIQIJatEU6BEEgAAUEwFYXwFK6WDoEIMFFlp4JBgEoIAC2ugA+oR7SIQAJelj6P3sIQAEBsNUF8DLdJR0CkOAuelk6BEEgAAUEwFYXwBP0hHQIQIJRNFo6BEEgAAUEwFYXwD30onQIQILJNEQ6BEEgAAUEwFYXwI30gXQIQIL3qY90CIJAAAoIgK0ugMtpoXQIQIKFdLl0CIJAAAoIgK0ugJa0QjoEIMFyaiUdgiAQgAICYKsLoB5tlg4BSLCJ6kuHIAgEoIAA2OoCqEx7pUMAEuyx9FKgEIACAmCrCyCDTkmHACQ4RRnSIQgCASggALa4ALIpVToEIEMqZUuHIAcEoIAA2OICOExlpEMAMpSmI9IhyAEBKCAAtrgAdlEN6RCADNVpt3QIckAACgiALS6AzZYeC2Jp6tFv0iHIAQEoIAC2uAB+ovOkQwAynEc/SYcgBwSggADY4gJYQf+SDgHI0IpWSocgBwSggADY4gL4ltpJhwBkaEtLpUOQAwJQQABscQEsoU7SIQAZOtIX0iHIAQEoIAC2uADmU1fpEIAMXWm+dAhyQAAKCIAtLoA51F06BCBDN5orHYIcEIACAmCLC2AWXSsdApDhGvpMOgQ5IAAFBMAWF8CnWBPeqlxHM6VDkAMCUEAAbHEBTKee0iEAGXrSdOkQ5IAAFBAAQwDSIQAZIAAAAbDFBYAuIMuCLiAAAbDFBYCXwJYFL4EBBMAWF8BsDAO1Kt1ojnQIckAACgiALS4ATASzLJgIBiAAtrgAkArCsiAVBIAA2OICQDI4y9IOyeAsDwTAFhcA0kFbFqSDBhAAW1wAWBDGsmBBGAABsMUFgCUhLQuWhAQQAFtcAFgU3rJgUXgAAbDFBfAPlZUOAchQhg5LhyAHBKCAANjiAsimVOkQgAyplC0dghwQgAICYIsLgDPolHQIQIJTlCEdgiAQgAICYKsLoDLtkQ4BSPA3VZEOQRAIQAEBsNUFUJ82SYcAJPiVGkiHIAgEoIAA2OoCaEkrpEMAEiynVtIhCAIBKCAAtroAOtNC6RCABAups3QIgkAACgiArS6APvS+dAhAgveor3QIgkAACgiArS6AITRZOgQgwQt0r3QIgkAACgiArS6A0TRKOgQgwUgaIx2CIBCAAgJgqwvgJbpbOgQgwV30snQIgkAACgiArS6Aj+l66RCABNfTx9IhCAIBKCAAtroAltJF0iEACdrQd9IhCAIBKCAAtroAtlBt6RCABLVoq3QIgkAACgiArS6AE1RcOgQgQXE6IR2CIBCAAgJgqwuAS1k5K7B1OUylpEOQBAJQQABseQE0pvXSIQDj+YWaSIcgCQSggADY8gLoQp9LhwCMZz5dIR2CJBCAAgJgywvgdnpNOgRgPK/SHdIhSAIBKCAAtrwAxtBw6RCA8Qy39ERgCMAJBMCWF8Bb1E86BGA8fel/0iFIAgEoIAC2vAC+xUwwK9KGlkqHIAkEoIAA2PIC2ElVpUMAxlOFdkmHIAkEoIAA2PICyMug49IxAKM5YcvIk45BEghAAQGw5QXADekX6RCA0fxCDaVDEAUCUEAADAFcTTOkQwBGM52ukQ5BFAhAAQEwBDCU/iMdAjCacfSwdAiiQAAKCIAhgNfoFukQgNEMoGnSIYgCASggAIYAvqE20iEAo2lD30iHIAoEoIAAGAI4QGUc0jEAgylL+6VDEAUCUEAADAFwJdotHQIwll1UWToEWSAABQTAEABfSoulQwDGsogukw5BFghAAQEwBMCD6XnpEICxPE+DpUOQBQJQQAAMAfArGAZkNW6hV6RDkAUCUEAADAHwMjpPOgRgLM3pB+kQZIEAFBAAQwB8wp5+RjoGYCTZ6XaL53+CABQQAEMAzHVpnXQIwEh+pnrSIQgDASggAIYAmHtae3EQ6/E/6ikdgjAQgAICYAiAeTwNkQ4BGMk99LR0CMJAAAoIgCEA5i+QDMJatKYvpUMQBgJQQAAMATAfsRXLlo4BGEd2cdth6RiEgQAUEABDABr16CfpEIBx/GT5d8AQgBMIgCEAjZtoqnQIwDheoZulQ5AGAlBAAAwBaLxEA6RDAMbRn16WDkEaCEABATAEoLGG6kuHAIyjHq2VDkEaCEABATAEoJGTaTsoHQMwioO2zBzpGKSBABQQAEMAOu1ptnQIwChmU3vpEMSBABQQAEMAOiNpqHQIwCgeolHSIYgDASggAIYAdBbTv6RDAEbRipZIhyAOBKCAABgC0Dmemmrx9JDW4URa6jHpGMSBABQQAEMAila0SDoEYAyLqJV0CPJAAAoIgCEAxaP0mHQIwBjwT80QgAsIgCEAxUJ8LbQKLfFjDwJwAQEwBKA4mZHyj3QMwAgOp6SfkI5BHghAAQEwBODkEpolHQIwgll0iXQIJgACUEAADAE4GUt3SYcAjGAQPSkdggmAABQQAEMATlZSLekQgBHUph+lQzABEIACAmAIwEleJfpdOgYQf36jCnnSMZgACEABATAE4OJGelE6BBB/XqQbpUMwAxCAAgJgCMDF23SldAgg/lxJb0uHYAYgAAUEwBCAi4MpGcgGkfScKJZyQDoGMwABKCAAhgDyaUOfSYcA4s0sukg6BFMAASggAIYA8hlHd0iHAOLNHTROOgRTAAEoIACGAPJZR1UxPiTJyatK66RjMAUQgAICYAiggDr0vXQIsefvF++9rkPvUUv9uC1IUbLyHWZ7OIEAFBAAQwAFPJR8y4Ktu8pOTprOC79ox6Tr61VILd+g9+vJ9sI0Cf+JiwYEoIAAGAIoIOm+HjpezqBChjrCK9p7c2pBQeaDR40OOq4k5Y+8ogABKCAAhgAKyKtCP0nHEFOeJA9GhlW0soZHSZ21hocdP36iKhbq7woGBKCAABgCKOQuelw6hFjymd6Alx66+vCeJX1UY74sjKIdFdR+iQvaN0tTW+U3iwQfF4bR3dIhmAQIQAEBMARQyFdUWzqEGPJPWa35brzVuTMvRdtpGbrIcZHe6DeZc0bbPja5lL5TL8vYuONIXfpaOgSTAAEoIACGAArJq0ZJ1OExUmu8K+zO33tGb8vXhCxaom+3z58SvauNvvuMURHHmzVUNVc6BpMAASggAIYA3LibHpUOIWYc0r++f1iwm1tN2300ZNFVeqfP3oKiHWW0/bPcXxEnMo+iBygfCEABATAE4MZ3dE6yNHb8ptZ013X7wnu/tn9pqKIzmdrmcLdapuk/AVbHO1ZjcJyLMUD5QAAKCIAhADccteg76RhixTVayz3Bbf/gqlWr1oUqWqa39+5DoY7pb4LfjHesxrCUaiaN3qMFAlBAAAwBuDOMBkmHECNO6d/l/ac9CFL0ulZiP+1+pI52JEnWULwzuQZ5RQUEoIAAGAJwZwNVSJIxL/p3+Yr+v/AGKXpKK6rvcaS2dmRizKOTIKsCbZCOwTRAAAoIgCEAD86jGdIhxAa9n79dxEXPNG/e/F73A1l6voi5sQ5OhOl0vnQI5gECUEAADAF4MIm6S4cQG4ZqDfet2v8fmHZPjy79Ry3LCavIhxn6S4HkWCy5G70gHYJ5gAAUEABDAB7sT0vdIx1DTOimNdwj+MBNKa6UDme9nhNGkTe5zbXy85Li1enetNS9oc+yChCAAgJgCMCTa5Kkx7u1PtJnWSW3rD6XHQhd5IXjTr00ORZKm0jXSIdgIiAABQTAEIAns6mRdAgxoanWcg8q65HXrf7hkEWeZN2rl7VMih8A3IhmS4dgIiAABQTAEIAnOdWTY7ZQLVfT3mPGrqyDS+8rpm93d4Qq8mCd3v9D5+72LUlAvqOq2dIxmAgIQAEBMATgxeM0QDqEWODs4amy1LX7ez199/NQRW7su0stGFNli0EBx5n+HhOcLQ8EoIAAGALw4g97pt/+kARDZXXOLJzutbWktt8mVFEBpyeUVppomyTt/+FM+x/SMZgJCEABATAE4E1nmiQdQgyoSV5TeEfpB/aEKMpnibObqPikZFk/ZRJ1lg7BVEAACgiAIQBvZlLdJHjt2VhP6nDI7cAWvUV/L0SRk6MDnS8Jem41Jtb442hAs6RjMBUQgAICYAjAm9yatEQ6huhppTXgF7ofyNXTuo0NUaRYfI5q/i9dYUighrCYzg423c16QAAKCIAhAB+epOukQ4ienvowH48jjbQjg0MUaTiGqea/yfwk+BlUwHXJktAuVkAACgiAIQAf9qSnbJOOIWpGaI14b48jHbUjd4Uoyp/7lf5kUo2Z3JaSnhzzu2MGBKCAABgC8KU/PSQdQtS8rzXj7T2OXKAdGR2iiPlZvf3/v43GBGkUDybH0N4YAgEoIACGAHxZS6WPSscQLfqL3VLu/d5Z+ioAb4Yo4jV6gqBLjxgYqAEcL0urpGMwGRCAAgJgCMAPbekl6RCiRu/Xn+e2P1//ar8tVFFnbaupx4owScBL1FY6BLMBASggAIYA/DCD6uSGPsvcPKY15a0Kv+fnXaTtNwpVtE4fIfqjoXHGn9w6ybLIQ+yAABQQAEMAfsirm/hNxp/62M6hBUN5xlBBN0+QouH65F+DA40706l2wus81kAACgiAIQB/vEwtpUOImiF6u36Hszv/xAP6ToPsUEVttM3bV3mT4K8EWtMr0iGYDghAAQEwBOCPkxVpaeizzM1+NZ+rwuD3F354X1V9s8T6kEVVyB8LpB4hJiyliielYzAdEIACAmAIwC9PUFfpEKJmQxmPZrzk5yGLjvtt/xNcAF3pCekQzAcEoIAAGALwy6FStEY6hqj5ublbK95oXeiiX5JQAD/bSgRY78zKQAAKCIAhAP885DVZNiE5M7GZqw2/4M2cMIo+S0IB3EBDpUMwIRCAAgJgCMA/f2WkbJaOIRb8PuuVp16Z+XeERcnD5pSMv6RjMCEQgAICYAggAHfSzdIhgOi5me6UDsGMQAAKCIAhgADsSE+OnwDWZktq2p/SMZgRCEABATAEEIiB1F86BBAt+AHgHwhAAQEwBBCIbWmpv0nHAKLjt9S0bdIxmBIIQAEBMAQQkIHURzoEEB19aKB0COYEAlBAAAwBBOSv4vafpWMA0bDeXmyndAzmBAJQQAAMAQTmPrpGOgQQDVfT/dIhmBQIQAEBMAQQmH0lbculYwBFZ7mt5D7pGEwKBKCAABgCCMJwukQ6BFB0LqHh0iGYFQhAAQEwBBCEY1VornQMoKjMoYoJv7JnvIAAFBAAQwDBmEwNc0KfBcxIbhN6UToG0wIBKCAAhgCCcaY2vS4dAygar1PtM9IxmBYIQAEBMAQQlI+o6jHpGEBROFaVPpKOwbxAAAoIgCGAoDja0uPSMYCiMIxaO0KfZVUgAAUEwBBAcFbYim2XjgFEzq5M2/fSMZgYCEABATAEEIK+ybAyjPXoTX2lQzAzEIACAmAIIAQ7M+lr6RhApHxNmUgCEQQIQAEBMAQQiiepSbZ0DCAycpvRU9IxmBoIQAEBMAQQiqx6GE+eaEym2qelYzA1EIACAmAIICSzqexe6RhAJOwtS7OlYzA3EIACAmAIIDTd6SbpEEAk9KMrpEMwORCAAgJgCCA0O0rQl9IxgPD51lb8D+kYTA4EoIAAGAIIg3HUEFkFEoYzDWmcdAxmBwJQQAAMAYTBmUY0WjoGEC6jqRF0HQIIQAEBMAQQDktt6RulYwDhsbmYDR12oYAAFBAAQwBhMZBa50nHAMIhry3dKR2D+YEAFBAAQwBhcbgaTZWOAYTDVKp2WDoG8wMBKCAAhgDC41MqhaRwCcD2UvSpdAwJAASggAAYAgiTG6gD0gubHkcX5O4LBwhAAQEwBBAmBypjcTDzM40q7pOOIRGAABQQAEMA4fIRlUYnkMnZXhrLgIUFBKCAABgCCJuedBlGApmavMuop3QMiQEEoIAAGAIImwNV6XnpGEAwnqPK6AAKCwhAAQEwBBA+c6kYpoOZmI3FaK50DAkCBKCAABgCiIDb6bws6RhAILLOo9ulY0gUIAAFBMAQQAScqE8PSccAAvEg1TkmHUOiAAEoIACGACJhdbrtc+kYgH8W21OXS8eQMEAACgiAIYCIGEfV9kvHAPyxvxqSQIcPBKCAABgCiIjcS+kKTAg2IY4r6NJc6SASBwhAAQEwBBAZuyvSM9IxAF8mUPkd0jEkEBCAAgJgCCBC5tvS0NVsOpan2eZLx5BIQAAKCIAhgEgZSucclI4BeHLwHBoqHUNCAQEoIACGACIluw1dgZQQpiLvCmqTLR1EQgEBKCAAhgAiZlclGiMdA3BnNJVHnr6IgAAUEABDAJGz2G5fJB0DKGSR3b5YOoYEAwJQQAAMARSBsVThT+kYQD5/VqCx0jEkGhCAAgJgCKAIOK6nZielgwBOTrWgq/FOJkIgAAUEwBBAUTjSgPpJxwCc9KMGR6RjSDggAAUEwBBAkfi1FE2QjgHoTKBSv0rHkHhAAAoIgCGAojHbbp8nHQNgnme3z5aOIQGBABQQAEMAReQpKrVeOgawqQxSwBUFCEABATAEUEQcfag2EoMKs7829UFuviIAASggAIYAisqplnTxaekgrM3pi6nlKekgEhIIQAEBMARQZPbUpF74+imI4yaqsVs6iMQEAlBAAAwBFJ1fStMI6RiszAgq/Yt0DAkKBKCAABgCiIIFqTRNOgbrMo1SF0jHkKhAAAoIgCGAaHiDUmZJx2BV5qfSy9IxJCwQgAICYAggKkZSiR+lY7AmP5agkdIxJC4QgAICYAggKhz/pkqbpYOwIpsr0b/xBr7IQAAKCIAhgOjI7ko1MRLFcHbXpK5YAqboQAAKCIAhgCg51ZaaHJIOwmocaU7/OiEdRCIDASggAIYAouVQE2p9XDoIa3G8NaQbHRCAAgJgCCBqdteiDpgSbCCnO1AtdLtFBQSggAAYAoierdXp8izpIKxDdjeqghfv0QEBKCAAhgBiwMaK1CtHOgirkNOLKm6UDiLRgQAUEABDALFgTVnqkysdhDXI7UNl10gHkfBAAAoIgCGAmLCmHN0AAxhA3s1UeoV0EIkPBKCAABgCiA0/lKIBMEDcyR1ApX6QDiIJgAAUEABDADHiu5J0EwwQZ3JvopLfSQeRDEAACgiAIYBY8X1pugFvguOK1v6X+Fo6iKQAAlBAAAwBxIwfSlMvpCeII9m9qDT6f2ICBKCAABgCiB0rylI3zAiLG6e7UVm8/40NEIACAmAIIIasrUSXHpMOIlk50ZnKr5QOIlmAABQQAEMAsWRjdWqNJDVx4VBrqo75X7ECAlBAAAwBxJSttagp0tTEgd1NqdZW6SCSBwhAAQEwBBBb/m5GNZGoJub8UYca7ZQOIomAABQQAEMAMeZQG6qEVSJjzI+VqA261mIIBKCAABgCiDUnrqQS86WDSC7ml6Arsf5LLIEAFBAAQwAxJ+cOSpkqHUQy8VYa9ccEi5gCASggAIYAYo9jBNEorFgeIxyjiEbg04wtEIACAmAIIB68lkJ9sURMTMjqSymvSQeRdEAACgiAIYC4sKgMtd4nHUQycPASKjlXOojkAwJQQAAMAcSHdedQHcxbipqNdeicddJBJCEQgAICYAggTvzdkkrPkw4i0ZlXmlr+LR1EMgIBKCAAhgDixembyfaEdBCJzQspdMNJ6SCSEghAAQEwBBA3HE/Zqd8p6SgSl1P9yP4Uhv/EBQhAAQEwBBBHZpWi87dJB5GobDufSs2SDiJZgQAUEABDAPFkY32qsFg6iMRkcQWqj7fo8QICUEAADAHElSPdKWVsnnQUiUfe2BTqfkQ6iuQFAlBAAAwBxBfHGDtdeVA6ikTj4JVkH4Pu//gBASggAIYA4s2iinQOVjKMiBXnUMVF0kEkNRCAAgJgCCDu7GxDac/i62zYOJ5NozZI/h9XIAAFBMAQQPw586CNuu6XjiJR2N+VbA+ekY4iyYEAFBAAQwBGMK8iVf9COojE4IvqVBEzqOMNBKCAABgCMIRdl5B9KL7WhuTMUDtdsks6iuQHAlBAAAwBGEPuk6l0/q/SUZidX8+n1CdzpaOwABCAAgJgCMAoVtSh4pPwLjgIjknFqQ4GTBkBBKCAABgCMIxjtxK13y4dhXnZ3p7o1mPSUVgDCEABATAEYCBzqlCZN/AjwC+ON8pQlTnSUVgFCEABATAEYCT7exB12SEdhRnZ0YWoB4bKGgUEoIAAGAIwlg8rUulX8SPAC8erpanih9JRWAgIQAEBMARgMPt6EbXbJB2FudjUjqgXllA2EAhAAQEwBGA406tRxljMCSjgzNgMqjZdOgprAQEoIACGAIzn8B02avS1dBRm4etGZLvjsHQUFgMCUEAADAFI8E0Dst28VzoKM7D3Zhs1+EY6CssBASggAIYARMh6sjiVm5IjHYY0OVPKUfEns6TDsB4QgAICYAhAiD+6EjWz+Fffb5oRdf1DOgorAgEoIACGAMSYVYtsN1o47/3OG21UC8u+iwABKCAAhgDkOD0mk4qPOC4dhgzHRxSnzDGnpcOwKBCAAgJgCECSHdqX4GpvWnDR+Lw3q2k/fzAnWgoIQAEBMAQgyw+tiZrOl47CaOY3JWr9g3QUFgYCUEAADAEI4/igFtFlK6XDMJKVlxHV+gD5MASBABQQAEMA4pyZVIFs166XDsMo1l9rowqTMBNaFAhAAQEwBGACjjxeguz9tkiHYQRb+tmpxONHpMOwOhCAAgJgCMAU7L03g1JvSXoFbLkllTLuxRRocSAABQTAEIBJ2HF7GqUO+F06jHjy+4BUSrsdQ39MAASggAAYAjANf2oKSLlxnXQY8WLdjSla8/+ndBhABwJQQAAMAZiIbXemk63b99JhxIPvu9ko/c5t0mEAJxCAAgJgCMBU7L6/BNFFM5NsaljezIuISty/WzoOkA8EoIAAGAIwGQdGViCqP/WEdByx48TU+kQVRh6QjgMUAgEoIACGAEzHiSm1iMo9kiQvS3c8Uo6o1pQkEloyAAEoIACGAExI7sdtiFKv/zLhJ8s6vrw+lajNx7nSgQBPIAAFBMAQgDn5sV86UcPJCT1j6sjkhkTp/X6UjgP4AAEoIACGAMzK32NqEJX49zLpOIrKsn+XIKox5m/pOIAf/MozGAAAGVhJREFUIAAFBMAQgHnJmdHRRtRk0j7pQCJn36QmRLaOMyy/6KVJgQAUEABDAKZm62NVidKunplQudPOzLw6jajqY1ulAwGBgAAUEABDACYne1b3VKKKg79PkDfCju8HVyRK7T4rWzoSEBgIQAEBMARgfvY+34yIaj2eAFki1j1eSwu12fPI92ZuIAAFBMAQQEKw7tFztIa1wchfpAMJxi8jG2hBnvNoAojK6kAACgiAIYAEIe/bQZW05rX+o8tNmScib/mj9bXwKg361pThAU8gAAUEwBBA4pD7xZ26A6oPmntKOhRPTs0dVF1v/e/8AjO+EgMIQAEBMASQUOR+c/+5WlNb/KpXTDPEZusrVxXXQjr3/m/Q+icMEIACAmAIIOFYO7aVXWtx6w6ec1Q6lKNzBtfVQrG3GrtWOhQQCRCAAgJgCCAR2fffXuW0hje19eNfnJSK4eQXj7dO1YIo1+u/CThTzeJAAAoIgCGABCV3+eiL07T2N+2iR+b+Y/TN/5n7yEXq5hePXo6OnwQEAlBAAAwBJDDHPx/aIkVrh22N/j3tF4Ma4txfpv27kU27aUqLoZ8fN+aeINZAAAoIgCGABOfYgsfb6S9hqUTb+9/bENfcOzkb3ru/bQn9XsXbPb7gWDxvBeILBKCAABgCSAKyV07uU1tvmKlYi9smf7En9nfY88Xk21oUU7eo3WfySqR5SHAgAAUEwBBAsnBw4VPXOS1A5dvdNmHWxtOxqPX0xlkTbmtX3llv7eueWngwFrUCYSAABQTAEEBScWTplDvzm2tbjbb9n3hz0cYircZ4YuOiN5/o37aGLV8pd05ZmtCr0wB3IAAFBMAQQBLy9xdTH+haN41clGjQrve9Y17+eMnqrQeDvCrOPbh19ZKPXx5zb+92DUrkX5tWt+sDU7/Aqi5JBgSggAAYAkhacrd99caoAR0bFCd3iper3bhFm06dru/l4vpOndq0aFy7nNdpDToOGPXGV9swyDMpgQAUEABDAMnPkV+/fu+FkXf1bH9B7XI2CoitXO0L2ve8a+QL7339K3p7khsIQAEBMARgMU4c+mPD6mVLlkz/xMX0JUuWrd7wx6EivSoAiQkEoIAAGAIAwHJAAAoIgCEAACwHBKCAABgCAMByQAAKCIAhAAAsBwSggAAYAgDAckAACgiAIQAALAcEoIAAGAIAwHJAAAoIgCEAACwHBKCAABgCAMByQAAKCIAhAAAsBwSggAAYAgDAckAACgiAIQAALAcEoIAAGAIAwHJAAAoIgCEAACwHBKCAABgCAMByQAAKCIAhAAAsBwSggAAYAgDAckAACgiAIQAALAcEoIAAGAIAwHJAAAoIgCEAACwHBKCAABgCAMByQAAKCIAhAAAsBwSggAAYAgDAckAACgiAIQAALAcEoIAAGAIAwHJAAAoIgCEAACwHBKCAABgCAMByQAAKCIAhAAAsBwSggAAYAgDAckAACgiAIQAALAcEoIAAGAIAwHJAAAoIgCEAACwHBKCAABgCAMByQAAKCIAhAAAsBwSggAAYAgDAckAACgiAIQAALAcEoIAAGAIAwHJAAAoIgCEAACwHBKCAABgCAMByQAAKCIAhAGPJO4d0loY4bbl2zsUhK+uonfV1dPEMIA9KnnPxw4vzCovf1Q+en+MvPMo/2tGjhnKNO476yRHodqdWrdoaXcBJwbHPh996TY87xi3N8ilyrH1uQNcOvYfOPeZbtOHZu3v0uveZ9b4fb5AK/QIBKCAAhgCM5VtnM3lXiNOkBKBoPKugWAmAnvEXXgABKOp8EkABbxH19jrU0vviBtE9kfn5+75i+c9aacxRjyLHx80KXPzwQY+ivI8a5Bc1fN/z4w1SYQAgAAUEwBCAsQx0/p1WyA5+WuQCmPDEE0+cjjwefwIgGpL/I8ApgOLe39pDCYCo03a/t+vsK4ByVhPAtxXdn7buWreio73ci2p861Z04FL3oquPhFdhICAABQTAEIChZOU3d/ODnxe5ACpo24cjD0gXgK1EPvb8VmS4q9gpAOro9YXeRwB2VwWZtvwazt7i52577D4COOTjjiQXwPI0z8ct91tB0elLPYuKLy8o2lnbs6h9VjgVBgQCUEAADAEYyqz8v9J+wc8zVABNCvbObJrTxxmfq+lxCYDe8g3PQwAd80ty9vwwqrG6pPofvne7h3wEsNJiAjhSU3/GVu/8eXLPF6Mz9e2mufll9+q7KUMW7Diy4lV1WpX8/pws1VFW9en1x/9Z/lBxffuOcCoMCASggAAYAjCUntrfZ43rtf8pcTLoeUIC0PlRdTV3ce7kC6D8Pp/w/AtAJ+8NPRi6NI+9eMPmK4D3tUPdfnLn18ifIoGYoH80j7t+Uf3ZSt97x1W0OUXbqfmLc+fkHXrRMFfRSH3nWtd74e36ewLbutAVBgYCUEAADAEYyZEM7c/z4U/0P9KPgp4oKADeVkJvX5xvIHUBZOjN9o0+4QUWAPPv1fUTXvU4dmpuV+USLwGM0Q6NiTzuRCX3LF14BT1qW/T/IDq4dobpn3tBv/+Z5tpuNadED5XSti8rGIx1uJZeSegKAwMBKCAAhgCM5E29Bfz5hP4b/uqgJ0oKgB/So5yuNnUB1Byi78/zDi+YAHiz/ohlC37lHB95Xf389wteArhZO/Rh5HEnKj/rH8Hqwv1HtN101+ekt/jXFhbN109dozYn6V1D2wqLvtJVsS9khYGBABQQAEMARtJBb24dqiMo7VCwE0UFMENvU/6jNpUAjulfMs92H5ceUgA8Xj/j7fy9XVSIlwAu8my/kp0p2uNWd3ulPlv/SDY5t0trm08WFu3Vi2aozSu0LfcW26H39LwRssLAQAAKCIAhAAPZbXO2rKoPaJpPsWPNB889++Fq/a9ZVABb9PAeUJtKADxXPzDE7YzQAjhTzf0JggigsnYorKHrycHd2uO2c9v/Xf9IvlGbueT1Y6h0/n8lDv3d7n/dq3mq4DdkkAqDAAEoIACGAAzkWf2Pczuz6gO6zKvwyGNnOVvI2k9luQtAH+Sxy+08/R2ta4hlvgCmu7WvP0UWUkABDFabTgFwb73LoXBMYhgCcPYj7XbtHOrnpIGPAI5qR6pGFnJCc4P2vP3d9nfqH9NK57Y+RHhcYZEaIKvm5B3Rt35wr2aB898lRIWBgQAUEABDAAZyXv63Nb0PyLbbo2xu5cJG/P82igpAdQE5X8y6BLBXb5uanik4IwwBrNZPmel18D4fAaz1+gKb7Dw7YMCA6W77X+ofk2uI1fnaZo/CosV6kZrVpYy8wb2aVfqRE6EqDAwEoIAAGAIwjo3636YaGvOxvvWce9n7KW6NOFWfLikA9eX9fbXpEoDz7XVh/3QYAsjRsxM85nXQVwB6b9htnD136LWXXXPHK36mDiQ5E6mwC/85bdv+fX5J9oXabiNVtF3/uBe4X7ZUP7ImVIWBgQAUEABDAMahD/NzvvtVfUAt3IpWqfa/+A2vznnvkbO1rXIRCWDPggUL9IGC07X/j7A/3Y8AtpfUf5/sV9v5AnC01zbSC94thiEA1tuvTl7HfAXwH+3If16unq+vdiF7r5OLHVW1h37atXO4hrZTa6Nz56RKGvKec1vffNH9urf1I5+HqjAwEIACAmAIwDDy9KbcNfpT7wOizQVFWQ31/ct3qJ0zw52NYfgC0InZS+BVaiJYV+dOvgD4d/0Lfbv8qV3hCEAf39nU65ivAG7VjpR1//EzJESWpGTi0Kv6q/IGBf9sP+sWT71v8c6jP76m5vc+7irQT/PIH9hPL/X9u/WuMCAQgAICYAjAML5z+6NVfUBPFBSpL3TXFDR9z0kJ4Mxv829ytsOukZkFAnCO68yf2hWOAPTZA2d5HfMVgFf2G42rQicySAKWDeh2UT2VOKm22z/umrrun0Tas/ldOf21vYqnCs/bma6X/zd0hYGAABQQAEMAhnGn9sdZyvVXrPqA6hV01eqZXqoVNt+OToYKwE8yuPzu/kIBZOv5B0r/5TwcjgBGaIdLeB3zFUANdbtL3/nj5JH1LzZRO8PYArzu+qBLjD7hfvhY68L2v9iKgsOf6fuPFOzmOBOwenQKBagwABCAAgJgCMAozpTX/jxvyd9TfUCrXDtqmPzLbueuMlQAvtznng66pnPzR90O1zm3wxGA+sng9TbSRwCqdzv9dddpuRP0r7C25E4G5CS/vS4zYr/b0T193f8VGn6Vfzyvqb4/0fUxHe7uLH8tdIWBgAAUEABDAEahpmguyd9TfUAPuu1kuGd4dzSVFMDZ7xcUuwmAH9DLPlWb4f4CKOl1zEcA67UDqbML9yfrFfeJ/DESjtcLPu3ihe340jL6gbRGPW5p43wv8lC+QL9Sv83avLsj6/CPo8q7rnw/ZIUBgQAUEABDAEahz9ipVtC/rfqAqrt2h5L3vN8hMRPAW+MLmOen2FsAper2eddtWUF3ARzXI3F2VIUjAD238dlex3wEcOynn35yX23G0VZ34Sm2AI79Kz+8RU/dVrDg2o/6O+CK09SyPo7letoQeiTfAM95/jMN0y+cHarCwEAACgiAIQCDOKoPo3mgcF/1Abl+4+vv+IZ4nP3fmAmgRWGrMcBPsb95AG64C4A/1ysZqG+FOwqomdcx33cA3qje7kVBT0kmflOvPZxreJ3UR3A2+Du/KE9Nxyj425yW6tb+D8/W//fLEBUGAQJQQAAMARjEW+SH251l3cgjC5jGPDMKgFUPtZ6vONx5AJd7HQstgBN6Ozch6ClJxW6918fZ56V3f6X/XliUpw8FaF7wFmX91fn/jg2/4X/0//e78pdbhUGAABQQAEMABtHJnwDKOntb9CZ0ksfZS00pgH1673P90+HPBB7udTC0AFj/Bjs0+ClJhT7pI1V1BdbL/32Vz4p837rYMfW2bu1vfGy55oR1WklaDvujsMIgQAAKCIAhAGP4y0b++EwV9tC2xnqcviCwAOpFJoAQRCQA53yF4eHnAvLqpQ5HAJcV/jCyBCrT6k5tI0v/L8RjqWiH3if0it+rpgf+ZyuoMBgQgAICYAjAGNRLvP+72A19XL2rNbyNvN8BvBtYAFUEBaAmKKT+Eo4AHtRP2eN1MAwB6DknHg0n8oTkx/Hjx3vM3+Id+uf0nbbxm2+vjv5G/CG/9TyhlfQKUWEwIAAFBMAQgDFcoP1VZh53P3JCX3mxuFpm5QnyHgX0cEABZKcKCoD/0AcvtcoNLYAs/dvrpd5HwxCAPgD2ueCnJDAfaE9XxmNyxAH9o1ymbfyib/zpcbYuQ48MEAW00UpeD1FhMCAABQTAEIAh/Kr/Vd7keUzlc3lX39IX//OYB8CtAwrgR5IUgHNJgxdCC2Ccfsb73ke9BaB3Zds8uiuO635bGMEDJBbqg9vufkQt6aiPhN3v+829Xn7X4B+zZs1yH/Oz357/8ypIhcGAABQQAEMAhqDyu3m1a2rN1yv1LfWlzb2zdzN5CmBdYdEIWQHk6EnrS3wUSgCb9F8KFU57V+ctgLzK5PX2Q+/czgi5pG3CclT3m8cqCS/ovwP1sQB5egbYJ9yL1NouaomwhXrP28HCEv0nY6tQFQYDAlBAAAwBGIHjXO2vsqrXqI3sitrBFDVxX29Dq7v9BOjlJYD3CkqOV5EVAK/Rv3yeHUIAv+lJKelNn+p8uoD0ZKDuqw3n6oOWro7kARKMy6gg06oip752oLva1H8RVnVP5HO/3uyrf9N/9A99akGBGo31bsgKgwABKCAAhgCM4Hu9PXzQ+6i+nKszBZBa0eW6gmyg/yM3Aehfubvk9/I67qQgAgi5EJQvEQtATVumoALIe0MPhjr5LkviIwB9QTC6Jj/zEDse0fdDLmiYwOhruLv/wakH/khtLtI3+xZ8FrxAXyPClXxJz/5TYYerIPdyba9hbsgKgwABKCAAhgCM4C79r9JneqbSQlt9K/t81R3k7OrPnWh3F4B6VeDKA5b9MAUTwOLII4tcACdrBRNA7r6VTzRWxWdvZx98XwJfqZ/ax7U65oFb9L1ekT9F4nBS/wWX/pqr9T6sVn0539noO3PAdnclXD0zSU/5nOpaM+ILveg854I8B/X2v6DbJ0iFQYAAFBAAQwAGcEZvnZv4fCFWK8Q43+CtS9M3M/u9uWD6E/pv+GYNCgSgxnVTh9lbjv3+WlOiyoP8C0C/qtxt990Y6vWfF5ELwLlWrZcA7D4JpWv+yb74CkAtP0bFb580e+6rffVxUVTviJ8Lkwfnr7u6d06c9dHo3nryHyqZv4rnH2pZ6PRrRnww6+lbnHmyC8ZDqcwhqbe+8vlbd6pP6cFwKgwMBKCAABgCMIA5+p+ln3X6hhUen+6e6oUqb29RIACHxxzijB/G+xdAP9cJMVgT2A1/AlCpi7wE4EPnHd5X6fgZBrqomOeFDbZE9gAJxwNen1SJwsxHayp6lRUujXD4/zwKuuWEVWFAIAAFBMAQgAH0Ju/Rjk7U0G9XwrQFVQv/hJv8yoUC4MNtCkvOXsYBBLC9vGECOFAxlADqTve/LLm/eQDf1Xa/slcRXmQnFo7nPVx//ma3st0d3IvKf+pWtM+tyD42N8wKAwEBKCAAhgDizzF9TGR7fyXqa90G11nDz3b+BVd9/CS7C4BzJrpKKgw5yIEEwLvvbVqydKNO/npeglAUAfD7QQRQtlGHkT/5b/4DTAQ7MbGB69oSPX6MLPrEZOuQcq4HTu8w27O73vHlVfm/iBo9f8yjKPe/jVyf0r9Xh19hACAABQTAEIB5cKz9YNL4t7/1k+Mr9+c3Jzz9vy/PGB+TITh2znxp3LNvfxNq9HrSkLfx/SlPTXzrK38LH2R9+7+J416d5Z1FQ8Ox5d2JT7/3zXHfkqAV+gMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAEAAAlgMCUEAADAEAYDkgAAUEwBAAAJYDAlBAAAwBAGA5IAAFBMAQAACWAwJQQAAMAQBgOSAABQTAugCq1AYAWIgqEIAOBKAxkgAAFmOUdLtjBiAAnR1/AAAsxW7pVscUQAAAAGBRIAAAALAoEAAAAFgUCAAAACwKBAAAABYFAgAAAIsCAQAAgEWBAAAAwKJAAAAAYFEgAAAAsCgQAAAAWBQIAAAALAoEAAAAFgUCAAAAiwIBAACARYEAAADAokAAAABgUSAAAACwKBAAAABYFAgAAAAsCgQAAAAWBQIAAACLAgEAAIBFgQAAAMCiQAAAAGBRIAAAALAoEAAAAFgUCAAAACwKBAAA+P/26kAAAAAAQJC/9SCXREwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAgCYEgDAlAAApgQAMCUAgCkBAEwJAGBKAABTAefDy9atfYCsAAAAAElFTkSuQmCC" width="768" /></p>
 </div>
 </div>
 <div id="cpm-counts-data-and-pdata" class="section level1">
 <h1><code>cpm</code> Counts data and pData</h1>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">dge &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts =</span> counts.filt, <span class="dt">group =</span> pData[<span class="kw">colnames</span>(counts.filt), <span class="st">&quot;Group&quot;</span>])</a>
-<a class="sourceLine" id="cb10-2" title="2">dge &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="dt">object =</span> dge, <span class="dt">method =</span> <span class="st">&quot;TMM&quot;</span>)</a>
-<a class="sourceLine" id="cb10-3" title="3">cpm &lt;-<span class="st"> </span><span class="kw">cpm</span>(dge)</a>
-<a class="sourceLine" id="cb10-4" title="4"></a>
-<a class="sourceLine" id="cb10-5" title="5">data &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">cpm =</span> cpm, <span class="dt">pData =</span> pData[<span class="kw">colnames</span>(cpm), ])</a>
-<a class="sourceLine" id="cb10-6" title="6"></a>
-<a class="sourceLine" id="cb10-7" title="7"><span class="kw">save</span>(data,</a>
-<a class="sourceLine" id="cb10-8" title="8">  <span class="dt">file =</span> <span class="st">&quot;./output/cpm_pData.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb10-9" title="9">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb10-10" title="10">)</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1">dge &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts =</span> counts.filt, <span class="dt">group =</span> salmon<span class="op">@</span>phenoData<span class="op">$</span>Group)</a>
+<a class="sourceLine" id="cb12-2" title="2">dge &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(<span class="dt">object =</span> dge, <span class="dt">method =</span> <span class="st">&quot;TMM&quot;</span>)</a>
+<a class="sourceLine" id="cb12-3" title="3">cpm &lt;-<span class="st"> </span><span class="kw">cpm</span>(dge)</a>
+<a class="sourceLine" id="cb12-4" title="4"></a>
+<a class="sourceLine" id="cb12-5" title="5">data &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">cpm =</span> cpm, <span class="dt">pData =</span> salmon<span class="op">@</span>phenoData)</a>
+<a class="sourceLine" id="cb12-6" title="6"></a>
+<a class="sourceLine" id="cb12-7" title="7"><span class="kw">save</span>(data,</a>
+<a class="sourceLine" id="cb12-8" title="8">  <span class="dt">file =</span> <span class="st">&quot;./output/cpm_pData.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb12-9" title="9">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb12-10" title="10">)</a></code></pre></div>
 </div>
 <div id="results" class="section level1">
 <h1>Results</h1>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">dea.list &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
-<a class="sourceLine" id="cb11-2" title="2">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd8.pnd15<span class="op">$</span>DEA),</a>
-<a class="sourceLine" id="cb11-3" title="3">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd8.adult<span class="op">$</span>DEA),</a>
-<a class="sourceLine" id="cb11-4" title="4">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd15.adult<span class="op">$</span>DEA)</a>
-<a class="sourceLine" id="cb11-5" title="5">)</a>
-<a class="sourceLine" id="cb11-6" title="6"></a>
-<a class="sourceLine" id="cb11-7" title="7">normCounts &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
-<a class="sourceLine" id="cb11-8" title="8">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>pnd8.pnd15<span class="op">$</span>voom.norm.counts,</a>
-<a class="sourceLine" id="cb11-9" title="9">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd8.adult<span class="op">$</span>voom.norm.counts,</a>
-<a class="sourceLine" id="cb11-10" title="10">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd15.adult<span class="op">$</span>voom.norm.counts</a>
-<a class="sourceLine" id="cb11-11" title="11">)</a>
-<a class="sourceLine" id="cb11-12" title="12"></a>
-<a class="sourceLine" id="cb11-13" title="13">voomEList &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
-<a class="sourceLine" id="cb11-14" title="14">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>pnd8.pnd15<span class="op">$</span>EList,</a>
-<a class="sourceLine" id="cb11-15" title="15">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd8.adult<span class="op">$</span>EList,</a>
-<a class="sourceLine" id="cb11-16" title="16">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd15.adult<span class="op">$</span>EList</a>
-<a class="sourceLine" id="cb11-17" title="17">)</a>
-<a class="sourceLine" id="cb11-18" title="18"></a>
-<a class="sourceLine" id="cb11-19" title="19">dea.limma &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
-<a class="sourceLine" id="cb11-20" title="20">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>pnd8.pnd15<span class="op">$</span>DEA,</a>
-<a class="sourceLine" id="cb11-21" title="21">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd8.adult<span class="op">$</span>DEA,</a>
-<a class="sourceLine" id="cb11-22" title="22">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd15.adult<span class="op">$</span>DEA</a>
-<a class="sourceLine" id="cb11-23" title="23">)</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">dea.list &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
+<a class="sourceLine" id="cb13-2" title="2">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd8.pnd15),</a>
+<a class="sourceLine" id="cb13-3" title="3">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd8.adult),</a>
+<a class="sourceLine" id="cb13-4" title="4">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span><span class="kw">as.DEA</span>(pnd15.adult)</a>
+<a class="sourceLine" id="cb13-5" title="5">)</a>
+<a class="sourceLine" id="cb13-6" title="6"></a>
+<a class="sourceLine" id="cb13-7" title="7">normCounts &lt;-<span class="st"> </span>v<span class="op">$</span>E</a>
+<a class="sourceLine" id="cb13-8" title="8"></a>
+<a class="sourceLine" id="cb13-9" title="9">voomEList &lt;-<span class="st"> </span>v</a>
+<a class="sourceLine" id="cb13-10" title="10"></a>
+<a class="sourceLine" id="cb13-11" title="11">dea.limma &lt;-<span class="st"> </span><span class="kw">list</span>(</a>
+<a class="sourceLine" id="cb13-12" title="12">  <span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>pnd8.pnd15,</a>
+<a class="sourceLine" id="cb13-13" title="13">  <span class="st">`</span><span class="dt">PND8 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd8.adult,</a>
+<a class="sourceLine" id="cb13-14" title="14">  <span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span> =<span class="st"> </span>pnd15.adult</a>
+<a class="sourceLine" id="cb13-15" title="15">)</a></code></pre></div>
 <div id="save-rdata-files" class="section level2">
 <h2>Save RData files</h2>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">save</span>(dea.list,</a>
-<a class="sourceLine" id="cb12-2" title="2">  <span class="dt">file =</span> <span class="st">&quot;./output/dea_SC_Controls.DEA.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb12-3" title="3">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb12-4" title="4">)</a>
-<a class="sourceLine" id="cb12-5" title="5"></a>
-<a class="sourceLine" id="cb12-6" title="6"><span class="kw">save</span>(normCounts,</a>
-<a class="sourceLine" id="cb12-7" title="7">  <span class="dt">file =</span> <span class="st">&quot;./output/normCounts_voom_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb12-8" title="8">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb12-9" title="9">)</a>
-<a class="sourceLine" id="cb12-10" title="10"></a>
-<a class="sourceLine" id="cb12-11" title="11"><span class="kw">save</span>(voomEList,</a>
-<a class="sourceLine" id="cb12-12" title="12">  <span class="dt">file =</span> <span class="st">&quot;./output/voom_EList_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb12-13" title="13">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb12-14" title="14">)</a>
-<a class="sourceLine" id="cb12-15" title="15"></a>
-<a class="sourceLine" id="cb12-16" title="16"><span class="kw">save</span>(dea.limma,</a>
-<a class="sourceLine" id="cb12-17" title="17">  <span class="dt">file =</span> <span class="st">&quot;./output/limma_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
-<a class="sourceLine" id="cb12-18" title="18">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb12-19" title="19">)</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1"><span class="kw">save</span>(dea.list,</a>
+<a class="sourceLine" id="cb14-2" title="2">  <span class="dt">file =</span> <span class="st">&quot;./output/dea_SC_Controls.DEA.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb14-3" title="3">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb14-4" title="4">)</a>
+<a class="sourceLine" id="cb14-5" title="5"></a>
+<a class="sourceLine" id="cb14-6" title="6"><span class="kw">save</span>(normCounts,</a>
+<a class="sourceLine" id="cb14-7" title="7">  <span class="dt">file =</span> <span class="st">&quot;./output/normCounts_voom_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb14-8" title="8">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb14-9" title="9">)</a>
+<a class="sourceLine" id="cb14-10" title="10"></a>
+<a class="sourceLine" id="cb14-11" title="11"><span class="kw">save</span>(voomEList,</a>
+<a class="sourceLine" id="cb14-12" title="12">  <span class="dt">file =</span> <span class="st">&quot;./output/voom_EList_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb14-13" title="13">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb14-14" title="14">)</a>
+<a class="sourceLine" id="cb14-15" title="15"></a>
+<a class="sourceLine" id="cb14-16" title="16"><span class="kw">save</span>(dea.limma,</a>
+<a class="sourceLine" id="cb14-17" title="17">  <span class="dt">file =</span> <span class="st">&quot;./output/limma_SC_Controls.RData&quot;</span>, <span class="dt">compress =</span> T,</a>
+<a class="sourceLine" id="cb14-18" title="18">  <span class="dt">compression_level =</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb14-19" title="19">)</a></code></pre></div>
 </div>
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">devtools<span class="op">::</span><span class="kw">session_info</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1">devtools<span class="op">::</span><span class="kw">session_info</span>()</a></code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
-##  version  R version 3.5.3 (2019-03-11)
+##  version  R version 3.6.1 (2019-07-05)
 ##  os       Ubuntu 16.04.6 LTS          
 ##  system   x86_64, linux-gnu           
 ##  ui       X11                         
@@ -3091,147 +3150,149 @@ $(document).ready(function () {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2019-06-18                  
+##  date     2019-08-09                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package              * version    date       lib source        
-##  acepack                1.4.1      2016-10-29 [1] CRAN (R 3.5.1)
-##  annotate               1.60.1     2019-03-07 [1] Bioconductor  
-##  AnnotationDbi          1.44.0     2018-10-30 [1] Bioconductor  
-##  assertthat             0.2.1      2019-03-21 [1] CRAN (R 3.5.3)
-##  backports              1.1.4      2019-04-10 [1] CRAN (R 3.5.3)
-##  base64enc              0.1-3      2015-07-28 [1] CRAN (R 3.5.1)
-##  Biobase                2.42.0     2018-10-30 [1] Bioconductor  
-##  BiocGenerics           0.28.0     2018-10-30 [1] Bioconductor  
-##  BiocParallel           1.16.6     2019-02-10 [1] Bioconductor  
-##  Biostrings             2.50.2     2019-01-03 [1] Bioconductor  
-##  bit                    1.1-14     2018-05-29 [1] CRAN (R 3.5.1)
-##  bit64                  0.9-7      2017-05-08 [1] CRAN (R 3.5.1)
-##  bitops                 1.0-6      2013-08-17 [1] CRAN (R 3.5.1)
-##  blob                   1.1.1      2018-03-25 [1] CRAN (R 3.5.1)
-##  bookdown               0.11       2019-05-28 [1] CRAN (R 3.5.3)
-##  boot                   1.3-22     2019-04-26 [1] CRAN (R 3.5.3)
-##  broom                  0.5.2      2019-04-07 [1] CRAN (R 3.5.3)
-##  callr                  3.2.0      2019-03-15 [1] CRAN (R 3.5.3)
+##  acepack                1.4.1      2016-10-29 [1] CRAN (R 3.6.1)
+##  annotate               1.62.0     2019-05-02 [1] Bioconductor  
+##  AnnotationDbi          1.46.0     2019-05-02 [1] Bioconductor  
+##  assertthat             0.2.1      2019-03-21 [1] CRAN (R 3.6.1)
+##  backports              1.1.4      2019-04-10 [1] CRAN (R 3.6.1)
+##  base64enc              0.1-3      2015-07-28 [1] CRAN (R 3.6.1)
+##  Biobase                2.44.0     2019-05-02 [1] Bioconductor  
+##  BiocGenerics           0.30.0     2019-05-02 [1] Bioconductor  
+##  BiocParallel           1.18.1     2019-08-06 [1] Bioconductor  
+##  Biostrings             2.52.0     2019-05-02 [1] Bioconductor  
+##  bit                    1.1-14     2018-05-29 [1] CRAN (R 3.6.1)
+##  bit64                  0.9-7      2017-05-08 [1] CRAN (R 3.6.1)
+##  bitops                 1.0-6      2013-08-17 [1] CRAN (R 3.6.1)
+##  blob                   1.2.0      2019-07-09 [1] CRAN (R 3.6.1)
+##  bookdown               0.12       2019-07-11 [1] CRAN (R 3.6.1)
+##  boot                   1.3-23     2019-07-05 [1] CRAN (R 3.6.1)
+##  broom                  0.5.2      2019-04-07 [1] CRAN (R 3.6.1)
+##  callr                  3.3.1      2019-07-18 [1] CRAN (R 3.6.1)
 ##  CDM                    7.4-7      2019-05-13 [1] local         
-##  checkmate              1.9.3      2019-05-03 [1] CRAN (R 3.5.3)
-##  cli                    1.1.0      2019-03-19 [1] CRAN (R 3.5.3)
-##  cluster                2.0.9      2019-05-01 [1] CRAN (R 3.5.3)
-##  colorspace             1.4-1      2019-03-18 [1] CRAN (R 3.5.3)
-##  crayon                 1.3.4      2017-09-16 [1] CRAN (R 3.5.1)
-##  data.table             1.12.2     2019-04-07 [1] CRAN (R 3.5.3)
-##  DBI                    1.0.0      2018-05-02 [1] CRAN (R 3.5.1)
-##  DelayedArray           0.8.0      2018-10-30 [1] Bioconductor  
-##  desc                   1.2.0      2018-05-01 [1] CRAN (R 3.5.1)
-##  DESeq2                 1.22.2     2019-01-04 [1] Bioconductor  
-##  devtools               2.0.2      2019-04-08 [1] CRAN (R 3.5.3)
-##  digest                 0.6.19     2019-05-20 [1] CRAN (R 3.5.3)
-##  dplyr                  0.8.1      2019-05-14 [1] CRAN (R 3.5.3)
-##  edgeR                * 3.24.3     2019-01-02 [1] Bioconductor  
-##  evaluate               0.14       2019-05-28 [1] CRAN (R 3.5.3)
-##  fdrtool              * 1.2.15     2015-07-08 [1] CRAN (R 3.5.2)
-##  forcats              * 0.4.0      2019-02-17 [1] CRAN (R 3.5.2)
-##  foreign                0.8-71     2018-07-20 [1] CRAN (R 3.5.1)
-##  Formula                1.2-3      2018-05-03 [1] CRAN (R 3.5.1)
-##  fs                     1.3.1      2019-05-06 [1] CRAN (R 3.5.3)
-##  genefilter             1.64.0     2018-10-30 [1] Bioconductor  
-##  geneplotter            1.60.0     2018-10-30 [1] Bioconductor  
-##  generics               0.0.2      2018-11-29 [1] CRAN (R 3.5.1)
-##  GenomeInfoDb           1.18.2     2019-02-12 [1] Bioconductor  
-##  GenomeInfoDbData       1.2.0      2019-01-17 [1] Bioconductor  
-##  GenomicRanges          1.34.0     2018-10-30 [1] Bioconductor  
-##  GEOquery               2.50.5     2018-12-22 [1] Bioconductor  
-##  ggplot2                3.1.1      2019-04-07 [1] CRAN (R 3.5.3)
-##  glue                   1.3.1      2019-03-12 [1] CRAN (R 3.5.3)
-##  gridExtra              2.3        2017-09-09 [1] CRAN (R 3.5.1)
-##  gtable                 0.3.0      2019-03-25 [1] CRAN (R 3.5.3)
-##  highr                  0.8        2019-03-20 [1] CRAN (R 3.5.3)
-##  Hmisc                  4.2-0      2019-01-26 [1] CRAN (R 3.5.2)
-##  hms                    0.4.2      2018-03-10 [1] CRAN (R 3.5.1)
-##  htmlTable              1.13.1     2019-01-07 [1] CRAN (R 3.5.2)
-##  htmltools              0.3.6      2017-04-28 [1] CRAN (R 3.5.1)
-##  htmlwidgets            1.3        2018-09-30 [1] CRAN (R 3.5.1)
-##  httpuv                 1.5.1      2019-04-05 [1] CRAN (R 3.5.3)
-##  IRanges                2.16.0     2018-10-30 [1] Bioconductor  
-##  jomo                   2.6-8      2019-05-21 [1] CRAN (R 3.5.3)
-##  knitr                * 1.23       2019-05-18 [1] CRAN (R 3.5.3)
-##  later                  0.8.0      2019-02-11 [1] CRAN (R 3.5.2)
-##  lattice              * 0.20-38    2018-11-04 [1] CRAN (R 3.5.1)
-##  latticeExtra           0.6-28     2016-02-09 [1] CRAN (R 3.5.1)
-##  lazyeval               0.2.2      2019-03-15 [1] CRAN (R 3.5.3)
-##  limma                * 3.38.3     2018-12-02 [1] Bioconductor  
-##  lme4                   1.1-21     2019-03-05 [1] CRAN (R 3.5.2)
-##  locfit                 1.5-9.1    2013-04-20 [1] CRAN (R 3.5.1)
-##  magrittr               1.5        2014-11-22 [1] CRAN (R 3.5.1)
-##  MASS                   7.3-51.4   2019-04-26 [1] CRAN (R 3.5.3)
-##  Matrix                 1.2-17     2019-03-22 [1] CRAN (R 3.5.3)
-##  matrixStats            0.54.0     2018-07-23 [1] CRAN (R 3.5.1)
-##  memoise                1.1.0      2017-04-21 [1] CRAN (R 3.5.1)
-##  mice                 * 3.5.0.9000 2019-06-04 [1] local         
+##  checkmate              1.9.4      2019-07-04 [1] CRAN (R 3.6.1)
+##  cli                    1.1.0      2019-03-19 [1] CRAN (R 3.6.1)
+##  cluster                2.1.0      2019-06-19 [1] CRAN (R 3.6.1)
+##  colorspace             1.4-1      2019-03-18 [1] CRAN (R 3.6.1)
+##  crayon                 1.3.4      2017-09-16 [1] CRAN (R 3.6.1)
+##  data.table             1.12.2     2019-04-07 [1] CRAN (R 3.6.1)
+##  DBI                    1.0.0      2018-05-02 [1] CRAN (R 3.6.1)
+##  DelayedArray           0.10.0     2019-05-02 [1] Bioconductor  
+##  desc                   1.2.0      2018-05-01 [1] CRAN (R 3.6.1)
+##  DESeq2                 1.24.0     2019-05-02 [1] Bioconductor  
+##  devtools               2.1.0      2019-07-06 [1] CRAN (R 3.6.1)
+##  digest                 0.6.20     2019-07-04 [1] CRAN (R 3.6.1)
+##  dplyr                  0.8.3      2019-07-04 [1] CRAN (R 3.6.1)
+##  edgeR                * 3.26.6     2019-07-28 [1] Bioconductor  
+##  evaluate               0.14       2019-05-28 [1] CRAN (R 3.6.1)
+##  fdrtool              * 1.2.15     2015-07-08 [1] CRAN (R 3.6.1)
+##  forcats              * 0.4.0      2019-02-17 [1] CRAN (R 3.6.1)
+##  foreign                0.8-72     2019-08-02 [1] CRAN (R 3.6.1)
+##  Formula                1.2-3      2018-05-03 [1] CRAN (R 3.6.1)
+##  fs                     1.3.1      2019-05-06 [1] CRAN (R 3.6.1)
+##  genefilter             1.66.0     2019-05-02 [1] Bioconductor  
+##  geneplotter            1.62.0     2019-05-02 [1] Bioconductor  
+##  generics               0.0.2      2018-11-29 [1] CRAN (R 3.6.1)
+##  GenomeInfoDb           1.20.0     2019-05-02 [1] Bioconductor  
+##  GenomeInfoDbData       1.2.1      2019-07-24 [1] Bioconductor  
+##  GenomicRanges          1.36.0     2019-05-02 [1] Bioconductor  
+##  GEOquery               2.52.0     2019-05-02 [1] Bioconductor  
+##  ggplot2                3.2.0      2019-06-16 [1] CRAN (R 3.6.1)
+##  glue                   1.3.1      2019-03-12 [1] CRAN (R 3.6.1)
+##  gridExtra              2.3        2017-09-09 [1] CRAN (R 3.6.1)
+##  gtable                 0.3.0      2019-03-25 [1] CRAN (R 3.6.1)
+##  highr                  0.8        2019-03-20 [1] CRAN (R 3.6.1)
+##  Hmisc                  4.2-0      2019-01-26 [1] CRAN (R 3.6.1)
+##  hms                    0.5.0      2019-07-09 [1] CRAN (R 3.6.1)
+##  htmlTable              1.13.1     2019-01-07 [1] CRAN (R 3.6.1)
+##  htmltools              0.3.6      2017-04-28 [1] CRAN (R 3.6.1)
+##  htmlwidgets            1.3        2018-09-30 [1] CRAN (R 3.6.1)
+##  httpuv                 1.5.1      2019-04-05 [1] CRAN (R 3.6.1)
+##  IRanges                2.18.1     2019-05-31 [1] Bioconductor  
+##  jomo                   2.6-9      2019-07-29 [1] CRAN (R 3.6.1)
+##  knitr                * 1.24       2019-08-08 [1] CRAN (R 3.6.1)
+##  later                  0.8.0      2019-02-11 [1] CRAN (R 3.6.1)
+##  lattice              * 0.20-38    2018-11-04 [1] CRAN (R 3.6.1)
+##  latticeExtra           0.6-28     2016-02-09 [1] CRAN (R 3.6.1)
+##  lazyeval               0.2.2      2019-03-15 [1] CRAN (R 3.6.1)
+##  limma                * 3.40.6     2019-07-26 [1] Bioconductor  
+##  lme4                   1.1-21     2019-03-05 [1] CRAN (R 3.6.1)
+##  locfit                 1.5-9.1    2013-04-20 [1] CRAN (R 3.6.1)
+##  magrittr               1.5        2014-11-22 [1] CRAN (R 3.6.1)
+##  MASS                   7.3-51.4   2019-04-26 [1] CRAN (R 3.6.1)
+##  Matrix                 1.2-17     2019-03-22 [1] CRAN (R 3.6.1)
+##  matrixStats            0.54.0     2018-07-23 [1] CRAN (R 3.6.1)
+##  memoise                1.1.0      2017-04-21 [1] CRAN (R 3.6.1)
+##  mice                 * 3.6.0.9000 2019-07-19 [1] local         
 ##  miceadds             * 2.12-3     2019-05-13 [1] local         
-##  mime                   0.7        2019-06-11 [1] CRAN (R 3.5.3)
-##  miniUI                 0.1.1.1    2018-05-18 [1] CRAN (R 3.5.1)
+##  mime                   0.7        2019-06-11 [1] CRAN (R 3.6.1)
+##  miniUI                 0.1.1.1    2018-05-18 [1] CRAN (R 3.6.1)
 ##  minqa                  1.2.4      2014-10-09 [1] CRAN (R 3.5.1)
-##  mitml                  0.3-7      2019-01-07 [1] CRAN (R 3.5.3)
-##  mitools                2.4        2019-04-26 [1] CRAN (R 3.5.3)
-##  munsell                0.5.0      2018-06-12 [1] CRAN (R 3.5.1)
-##  mvtnorm                1.0-10     2019-03-05 [1] CRAN (R 3.5.2)
-##  nlme                   3.1-140    2019-05-12 [1] CRAN (R 3.5.3)
-##  nloptr                 1.2.1      2018-10-03 [1] CRAN (R 3.5.1)
-##  nnet                   7.3-12     2016-02-02 [1] CRAN (R 3.5.1)
-##  pan                    1.6        2018-06-29 [1] CRAN (R 3.5.3)
-##  pillar                 1.4.1      2019-05-28 [1] CRAN (R 3.5.3)
-##  pkgbuild               1.0.3      2019-03-20 [1] CRAN (R 3.5.3)
-##  pkgconfig              2.0.2      2018-08-16 [1] CRAN (R 3.5.1)
-##  pkgload                1.0.2      2018-10-29 [1] CRAN (R 3.5.1)
+##  mitml                  0.3-7      2019-01-07 [1] CRAN (R 3.6.1)
+##  mitools                2.4        2019-04-26 [1] CRAN (R 3.6.1)
+##  munsell                0.5.0      2018-06-12 [1] CRAN (R 3.6.1)
+##  mvtnorm                1.0-11     2019-06-19 [1] CRAN (R 3.6.1)
+##  nlme                   3.1-141    2019-08-01 [1] CRAN (R 3.6.1)
+##  nloptr                 1.2.1      2018-10-03 [1] CRAN (R 3.6.1)
+##  nnet                   7.3-12     2016-02-02 [1] CRAN (R 3.6.1)
+##  pan                    1.6        2018-06-29 [1] CRAN (R 3.6.1)
+##  pillar                 1.4.2      2019-06-29 [1] CRAN (R 3.6.1)
+##  pkgbuild               1.0.4      2019-08-05 [1] CRAN (R 3.6.1)
+##  pkgconfig              2.0.2      2018-08-16 [1] CRAN (R 3.6.1)
+##  pkgload                1.0.2      2018-10-29 [1] CRAN (R 3.6.1)
 ##  plgINS               * 0.1.5      2019-06-07 [1] local         
-##  plyr                 * 1.8.4      2016-06-08 [1] CRAN (R 3.5.1)
-##  polycor                0.7-9      2016-08-27 [1] CRAN (R 3.5.3)
-##  prettyunits            1.0.2      2015-07-13 [1] CRAN (R 3.5.1)
-##  processx               3.3.1      2019-05-08 [1] CRAN (R 3.5.3)
-##  promises               1.0.1      2018-04-13 [1] CRAN (R 3.5.1)
-##  ps                     1.3.0      2018-12-21 [1] CRAN (R 3.5.1)
-##  purrr                  0.3.2      2019-03-15 [1] CRAN (R 3.5.3)
-##  questionr              0.7.0      2018-11-26 [1] CRAN (R 3.5.1)
-##  R6                     2.4.0      2019-02-14 [1] CRAN (R 3.5.2)
-##  RColorBrewer           1.1-2      2014-12-07 [1] CRAN (R 3.5.1)
-##  Rcpp                   1.0.1      2019-03-17 [1] CRAN (R 3.5.3)
-##  RCurl                  1.95-4.12  2019-03-04 [1] CRAN (R 3.5.3)
-##  readr                  1.3.1      2018-12-21 [1] CRAN (R 3.5.1)
-##  remotes                2.0.4      2019-04-10 [1] CRAN (R 3.5.3)
-##  rlang                  0.3.4      2019-04-07 [1] CRAN (R 3.5.3)
-##  rmarkdown            * 1.13       2019-05-22 [1] CRAN (R 3.5.3)
-##  rmdformats             0.3.5      2019-02-19 [1] CRAN (R 3.5.2)
-##  rpart                  4.1-15     2019-04-12 [1] CRAN (R 3.5.3)
-##  rprojroot              1.3-2      2018-01-03 [1] CRAN (R 3.5.1)
-##  RSQLite                2.1.1      2018-05-06 [1] CRAN (R 3.5.1)
-##  rstudioapi             0.10       2019-03-19 [1] CRAN (R 3.5.3)
-##  S4Vectors              0.20.1     2018-11-09 [1] Bioconductor  
-##  scales                 1.0.0      2018-08-09 [1] CRAN (R 3.5.1)
-##  sessioninfo            1.1.1      2018-11-05 [1] CRAN (R 3.5.1)
-##  shiny                  1.3.2      2019-04-22 [1] CRAN (R 3.5.3)
+##  plyr                 * 1.8.4      2016-06-08 [1] CRAN (R 3.6.1)
+##  polycor                0.7-10     2019-08-05 [1] CRAN (R 3.6.1)
+##  prettyunits            1.0.2      2015-07-13 [1] CRAN (R 3.6.1)
+##  processx               3.4.1      2019-07-18 [1] CRAN (R 3.6.1)
+##  promises               1.0.1      2018-04-13 [1] CRAN (R 3.6.1)
+##  ps                     1.3.0      2018-12-21 [1] CRAN (R 3.6.1)
+##  purrr                  0.3.2      2019-03-15 [1] CRAN (R 3.6.1)
+##  questionr              0.7.0      2018-11-26 [1] CRAN (R 3.6.1)
+##  R6                     2.4.0      2019-02-14 [1] CRAN (R 3.6.1)
+##  RColorBrewer           1.1-2      2014-12-07 [1] CRAN (R 3.6.1)
+##  Rcpp                   1.0.2      2019-07-25 [1] CRAN (R 3.6.1)
+##  RCurl                  1.95-4.12  2019-03-04 [1] CRAN (R 3.6.1)
+##  readr                  1.3.1      2018-12-21 [1] CRAN (R 3.6.1)
+##  remotes                2.1.0      2019-06-24 [1] CRAN (R 3.6.1)
+##  rlang                  0.4.0      2019-06-25 [1] CRAN (R 3.6.1)
+##  rmarkdown            * 1.14       2019-07-12 [1] CRAN (R 3.6.1)
+##  rmdformats             0.3.5      2019-02-19 [1] CRAN (R 3.6.1)
+##  rpart                  4.1-15     2019-04-12 [1] CRAN (R 3.6.1)
+##  rprojroot              1.3-2      2018-01-03 [1] CRAN (R 3.6.1)
+##  RSQLite                2.1.2      2019-07-24 [1] CRAN (R 3.6.1)
+##  rstudioapi             0.10       2019-03-19 [1] CRAN (R 3.6.1)
+##  S4Vectors              0.22.0     2019-05-02 [1] Bioconductor  
+##  scales                 1.0.0      2018-08-09 [1] CRAN (R 3.6.1)
+##  sessioninfo            1.1.1      2018-11-05 [1] CRAN (R 3.6.1)
+##  shiny                  1.3.2      2019-04-22 [1] CRAN (R 3.6.1)
 ##  sirt                   3.5-27     2019-05-13 [1] local         
-##  SRAdb                  1.44.0     2018-10-30 [1] Bioconductor  
-##  stringi                1.4.3      2019-03-12 [1] CRAN (R 3.5.3)
-##  stringr                1.4.0      2019-02-10 [1] CRAN (R 3.5.2)
-##  SummarizedExperiment   1.12.0     2018-10-30 [1] Bioconductor  
-##  survival               2.44-1.1   2019-04-01 [1] CRAN (R 3.5.3)
-##  TAM                    3.2-18     2019-05-13 [1] local         
-##  testthat               2.1.1      2019-04-23 [1] CRAN (R 3.5.3)
-##  tibble                 2.1.3      2019-06-06 [1] CRAN (R 3.5.3)
-##  tidyr                  0.8.3      2019-03-01 [1] CRAN (R 3.5.2)
-##  tidyselect             0.2.5      2018-10-11 [1] CRAN (R 3.5.1)
-##  usethis                1.5.0      2019-04-07 [1] CRAN (R 3.5.3)
-##  withr                  2.1.2      2018-03-15 [1] CRAN (R 3.5.1)
-##  xfun                   0.7        2019-05-14 [1] CRAN (R 3.5.3)
-##  XML                    3.98-1.20  2019-06-06 [1] CRAN (R 3.5.3)
-##  xml2                   1.2.0      2018-01-24 [1] CRAN (R 3.5.1)
-##  xtable                 1.8-4      2019-04-21 [1] CRAN (R 3.5.3)
-##  XVector                0.22.0     2018-10-30 [1] Bioconductor  
-##  yaml                   2.2.0      2018-07-25 [1] CRAN (R 3.5.1)
-##  zlibbioc               1.28.0     2018-10-30 [1] Bioconductor  
+##  SRAdb                  1.46.0     2019-05-02 [1] Bioconductor  
+##  stringi                1.4.3      2019-03-12 [1] CRAN (R 3.6.1)
+##  stringr                1.4.0      2019-02-10 [1] CRAN (R 3.6.1)
+##  SummarizedExperiment   1.14.1     2019-07-31 [1] Bioconductor  
+##  survival               2.44-1.1   2019-04-01 [1] CRAN (R 3.6.1)
+##  TAM                    3.3-4      2019-07-19 [1] local         
+##  testthat               2.2.1      2019-07-25 [1] CRAN (R 3.6.1)
+##  tibble                 2.1.3      2019-06-06 [1] CRAN (R 3.6.1)
+##  tidyr                  0.8.3      2019-03-01 [1] CRAN (R 3.6.1)
+##  tidyselect             0.2.5      2018-10-11 [1] CRAN (R 3.6.1)
+##  usethis                1.5.1      2019-07-04 [1] CRAN (R 3.6.1)
+##  vctrs                  0.2.0      2019-07-05 [1] CRAN (R 3.6.1)
+##  withr                  2.1.2      2018-03-15 [1] CRAN (R 3.6.1)
+##  xfun                   0.8        2019-06-25 [1] CRAN (R 3.6.1)
+##  XML                    3.98-1.20  2019-06-06 [1] CRAN (R 3.6.1)
+##  xml2                   1.2.1      2019-07-29 [1] CRAN (R 3.6.1)
+##  xtable                 1.8-4      2019-04-21 [1] CRAN (R 3.6.1)
+##  XVector                0.24.0     2019-05-02 [1] Bioconductor  
+##  yaml                   2.2.0      2018-07-25 [1] CRAN (R 3.6.1)
+##  zeallot                0.1.0      2018-01-28 [1] CRAN (R 3.6.1)
+##  zlibbioc               1.30.0     2019-05-02 [1] Bioconductor  
 ## 
-## [1] /home/ubuntu/R/x86_64-pc-linux-gnu-library/3.5
+## [1] /home/ubuntu/R/x86_64-pc-linux-gnu-library/3.6
 ## [2] /usr/local/lib/R/site-library
 ## [3] /usr/lib/R/site-library
 ## [4] /usr/lib/R/library</code></pre>
@@ -3243,7 +3304,7 @@ $(document).ready(function () {
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-06-18</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> 2019-08-09</p>
 </div>
 
 
