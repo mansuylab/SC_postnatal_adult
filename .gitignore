@@ -7,3 +7,4 @@
 \.nfs*
 \.~*
 \.log
+.Rproj.user
