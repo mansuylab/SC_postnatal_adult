@@ -1,0 +1,1 @@
+../../../../../../data/RNA-Seq/SC_adult/data/raw/NovaSeq_20190222_NOV68_o5263_DataDelivery/md5sums.txt
