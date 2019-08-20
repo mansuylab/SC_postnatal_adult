@@ -1,0 +1,12 @@
+{
+    "salmon_version": "0.9.1",
+    "index": "./input/gencode.vM18_plus_repeatsTx_plus_piRNAprecursors/",
+    "libType": "A",
+    "unmatedReads": "/dev/fd/63",
+    "threads": "8",
+    "seqBias": [],
+    "gcBias": [],
+    "dumpEq": [],
+    "output": "output1/PND15_02",
+    "auxDir": "aux_info"
+}
