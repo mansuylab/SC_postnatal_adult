@@ -40,10 +40,8 @@ library(gridExtra)
 
 # DEA objects and Counts
 ```{r}
-load("./input/dea_PND15_Adult.RData")
-load("./input/dea_PND8_Adult.RData")
-load("./input/dea_PND8_PND15.RData")
 load("./input/cpm_pData.RData")
+load("./input/")
 ```
 
 

@@ -30,7 +30,6 @@ knitr::opts_chunk$set(echo = TRUE)
 # Libraries required
 
 ```{r, message=FALSE, warning=FALSE}
-library(rmarkdown)
 library(viridis)
 library(pheatmap)
 library(plgINS)
@@ -40,25 +39,22 @@ library(gridExtra)
 
 # DEA objects and Counts
 ```{r}
-load("./input/dea_PND15_Adult.RData")
-load("./input/dea_PND8_Adult.RData")
-load("./input/dea_PND8_PND15.RData")
-load("./input/cpm_pData.RData")
+load("./input/limma_SC_Controls.RData")
+load("./input/data_pData.RData")
 ```
 
 
 # Data preparation
 ```{r}
 genes <- unique(c(
-  pnd8.pnd15$DEA$Genes[pnd8.pnd15$DEA$adj.P.Val <= 0.05 & abs(pnd8.pnd15$DEA$logFC) >= 1],
-  pnd8.adult$DEA$Genes[pnd8.adult$DEA$adj.P.Val <= 0.05 & abs(pnd8.adult$DEA$logFC) >= 1],
-  pnd15.adult$DEA$Genes[pnd15.adult$DEA$adj.P.Val <= 0.05 & abs(pnd15.adult$DEA$logFC) >= 1]
+  dea.limma$`PND8 vs PND15`$Genes[dea.limma$`PND8 vs PND15`$adj.P.Val <= 0.05 & abs(dea.limma$`PND8 vs PND15`$logFC) >= 1],
+  dea.limma$`PND15 vs Adult`$Genes[dea.limma$`PND15 vs Adult`$adj.P.Val <= 0.05 & abs(dea.limma$`PND15 vs Adult`$logFC) >= 1]
 ))
 
-matrix <- data$cpm[genes, ]
+matrix.log <- data$vstSV[genes, ]
 
-# Log2 conversion
-matrix.log <- log2(matrix)
+# # Log2 conversion
+# matrix.log <- log2(matrix)
 
 # Removal of NA, NAN and Inf values
 matrix.log[is.na(matrix.log)] <- 0
@@ -67,12 +63,37 @@ matrix.log[is.infinite(matrix.log)] <- 0
 
 # Normalize the counts based on PND8 samples
 mat.norm <- matrix.log - rowMeans(matrix.log[, grep(pattern = "PND8", x = colnames(matrix.log), value = T)])
+# mat.norm <- (mat.norm + (-min(mat.norm))) + 1
+```
+
+```{r test}
+sortRows <- function(x, z = F, toporder = NULL, na.rm = F) {
+  library(seriation)
+  if (na.rm) {
+    x <- x[which(apply(x, 1, FUN = function(y) {
+      !any(is.na(y))
+    }) |
+      !(apply(x, 1, na.rm = T, FUN = sd) > 0)), ]
+  }
+  y <- x
+  if (z) y <- t(scale(t(x)))
+  ss <- seriate(dist(y), method = "MDS_angle")
+  if (is.null(toporder)) {
+    return(x[get_order(ss), ])
+  }
+  o1 <- get_order(ss)
+  oa <- aggregate(o1, by = list(top = as.factor(toporder)), FUN = median)
+  oa <- oa[order(oa[, 2]), 1]
+  toporder <- factor(as.character(toporder), levels = as.character(oa))
+  x[order(as.numeric(toporder), o1), ]
+}
 ```
 
 
 # K-means clustering on the data and heatmaps
 
 ## K-means clusters and heatmaps
+
 ```{r, fig.show='hide', message=F, warning=F}
 if (!file.exists("./output/kmeans_sort_heatmaps_all_dge.RData")) {
   set.seed(100)
@@ -85,7 +106,10 @@ if (!file.exists("./output/kmeans_sort_heatmaps_all_dge.RData")) {
 
   for (i in 2:10) {
     kmeans[[i - 1]] <- kmeans(x = mat.norm, centers = i, iter.max = 100)
-    mat.sort.clust[[i - 1]] <- sortRows(x = mat.norm, toporder = kmeans[[i - 1]]$cluster)
+    mat.sort.clust[[i - 1]] <- sortRows(
+      x = mat.norm,
+      toporder = kmeans[[i - 1]]$cluster
+    )
     names(kmeans)[i - 1] <- names(mat.sort.clust)[i - 1] <- paste0("cluster_", i)
   }
 
@@ -123,44 +147,140 @@ z <- dev.off()
 ```
 
 
-Based on visual inspection, heatmap with `k = 7` looks good. We decided to merge cluster `k=5` with `k=1` and `k=6` with `k=3`,  as it seems that they should be together.
+<!-- Based on visual inspection, heatmap with `k = 5` & `k = 6` looks good. We decided to merge cluster `k = 4` with `k = 1`,  as it seems that they should be together. -->
 
-# Merging clusters and Heatmap
 
-## Merging clusters
-```{r}
-kmeans.new <- kmeans[[6]]$cluster
-kmeans.new[kmeans.new == 5] <- 1
-kmeans.new[kmeans.new == 6] <- 3
-kmeans.new[kmeans.new == 7] <- 5 # rename
+<!-- # Merging clusters and Heatmap -->
 
-mat.new.k7 <- sortRows(x = mat.norm, toporder = kmeans.new)
+<!-- ## Merging clusters -->
+<!-- ```{r} -->
+<!-- if (!file.exists("./output/kmeans_sortMat_k5.RData")) { -->
+<!--   kmeans.new <- kmeans[[5]]$cluster -->
+<!--   kmeans.new[kmeans.new == 4] <- 1 -->
+<!--   # kmeans.new[kmeans.new == 4] <- 3 -->
+<!--   kmeans.new[kmeans.new == 5] <- 4 # rename -->
+<!--   kmeans.new[kmeans.new == 6] <- 5 # rename -->
 
-save(kmeans.new, mat.new.k7, file = "./output/kmeans_sortMat_k5.RData")
+<!--   mat.new.k6 <- plgINS:::sortRows(x = mat.norm, toporder = kmeans.new) -->
+
+<!--   save(kmeans.new, mat.new.k6, file = "./output/kmeans_sortMat_k5.RData") -->
+<!-- } else { -->
+<!--   load("./output/kmeans_sortMat_k5.RData") -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ## Heatmap (k = 6) -->
+<!-- ```{r, warning=F, message=F, fig.align='center', fig.height=11, fig.width=8.5} -->
+<!-- annCol <- data$pData[, 1, drop = FALSE] -->
+
+<!-- o <- colnames(mat.new.k6) -->
+<!-- o <- o[c(grep("PND8", o), grep("PND15", o), grep("Adult", o))] -->
+
+<!-- pheatmap(mat.new.k6[, o], -->
+<!--   color = viridis(100), border_color = NA, -->
+<!--   show_rownames = F, show_colnames = T, -->
+<!--   breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)), -->
+<!--   cluster_rows = F, cluster_cols = F, annotation_col = annCol[, 1, drop = F], -->
+<!--   annotation_row = data.frame(nCluster = as.factor(kmeans.new)), -->
+<!--   main = "SC controls all DGE FDR <= 0.05 and abs(LFC) >= 1" -->
+<!-- ) -->
+<!-- ``` -->
+
+<!-- ```{r, warning=F, message=F, echo=FALSE} -->
+<!-- pheatmap(mat.new.k7[, o], -->
+<!--   color = viridis(100), border_color = NA, -->
+<!--   show_rownames = F, show_colnames = T, -->
+<!--   breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)), -->
+<!--   cluster_rows = F, cluster_cols = F, annotation_col = annCol[, 1, drop = F], -->
+<!--   annotation_row = data.frame(nCluster = kmeans.new), -->
+<!--   main = "SC controls all DGE FDR <= 0.05 and abs(LFC) >= 1", -->
+<!--   filename = "./output/20190514-SC_controls_common_DEG_fdr05_lfc1.pdf" -->
+<!-- ) -->
+<!-- ``` -->
+
+
+
+## Heatmap (k = 5)
+```{r, warning=F, message=F, fig.align='center', fig.height=11, fig.width=8.5}
+annCol <- data$pData[, 1, drop = FALSE]
+
+mat <- mat.sort.clust[[4]]
+kmeans.new <- kmeans[[4]]$cluster
+kmeans.new <- kmeans.new[rownames(mat)]
+kmeans.new <- c(
+  kmeans.new[kmeans.new == 5],
+  kmeans.new[kmeans.new == 3],
+  kmeans.new[kmeans.new == 1],
+  kmeans.new[kmeans.new == 2],
+  kmeans.new[kmeans.new == 4]
+)
+
+mat <- mat[names(kmeans.new), ]
+
+# mat.new <- plgINS:::sortRows(x = mat, toporder = kmeans.new)
+
+pheatmap(mat,
+  color = viridis(100), border_color = NA,
+  show_rownames = F, show_colnames = F,
+  breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
+  cluster_rows = F, cluster_cols = T,
+  annotation_col = annCol,
+  annotation_row = data.frame(nCluster = as.factor(kmeans.new))
+)
 ```
 
-## Heatmap
-```{r, warning=F, message=F, fig.align='center', fig.height=11, fig.width=8.5}
-pheatmap(mat.new.k7,
+```{r, warning=F, message=F, echo=FALSE}
+pheatmap(mat,
   color = viridis(100), border_color = NA,
-  show_rownames = F, show_colnames = T,
+  show_rownames = F, show_colnames = F,
   breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
-  cluster_rows = F, cluster_cols = T, annotation_col = data$pData,
-  annotation_row = data.frame(nCluster = kmeans.new),
-  main = "SC controls all DGE FDR <= 0.05 and abs(LFC) >= 1"
+  cluster_rows = F, cluster_cols = T,
+  annotation_col = annCol,
+  annotation_row = data.frame(nCluster = as.factor(kmeans.new)),
+  main = "SC controls all DGE FDR <= 0.05 and abs(LFC) >= 1",
+  filename = "./output/20190514-SC_controls_union_DEG_fdr05_lfc1_k5.pdf"
 )
 ```
 
 
-```{r, warning=F, message=F, echo=FALSE}
-pheatmap(mat.new.k7,
+## Heatmap (k = 4)
+```{r, warning=F, message=F, fig.align='center', fig.height=11, fig.width=8.5}
+annCol <- data$pData[, 1, drop = FALSE]
+
+mat <- mat.sort.clust[[3]]
+kmeans.new <- kmeans[[3]]$cluster
+kmeans.new <- kmeans.new[rownames(mat)]
+kmeans.new <- c(
+  kmeans.new[kmeans.new == 4],
+  kmeans.new[kmeans.new == 1],
+  kmeans.new[kmeans.new == 3],
+  kmeans.new[kmeans.new == 2]
+)
+
+mat <- mat[names(kmeans.new), ]
+
+# mat.new <- plgINS:::sortRows(x = mat, toporder = kmeans.new)
+
+pheatmap(mat,
   color = viridis(100), border_color = NA,
-  show_rownames = F, show_colnames = T,
+  show_rownames = F, show_colnames = F,
   breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
-  cluster_rows = F, cluster_cols = T, annotation_col = data$pData,
-  annotation_row = data.frame(nCluster = kmeans.new),
-  main = "SC controls common DGE FDR <= 0.05 and abs(LFC) >= 1",
-  filename = "./output/20190514-SC_controls_common_DEG_fdr05_lfc1.pdf"
+  cluster_rows = F, cluster_cols = T,
+  annotation_col = annCol,
+  annotation_row = data.frame(nCluster = as.factor(kmeans.new))
+)
+```
+
+```{r, warning=F, message=F, echo=FALSE}
+pheatmap(mat,
+  color = viridis(100), border_color = NA,
+  show_rownames = F, show_colnames = F,
+  breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
+  cluster_rows = F, cluster_cols = T,
+  annotation_col = annCol,
+  annotation_row = data.frame(nCluster = as.factor(kmeans.new)),
+  main = "SC controls all DGE FDR <= 0.05 and abs(LFC) >= 1",
+  filename = "./output/20190514-SC_controls_union_DEG_fdr05_lfc1_k4.pdf"
 )
 ```
 
