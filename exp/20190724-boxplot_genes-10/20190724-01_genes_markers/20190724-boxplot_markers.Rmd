@@ -1,0 +1,227 @@
+---
+title: "RNA-Seq: Boxplot of genes markers"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-07-24 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(pheatmap)
+library(readxl)
+library(reshape2)
+library(plyr)
+library(dplyr)
+library(plotly)
+library(ggplot2)
+library(ggpubr)
+```
+
+# CPM values
+```{r}
+load("./input/cpm_pData.RData")
+```
+
+
+# Markers
+```{r}
+df1 <- data.frame(Categories = "Maintenance & self-renewal genes", 
+                  Genes = c("Lhx1", "Etv5", "Id4", "Cxcr4", "Bcl6b", "Pou5f1", "Pax7", "Kit", "Lin28a", "Rarg"),
+                  stringsAsFactors = F)
+
+df2 <- data.frame(Categories = "Melanoma antigen genes", 
+                  Genes = c("Mageb4", "Mageb16", "Magea2", "Magea3", "Magea5", "Magea6", "Magea8", "Magea10"),
+                  stringsAsFactors = F)
+
+df3 <- data.frame(Categories = "Signalling factors", 
+                  Genes = c("Lifr", "Fgfr1", "Fgfr2", "Tgfb1", "Tgfb2", "Tgfb3"), stringsAsFactors = F)
+
+df <- rbind(df1, df2, df3)
+rownames(df) <- df$Genes
+
+t <- data$cpm[rownames(data$cpm) %in% df$Genes, ]
+tmp <- data.frame(data$pData, t(t))
+tmp <- tmp[order(tmp$Group, decreasing = T),]
+
+mat <- data.matrix(log2(t(tmp[,5:ncol(tmp)])))
+mat[is.infinite(mat)] <- 0
+mat <- data.frame(mat)
+
+median.df <- data.frame(matrix(nrow = nrow(mat), ncol = 3))
+rownames(median.df) <- rownames(mat)
+colnames(median.df) <- c("PND8", "PND15", "Adult")
+
+median.df$PND8 <- apply(mat[,1:8], 1, median)
+median.df$PND15 <- apply(mat[,9:17], 1, median)
+median.df$Adult <- apply(mat[,18:ncol(mat)], 1, median)
+median.df$Genes <- rownames(median.df)
+
+median.df$Categories <- df[rownames(median.df), "Categories"]
+
+median.melt <- melt(data = median.df, id.vars = c("Categories", "Genes"))
+
+xs <- split(median.melt,f = median.melt$Categories)
+
+p1 <- ggplot(data=xs$`Maintenance & self-renewal genes`, aes(x=variable, y=value, group=Genes)) +
+  geom_line(aes(color=Genes))+
+  geom_point(aes(color=Genes)) +
+    labs(x = "", y = "") + 
+  theme_bw(base_size = 15) +
+  theme(legend.title = element_blank())+
+  scale_y_continuous(limits = c(5.4, 6.25))+
+  facet_wrap(~Categories, ncol = 1)
+
+# ggplotly(p1)
+
+p2 <- p1 %+% xs$`Melanoma antigen genes`
+p3 <- p1 %+% xs$`Signalling factors`
+
+p <- ggarrange(p1,p2,p3, ncol = 1, labels = c("C", "D", "E"), align = "hv") 
+
+p <- annotate_figure(p,
+                top = text_grob("", color = "red", face = "bold", size = 14),
+                bottom = text_grob("", color = "blue",
+                                   hjust = 1, x = 1, face = "italic", size = 10),
+                left = text_grob(expression(Median~log[2]~expression), color = "blue", rot = 90, size = 15),
+                right = "",
+                fig.lab = "", fig.lab.face = "bold"
+)
+```
+
+```{r, fig.height=9.5, fig.width=5.5}
+p
+```
+
+
+# Mitochondrial genes
+```{r}
+xl <- lapply(4:6, function(x) as.vector(
+  read_excel("input/SSC maintenance or progenitor development genes.xlsx",
+                                         sheet = x, skip = 1, col_names = F)))
+
+names(xl) <- c("Mitochondria complex I", "Mitochondria complex III", "Mitochondria complex IV")
+
+
+genes <- data.frame(matrix(nrow = 0, ncol = 2), stringsAsFactors = F)
+colnames(genes) <- c("Category", "Genes")
+
+for(i in 1:length(xl)){
+  df <- data.frame(Category = names(xl)[i], Genes = xl[[i]]$...1, stringsAsFactors = F)
+  genes <- rbind.data.frame(genes, df, stringsAsFactors = F)
+}
+
+g.sp <- split(x = genes, f = genes$Genes)
+
+genes1 <- lapply(g.sp, function(x){
+  if(nrow(x) == 1){
+    return(x)
+  } else{
+    a <- x[1,]
+    b <- unlist(strsplit(x = as.character(x$Category), split = "Mitochondria complex "))
+    a$Category <- paste("Mitochondria complex",paste(b[b!=""], collapse = ","))
+    return(a)
+  }
+})
+genes <- ldply(genes1, data.frame)[,-1]
+rownames(genes) <- genes$Genes
+
+t <- data$cpm[rownames(data$cpm) %in% genes$Genes, ]
+tmp <- data.frame(data$pData, t(t))
+tmp <- tmp[order(tmp$Group, decreasing = T),]
+
+mat <- data.matrix(log2(t(tmp[,5:ncol(tmp)])))
+mat[is.infinite(mat)] <- 0
+mat <- mat[complete.cases(mat),]
+genes <- genes[rownames(mat),]
+genes1 <- genes[grep(pattern = ",", x = genes$Category),]
+genes2 <- genes[!genes$Genes %in% genes1$Genes,]
+
+mat1 <- mat[genes1$Genes,]
+mat2 <- mat[genes2$Genes,]
+mat2 <- plgINS:::sortRows(mat2, toporder = genes2$Category)
+
+mat <- rbind(mat1, mat2)
+annoRow <- rbind(genes1, genes2)
+pheatmap(mat = mat, col = viridis::viridis(100), 
+         cluster_cols = F, cluster_rows = F, border_color = NA,
+         annotation_col = data$pData[, 1, drop = F], gaps_col = c(8, 17),
+         show_colnames = F, fontsize_row = 8, annotation_row = annoRow[,1, drop = F])
+```
+
+
+# Oxydative phosphorylation
+```{r}
+xl <- lapply(2, function(x) as.vector(
+  read_excel("input/SSC maintenance or progenitor development genes.xlsx",
+                                         sheet = x, skip = 1, col_names = F)))
+
+names(xl) <- c("Oxydative phosphorylation")
+
+
+genes <- data.frame(matrix(nrow = 0, ncol = 2), stringsAsFactors = F)
+colnames(genes) <- c("Category", "Genes")
+
+for(i in 1:length(xl)){
+  df <- data.frame(Category = names(xl)[i], Genes = xl[[i]]$...1, stringsAsFactors = F)
+  genes <- rbind.data.frame(genes, df, stringsAsFactors = F)
+}
+
+g.sp <- split(x = genes, f = genes$Genes)
+
+genes1 <- lapply(g.sp, function(x){
+  if(nrow(x) == 1){
+    return(x)
+  } else{
+    a <- x[1,]
+    b <- unlist(strsplit(x = as.character(x$Category), split = "Mitochondria complex "))
+    a$Category <- paste("Mitochondria complex",paste(b[b!=""], collapse = ","))
+    return(a)
+  }
+})
+genes <- ldply(genes1, data.frame)[,-1]
+rownames(genes) <- genes$Genes
+
+t <- data$cpm[rownames(data$cpm) %in% genes$Genes, ]
+genes <- genes[genes$Genes %in% rownames(data$cpm),]
+tmp <- data.frame(data$pData, t(t))
+tmp <- tmp[order(tmp$Group, decreasing = T),]
+
+mat <- data.matrix(log2(t(tmp[,5:ncol(tmp)])))
+mat[is.infinite(mat)] <- 0
+mat <- mat[complete.cases(mat),]
+# genes <- genes[rownames(mat),]
+mat <- plgINS:::sortRows(mat)
+
+pheatmap(mat = mat, col = viridis::viridis(100), 
+         cluster_cols = F, cluster_rows = F, border_color = NA,
+         annotation_col = data$pData[, 1, drop = F], gaps_col = c(8, 17),
+         show_colnames = F, fontsize_row = 5)
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
