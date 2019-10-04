@@ -1,0 +1,468 @@
+---
+title: "RNA-Seq: Pathway analysis using cameraPR and fGSEA"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-09-02 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r libraries, message=FALSE, warning=FALSE}
+library(plotly)
+library(fgsea)
+library(limma)
+library(plgINS)
+library(multiGSEA)
+library(EnrichmentBrowser)
+library(grid)
+library(gridExtra)
+library(heatmaply)
+```
+
+# Data setup
+```{r load-objects}
+load("input/limma_SC_Controls.RData")
+load("input/gencode.vM18.anno.RData")
+```
+
+
+# Genes with length information
+```{r genes-information}
+genes <- anno[, c(2, 3, 6, 7, 10)]
+genes <- genes[!duplicated(genes), ]
+
+g1 <- genes[!genes$entrez_id %in% genes$entrez_id[duplicated(genes$entrez_id)], ]
+g2 <- genes[genes$entrez_id %in% genes$entrez_id[duplicated(genes$entrez_id)], ]
+
+g2 <- g2[!duplicated(g2$ensembl), ]
+g2 <- g2[!duplicated(g2$symbol), ]
+g2$entrez_id[duplicated(g2$entrez_id)] <- g2$symbol[duplicated(g2$entrez_id)]
+
+genes.f <- rbind(g1, g2)
+rownames(genes.f) <- genes.f$entrez_id
+```
+
+
+# GeneSets
+```{r making-geneSets}
+MSigdb <- getMSigGeneSetDb(
+  collection = c("c1", "c2", "c3", "c4", "c5", "c6", "c7", "h"),
+  species = "mouse", with.kegg = T, species.specific = T
+)
+
+go <- GeneSetDb(getGenesets(org = "mmu", db = "go"), collectionName = "Gene Ontology")
+go.bp <- GeneSetDb(getGenesets(org = "mmu", go.onto = "BP"), collectionName = "GO_BP")
+go.mf <- GeneSetDb(getGenesets(org = "mmu", go.onto = "MF"), collectionName = "GO_MF")
+go.cc <- GeneSetDb(getGenesets(org = "mmu", go.onto = "CC"), collectionName = "GO_CC")
+
+kegg <- GeneSetDb(getGenesets(org = "mmu", db = "kegg"), collectionName = "KEGG")
+
+reactome <- getReactomeGeneSetDb(species = "mouse", rm.species.prefix = T)
+
+gdb <- Reduce(append, list(go, go.bp, go.cc, go.mf, kegg, reactome, MSigdb))
+gdb@table$organism <- "Mus musculus"
+```
+
+```{r}
+pathwaysDB <- data.frame(gdb@db, stringsAsFactors = F)
+pathwaysDB$symbol_anno <- genes.f[pathwaysDB$featureId, "symbol"]
+pathwaysDB$symbol_anno[is.na(pathwaysDB$symbol_anno)] <- pathwaysDB$featureId[is.na(pathwaysDB$symbol_anno)]
+
+pathways <- split(x = pathwaysDB[, c(1, 2, 5)], f = pathwaysDB$collection)
+pathways <- lapply(pathways, function(x) split(x[, 3], x$name))
+```
+
+
+# fgsea
+```{r}
+fgsea.pnd8.pnd15 <- lapply(pathways, function(x) {
+  dea <- dea.limma$`PND8 vs PND15`
+  genes <- dea$t
+  names(genes) <- dea$Genes
+  res <- fgsea(pathways = x, stats = genes, nperm = 1000, minSize = 5, nproc = detectCores() - 1)
+  res <- data.frame(res[res$padj <= 0.1, ])
+  rownames(res) <- res$pathway
+  return(res)
+})
+
+fgsea.pnd15.adult <- lapply(pathways, function(x) {
+  dea <- dea.limma$`PND15 vs Adult`
+  genes <- dea$t
+  names(genes) <- dea$Genes
+  res <- fgsea(pathways = x, stats = genes, nperm = 1000, minSize = 5, nproc = detectCores() - 1)
+  res <- data.frame(res[res$padj <= 0.1, ])
+  rownames(res) <- res$pathway
+  return(res)
+})
+```
+
+# cameraPR
+
+## Function
+```{r}
+cameraPR <- function(statistic, index, use.ranks = FALSE, inter.gene.cor = 0.01, sort = TRUE, ...) {
+  dots <- names(list(...))
+  if (length(dots)) warning("Extra arguments disregarded: ", sQuote(dots))
+
+  #     Check statistic
+  if (is.list(statistic)) stop("statistic should be a numeric vector")
+  storage.mode(statistic) <- "numeric"
+  if (anyNA(statistic)) stop("NA values for statistic not allowed")
+  G <- length(statistic)
+  ID <- names(statistic)
+  if (G < 3) stop("Too few genes in dataset: need at least 3")
+
+  #     Check index
+  if (!is.list(index)) index <- list(set1 = index)
+  index <- index[which(!sapply(index, function(x) length(x) < 10))] # ADDED BY ASA 190527 to mimic fgsea minSize = 10
+  nsets <- length(index)
+
+  #     Check inter.gene.cor
+  if (anyNA(inter.gene.cor)) stop("NA inter.gene.cor not allowed")
+  if (any(abs(inter.gene.cor) >= 1)) stop("inter.gene.cor too large or small")
+  if (length(inter.gene.cor) > 1L) {
+    if (length(inter.gene.cor) != nsets) stop("Length of inter.gene.cor doesn't match number of sets")
+    fixed.cor <- FALSE
+  } else {
+    fixed.cor <- TRUE
+    inter.gene.cor <- rep_len(inter.gene.cor, nsets)
+  }
+
+  #     Set df
+  if (use.ranks) {
+    df.camera <- Inf
+  } else {
+    df.camera <- G - 2L
+  }
+
+  #     Global statistics
+  meanStat <- mean(statistic)
+  varStat <- var(statistic)
+  tst <- c() ### ADDED BY ASA on 190514
+  NGenes <- Down <- Up <- rep_len(0, nsets)
+  for (i in 1:nsets) {
+    iset <- index[[i]]
+    if (is.character(iset)) iset <- which(ID %in% iset)
+    StatInSet <- statistic[iset]
+    m <- length(StatInSet)
+    NGenes[i] <- m
+    if (use.ranks) {
+      p.value <- rankSumTestWithCorrelation(iset,
+        statistics = statistic,
+        correlation = inter.gene.cor[i], df = df.camera
+      )
+      Down[i] <- p.value[1]
+      Up[i] <- p.value[2]
+    } else {
+      vif <- 1 + (m - 1) * inter.gene.cor[i]
+      m2 <- G - m
+      meanStatInSet <- mean(StatInSet)
+      delta <- G / m2 * (meanStatInSet - meanStat)
+      varStatPooled <- ((G - 1L) * varStat - delta^2 * m * m2 / G) / (G - 2L)
+      two.sample.t <- delta / sqrt(varStatPooled * (vif / m + 1 / m2))
+      tst[i] <- two.sample.t ### ADDED BY ASA on 190514
+      Down[i] <- pt(two.sample.t, df = df.camera)
+      Up[i] <- pt(two.sample.t, df = df.camera, lower.tail = FALSE)
+    }
+  }
+  TwoSided <- 2 * pmin(Down, Up)
+  #     Assemble into data.frame
+  D <- (Down < Up)
+  Direction <- rep_len("Up", nsets)
+  Direction[D] <- "Down"
+  if (fixed.cor) {
+    tab <- data.frame(NGenes = NGenes, Direction = Direction, PValue = TwoSided, TwoSampT = tst, stringsAsFactors = FALSE)
+  } ### ADDED TwoSampT on 190514
+  else {
+    tab <- data.frame(NGenes = NGenes, Correlation = inter.gene.cor, Direction = Direction, PValue = TwoSided, stringsAsFactors = FALSE)
+  }
+  rownames(tab) <- names(index)
+
+  #     Add FDR
+  if (nsets > 1L) tab$FDR <- p.adjust(tab$PValue, method = "BH")
+
+  #     Sort by p-value
+  if (sort && nsets > 1L) {
+    o <- order(tab$PValue)
+    tab <- tab[o, ]
+  }
+
+  tab
+}
+```
+
+## cameraPR
+```{r}
+cameraPR.pnd8.pnd15 <- lapply(pathways, function(x) {
+  dea <- dea.limma$`PND8 vs PND15`
+  genes <- dea$t
+  names(genes) <- dea$Genes
+  res <- cameraPR(genes, x)
+  res <- res[res$FDR <= 0.1, ]
+  res <- data.frame(pathway = rownames(res), res, stringsAsFactors = F)
+  return(res)
+})
+
+cameraPR.pnd15.adult <- lapply(pathways, function(x) {
+  dea <- dea.limma$`PND15 vs Adult`
+  genes <- dea$t
+  names(genes) <- dea$Genes
+  res <- cameraPR(genes, x)
+  res <- res[res$FDR <= 0.1, ]
+  res <- data.frame(pathway = rownames(res), res, stringsAsFactors = F)
+  return(res)
+})
+```
+
+# Results
+
+```{r}
+names <- names(fgsea.pnd8.pnd15)
+
+p <- NULL
+for (i in 1:length(names)) {
+  path <- unique(c(
+    fgsea.pnd8.pnd15[[names[i]]]$pathway, cameraPR.pnd8.pnd15[[names[i]]]$pathway,
+    fgsea.pnd15.adult[[names[i]]]$pathway, cameraPR.pnd15.adult[[names[i]]]$pathway
+  ))
+  table <- data.frame(matrix(nrow = length(path), ncol = 4, data = 0))
+  colnames(table) <- c(
+    "fGSEA: PND8 vs PND15", "cameraPR: PND8 vs PND15",
+    "fGSEA: PND15 vs Adult", "cameraPR: PND15 vs Adult"
+  )
+  rownames(table) <- path
+
+  table$`fGSEA: PND8 vs PND15` <- fgsea.pnd8.pnd15[[names[i]]][path, "NES"]
+  table$`fGSEA: PND15 vs Adult` <- fgsea.pnd15.adult[[names[i]]][path, "NES"]
+
+  table$`cameraPR: PND8 vs PND15` <- cameraPR.pnd8.pnd15[[names[i]]][path, "TwoSampT"]
+  table$`cameraPR: PND15 vs Adult` <- cameraPR.pnd15.adult[[names[i]]][path, "TwoSampT"]
+
+  p[[i]] <- heatmaply(x = table, dendrogram = "none", cexRow = 0.6) %>% layout(width = 700, height = 1000)
+  names(p)[i] <- names[i]
+}
+```
+
+# Tables
+
+## Function
+```{r}
+make_DT <- function(df) {
+  df <- data.frame(df, stringsAsFactors = F, check.names = F)
+  DT::datatable(
+    df,
+    rownames = F,
+    filter = "top", extensions = c("Buttons", "ColReorder"), options = list(
+      pageLength = 10,
+      buttons = c("copy", "csv", "excel", "pdf", "print"),
+      colReorder = list(realtime = FALSE),
+      dom = "fltBip"
+    )
+  )
+}
+```
+
+```{r, echo=FALSE,include = FALSE}
+# dependencies attaching...
+make_DT(matrix())
+require(DT)
+```
+
+## PND8 vs PND15 {.tabset .tabset-dropdown}
+
+### fGSEA {.tabset .tabset-pills}
+
+```{r, results='asis'}
+path <- fgsea.pnd8.pnd15
+
+for (i in 1:length(path)) {
+  cat("#### ", names(path)[i], "\n\n")
+  print(htmltools::tagList(make_DT(path[[i]])))
+  cat("\n\n")
+}
+```
+
+```{r}
+fgsea.pnd8.pnd15 <- lapply(fgsea.pnd8.pnd15, function(x) {
+  x$leadingEdgeGenes <- NA
+  for (i in 1:nrow(x)) {
+    x$leadingEdgeGenes[i] <- paste(x$leadingEdge[[i]], collapse = ",")
+  }
+  x <- x[, !colnames(x) %in% "leadingEdge"]
+  return(x)
+})
+
+path <- fgsea.pnd8.pnd15
+
+for (i in 1:length(path)) {
+  n <- paste0("./output/fGSEA_PND8vsPND15_", names(path)[i], ".xlsx")
+  n <- gsub(pattern = " ", replacement = "-", x = n)
+  writexl::write_xlsx(x = data.frame(path[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+
+
+### CameraPR {.tabset .tabset-pills}
+
+```{r, results='asis'}
+path <- cameraPR.pnd8.pnd15
+
+for (i in 1:length(path)) {
+  cat("#### ", names(path)[i], "\n\n")
+  print(htmltools::tagList(make_DT(path[[i]])))
+  cat("\n\n")
+}
+```
+
+```{r}
+path <- cameraPR.pnd8.pnd15
+
+for (i in 1:length(path)) {
+  n <- paste0("./output/cameraPR_PND8vsPND15_", names(path)[i], ".xlsx")
+  n <- gsub(pattern = " ", replacement = "-", x = n)
+  writexl::write_xlsx(x = path[[i]], path = n, col_names = T, format_headers = T)
+}
+```
+
+
+## PND15 vs Adult {.tabset .tabset-dropdown}
+
+### fGSEA {.tabset .tabset-pills}
+
+```{r, results='asis'}
+path <- fgsea.pnd15.adult
+for (i in 1:length(path)) {
+  cat("#### ", names(path)[i], "\n\n")
+  print(htmltools::tagList(make_DT(path[[i]])))
+  cat("\n\n")
+}
+```
+
+```{r}
+fgsea.pnd15.adult <- lapply(fgsea.pnd15.adult, function(x) {
+  x$leadingEdgeGenes <- NA
+  for (i in 1:nrow(x)) {
+    x$leadingEdgeGenes[i] <- paste(x$leadingEdge[[i]], collapse = ",")
+  }
+  x <- x[, !colnames(x) %in% "leadingEdge"]
+  return(x)
+})
+
+path <- fgsea.pnd15.adult
+
+for (i in 1:length(path)) {
+  n <- paste0("./output/fGSEA_PND15vsAdult_", names(path)[i], ".xlsx")
+  n <- gsub(pattern = " ", replacement = "-", x = n)
+  writexl::write_xlsx(x = path[[i]], path = n, col_names = T, format_headers = T)
+}
+```
+
+### CameraPR {.tabset .tabset-pills}
+
+```{r, results='asis'}
+path <- cameraPR.pnd15.adult
+
+for (i in 1:length(path)) {
+  cat("#### ", names(path)[i], "\n\n")
+  print(htmltools::tagList(make_DT(path[[i]])))
+  cat("\n\n")
+}
+```
+
+```{r}
+path <- cameraPR.pnd15.adult
+
+for (i in 1:length(path)) {
+  n <- paste0("./output/cameraPR_PND15vsAdult_", names(path)[i], ".xlsx")
+  n <- gsub(pattern = " ", replacement = "-", x = n)
+  writexl::write_xlsx(x = path[[i]], path = n, col_names = T, format_headers = T)
+}
+```
+
+
+
+# Plots {.tabset .tabset-pills}
+```{r, echo=F, include=FALSE}
+heatmaply(matrix(0, nrow = 3, ncol = 3))
+```
+
+```{r, results='asis', fig.align='center'}
+for (i in 1:length(p)) {
+  cat("## ", names(p)[i], "\n\n")
+  print(htmltools::tagList(p[[i]]))
+  cat("\n\n")
+}
+```
+
+
+# Common pathways
+
+
+## PND8 vs PND15
+```{r}
+common.pnd8vspnd15 <- list()
+
+for (i in 1:length(fgsea.pnd8.pnd15)) {
+  n <- names(fgsea.pnd8.pnd15)[i]
+  tab1 <- fgsea.pnd8.pnd15[[n]]
+  tab2 <- cameraPR.pnd8.pnd15[[n]]
+  tab <- merge(tab1, tab2, by = "pathway")
+
+  common.pnd8vspnd15[[i]] <- tab
+  names(common.pnd8vspnd15)[i] <- n
+
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/common_PND8vsPND15_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
+## PND15 vs Adult
+```{r}
+common.pnd15vsadult <- list()
+
+for (i in 1:length(fgsea.pnd15.adult)) {
+  n <- names(fgsea.pnd15.adult)[i]
+  tab1 <- fgsea.pnd15.adult[[n]]
+  tab2 <- cameraPR.pnd15.adult[[n]]
+  tab <- merge(tab1, tab2, by = "pathway")
+
+  common.pnd15vsadult[[i]] <- tab
+  names(common.pnd15vsadult)[i] <- n
+
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/common_PND15vsAdult_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
+# SessionInfo
+```{r sessionInfo}
+devtools::session_info()
+```
