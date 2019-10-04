@@ -7,7 +7,7 @@
 
 SHELL:=/bin/bash
 source_dir=./input
-target_dir=./output1
+target_dir=./output
 
 files := $(wildcard $(source_dir)/*_trimmed.fq.gz)
 targets := $(patsubst $(source_dir)/%_trimmed.fq.gz, $(target_dir)/%.bam, $(files))
