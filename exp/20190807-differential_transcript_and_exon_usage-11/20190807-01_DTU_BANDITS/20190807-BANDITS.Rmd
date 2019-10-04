@@ -1,0 +1,95 @@
+---
+title: "RNA-Seq: DEU using BANDITS"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-08-07 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(BANDITS)
+```
+
+# Example
+
+```{r}
+library(tximport)
+
+load("./input/data_pData.RData")
+
+files <- list.files(path = "./input/salmon", pattern = "quant.sf", recursive = T, full.names = T)
+names(files) <- as.character(sapply(files, function(x) strsplit(x, "/")[[1]][4]))
+
+txi <- tximport(files = files, type = "salmon", txOut = TRUE)
+
+pData <- data$pData
+pData <- pData[colnames(txi$abundance),]
+
+samples_design = data.frame(sample_id = rownames(pData),
+                            group = pData$Group)
+
+eff_len = eff_len_compute(x_eff_len = txi$length)
+head(eff_len)
+
+load("input/gencode.vM18.anno.RData")
+
+an <- anno[rownames(txi$abundance), c(2,1)]
+colnames(an) <- c("gene_id", "transcript_id")
+
+transcripts_to_keep = filter_transcripts(gene_to_transcript = an,
+                                         transcript_counts = txi$counts, 
+                                         min_transcript_proportion = 0.01,
+                                         min_transcript_counts = 10, 
+                                         min_gene_counts = 15)
+
+
+set.seed(61217)
+precision = prior_precision(gene_to_transcript = an,
+                            transcript_counts = txi$counts, n_cores = 16,
+                            transcripts_to_keep = transcripts_to_keep)
+
+plot_precision(precision)
+
+eq.class <- list.files(path = "input/salmon", pattern = "eq_classes", recursive = T, full.names = T)
+
+BANDITS_data <- create_data(salmon_or_kallisto = "salmon", gene_to_transcript = an, eff_len = eff_len, 
+            transcripts_to_keep = transcripts_to_keep, n_cores = 4, salmon_path_to_eq_classes = eq.class)
+
+set.seed(61217)
+results = test_DTU(BANDITS_data = txi$counts ,
+                   precision = precision$prior,
+                   samples_design = samples_design,
+                   group_col_name = "group",
+                   R = 10^4, burn_in = 2*10^3, n_cores = 16,
+                   gene_to_transcript = gene_tr_id)
+
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
