@@ -8,3 +8,4 @@
 \.~*
 \.log
 .Rproj.user
+packrat/lib*/
