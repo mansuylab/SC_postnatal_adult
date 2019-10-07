@@ -1,0 +1,163 @@
+---
+title: "RNA-Seq: Heatmap of controls on common genes with FDR <= 0.05"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-05-14 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(rmarkdown)
+library(viridis)
+library(pheatmap)
+library(plgINS)
+library(grid)
+library(gridExtra)
+```
+
+# DEA objects and Counts
+```{r}
+load("./input/cpm_pData.RData")
+load("./input/")
+```
+
+
+# Data preparation
+```{r}
+genes <- Reduce(intersect, list(
+  pnd8.pnd15$DEA$Genes[pnd8.pnd15$DEA$adj.P.Val <= 0.05],
+  pnd8.adult$DEA$Genes[pnd8.adult$DEA$adj.P.Val <= 0.05],
+  pnd15.adult$DEA$Genes[pnd15.adult$DEA$adj.P.Val <= 0.05]
+))
+
+matrix <- data$cpm[genes, ]
+
+# Log2 conversion
+matrix.log <- log2(matrix)
+
+# Removal of NA, NAN and Inf values
+matrix.log[is.na(matrix.log)] <- 0
+matrix.log[is.nan(matrix.log)] <- 0
+matrix.log[is.infinite(matrix.log)] <- 0
+
+# Normalize the counts based on PND8 samples
+mat.norm <- matrix.log - rowMeans(matrix.log[, grep(pattern = "PND8", x = colnames(matrix.log), value = T)])
+```
+
+
+# K-means clustering on the data and heatmaps
+
+## K-means clusters and heatmaps
+```{r, fig.show='hide', message=F, warning=F}
+if (!file.exists("./output/kmeans_sort_heatmaps_common_dge.RData")) {
+  set.seed(100)
+
+  ## K-means clusters
+  kmeans <- list()
+
+  ## Serialized data
+  mat.sort.clust <- list()
+
+  for (i in 2:10) {
+    kmeans[[i - 1]] <- kmeans(x = mat.norm, centers = i, iter.max = 100)
+    mat.sort.clust[[i - 1]] <- sortRows(x = mat.norm, toporder = kmeans[[i - 1]]$cluster)
+    names(kmeans)[i - 1] <- names(mat.sort.clust)[i - 1] <- paste0("cluster_", i)
+  }
+
+  ## Heatmaps
+  heatmaps <- list()
+
+  for (i in 1:length(kmeans)) {
+    heatmaps[[i]] <- pheatmap(mat.sort.clust[[i]],
+      color = viridis(100), border_color = NA,
+      show_rownames = F, show_colnames = F,
+      breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
+      cluster_rows = F, cluster_cols = T,
+      # annotation_col = data$pData,
+      annotation_row = data.frame(nCluster = as.factor(kmeans[[i]]$cluster))
+    )[[4]]
+    names(heatmaps)[i] <- names(kmeans)[i]
+  }
+
+  kmeans.heatmap <- do.call(grid.arrange, heatmaps)
+  save(kmeans, mat.sort.clust, heatmaps, kmeans.heatmap, file = "./output/kmeans_sort_heatmaps_common_dge.RData")
+} else {
+  load("./output/kmeans_sort_heatmaps_common_dge.RData")
+}
+```
+
+## Plot heatmaps
+```{r, fig.align='center', fig.width=11, fig.height=8.5, warning=F, message=F}
+plot(kmeans.heatmap)
+```
+
+```{r, warning=F, message=F, echo=FALSE}
+pdf("./output/20190514-kmeans_heatmaps_SC_rnaseq_common_DGE.pdf", width = 11, height = 8.5)
+plot(kmeans.heatmap)
+z <- dev.off()
+```
+
+
+Based on visual inspection, heatmap with `k = 5` looks good. We decided to merge cluster `k=5` and `k=1` as it seems that they should be together.
+
+# Merging clusters and Heatmap
+
+## Merging cluster 1 and 5
+```{r}
+kmeans.new <- kmeans[[4]]$cluster
+kmeans.new[kmeans.new == 5] <- 1
+mat.new.k5 <- sortRows(x = mat.norm, toporder = kmeans.new)
+```
+
+## Heatmap
+```{r, warning=F, message=F, fig.align='center', fig.height=11, fig.width=8.5}
+pheatmap(mat.new.k5,
+  color = viridis(100), border_color = NA,
+  show_rownames = F, show_colnames = T,
+  breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
+  cluster_rows = F, cluster_cols = T, annotation_col = data$pData,
+  annotation_row = data.frame(nCluster = kmeans.new),
+  main = "SC controls common DGE FDR <= 0.05"
+)
+```
+
+
+```{r, warning=F, message=F, echo=FALSE}
+pheatmap(mat.new.k5,
+  color = viridis(100), border_color = NA,
+  show_rownames = F, show_colnames = T,
+  breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
+  cluster_rows = F, cluster_cols = T, annotation_col = data$pData,
+  annotation_row = data.frame(nCluster = kmeans.new),
+  main = "SC controls common DGE FDR <= 0.05",
+  filename = "./output/20190514-SC_controls_common_DEG_fdr05.pdf"
+)
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

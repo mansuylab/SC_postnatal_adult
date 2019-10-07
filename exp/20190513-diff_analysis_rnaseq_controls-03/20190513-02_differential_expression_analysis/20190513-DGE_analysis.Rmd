@@ -1,0 +1,257 @@
+---
+title: "RNA-Seq: differential expression analysis of controls"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-05-13 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(limma)
+library(edgeR)
+library(plgINS)
+library(sva)
+library(SummarizedExperiment)
+```
+
+# Load salmon object
+```{r, message=FALSE, warning=FALSE}
+load("input/SC_controls_rnaseq_salmon.tds.RData")
+```
+
+# Filtering gene counts
+
+## Function
+```{r}
+counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
+  counts2 <- counts[apply(counts, 1, FUN = function(x) {
+    sum(x >= 15) >= floor(length(x) * 0.4)
+  }), ]
+  return(counts2)
+}
+```
+
+## Counts from all data
+```{r}
+counts.filt <- counts_filter(counts = salmon@gene.counts)
+```
+
+
+# Differeitial analysis using `limma`
+
+## SVA
+
+```{r}
+se <- SummarizedExperiment(assays = counts.filt)
+se@colData <- DataFrame(salmon@phenoData)
+sv.pl <- svacor(SE = se, form = ~ 0 + Group)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+# mod1 <- model.matrix(~ salmon@phenoData$Group)
+# mod0 <- mod1[,1]
+# svseq <- svaseq(dat = counts.filt, mod = mod1, mod0 = mod0, n.sv = 3)$sv
+# plot(svseq, pch = 19, col = "blue")
+#
+#
+# library(DESeq2)
+# dds <- DESeqDataSetFromMatrix(round(counts.filt), salmon@phenoData, ~Group)
+# v <- vst(dds, blind=FALSE)
+# v <- assay(v)
+# sv <- sva(v, mod1, mod0)
+#
+# plPCA(v, colorBy = sv$sv[,1], plot.components = c(1,2), add.labels = F, shapeBy = dds$Group)
+#
+# cleanY = function(y, mod, svs) {
+#     X = cbind(mod, svs$sv)
+#     Hat = solve(t(X) %*% X) %*% t(X)
+#     beta = (Hat %*% t(y))
+#     rm(Hat)
+#     gc()
+#     P = ncol(mod)
+#     return(y - t(as.matrix(X[,-c(1:P)]) %*% beta[-c(1:P),]))
+# }
+#
+# cleanp <- cleanY(y = counts.filt, mod = mod1, svs = sv)
+
+# library(ggfortify)
+#
+# data1 <- log(counts.filt + 1)
+# data2 <- log(cleanp + 1)
+# data2[is.nan(data2)] <- 0
+#
+# pca1 <- prcomp(t(data1))
+# pca2 <- prcomp(t(data2))
+#
+#
+# p1 <- autoplot(pca1,
+#   data = salmon@phenoData, colour = "Group",
+#   frame = TRUE, frame.type = "norm", size = 2
+# ) +
+#   ggtitle("") +
+#   theme(
+#     axis.text.x = element_text(size = 20),
+#     axis.text.y = element_text(size = 20), axis.title.x = element_text(size = 20),
+#     axis.title.y = element_text(size = 20),
+#     plot.title = element_text(size = 25, face = "bold"),
+#     legend.text = element_text(size = 20),
+#     legend.title = element_text(size = 20, face = "bold")
+#   )
+#
+#
+# p2 <- autoplot(pca2,
+#   data = salmon@phenoData, colour = "Group",
+#   frame = TRUE, frame.type = "norm", size = 2
+# ) +
+#   ggtitle("") +
+#   theme(
+#     axis.text.x = element_text(size = 20),
+#     axis.text.y = element_text(size = 20), axis.title.x = element_text(size = 20),
+#     axis.title.y = element_text(size = 20),
+#     plot.title = element_text(size = 25, face = "bold"),
+#     legend.text = element_text(size = 20),
+#     legend.title = element_text(size = 20, face = "bold")
+#   )
+```
+
+## limma fit
+```{r}
+design <- model.matrix(~ 0 + SV1 + SV2 + SV3 + Group, data = sv.pl@colData)
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+dds <- calcNormFactors(DGEList(counts = counts.filt))
+v <- voom(dds, design = design)
+
+contrast.matrix <- makeContrasts(PND15 - PND8, Adult - PND15, levels = design)
+fit <- lmFit(v)
+
+fit2 <- contrasts.fit(fit, contrast.matrix)
+fit2 <- eBayes(fit2)
+```
+
+## DEA results
+```{r}
+pnd8.pnd15 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+pnd8.pnd15 <- data.frame(Genes = rownames(pnd8.pnd15), pnd8.pnd15, stringsAsFactors = F)
+
+pnd15.adult <- as.data.frame(topTable(fit2, coef = 2, number = Inf))
+pnd15.adult <- data.frame(Genes = rownames(pnd15.adult), pnd15.adult, stringsAsFactors = F)
+```
+
+## Venn Diagram
+```{r}
+results <- decideTests(fit2)
+vennDiagram(results)
+```
+
+# `vst` Counts data and pData
+
+```{r}
+dge <- DGEList(counts = counts.filt, group = salmon@phenoData$Group)
+dge <- calcNormFactors(object = dge, method = "TMM")
+cpm <- cpm(dge, log = T)
+cpm <- removeBatchEffect(x = cpm, covariates = design[, 1:3], design = design[, 4:6])
+
+data <- list(cpm = cpm, vstSV = sv.pl@assays[[2]], voomE = v$E, pData = salmon@phenoData)
+
+save(data,
+  file = "./output/data_pData.RData", compress = T,
+  compression_level = 3
+)
+```
+
+# Results
+```{r}
+dea.list <- list(
+  `PND8 vs PND15` = as.DEA(pnd8.pnd15),
+  `PND15 vs Adult` = as.DEA(pnd15.adult)
+)
+
+normCounts <- v$E
+
+voomEList <- v
+
+dea.limma <- list(
+  `PND8 vs PND15` = pnd8.pnd15,
+  `PND15 vs Adult` = pnd15.adult
+)
+```
+
+
+## Save RData files
+```{r}
+save(dea.list,
+  file = "./output/dea_SC_Controls.DEA.RData", compress = T,
+  compression_level = 3
+)
+
+save(normCounts,
+  file = "./output/normCounts_voom_SC_Controls.RData", compress = T,
+  compression_level = 3
+)
+
+save(voomEList,
+  file = "./output/voom_EList_SC_Controls.RData", compress = T,
+  compression_level = 3
+)
+
+save(dea.limma,
+  file = "./output/limma_SC_Controls.RData", compress = T,
+  compression_level = 3
+)
+```
+
+# PCA plots {.tabset .tabset-pills}
+
+```{r, include=FALSE, echo=FALSE}
+plPCA(matrix(data = 1:100, nrow = 10))
+```
+
+## Raw counts filtered
+```{r, fig.align='center', fig.height=7, fig.width=8, warning=F}
+plPCA(x = counts.filt, samples_data = salmon@phenoData, colorBy = "Group", add.labels = FALSE)
+```
+
+## SVA (VST)
+```{r, fig.align='center', fig.height=7, fig.width=8, warning=F}
+plPCA(x = sv.pl@assays[[2]], samples_data = salmon@phenoData, colorBy = "Group", add.labels = FALSE)
+```
+
+## CPM
+```{r, fig.align='center', fig.height=7, fig.width=8, warning=F}
+plPCA(x = cpm, samples_data = salmon@phenoData, colorBy = "Group", add.labels = FALSE)
+```
+
+## Voom
+```{r, fig.align='center', fig.height=7, fig.width=8, warning=F}
+plPCA(x = v$E, samples_data = salmon@phenoData, colorBy = "Group", add.labels = FALSE)
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

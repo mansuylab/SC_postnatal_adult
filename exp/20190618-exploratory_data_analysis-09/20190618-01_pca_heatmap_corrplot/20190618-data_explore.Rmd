@@ -1,0 +1,216 @@
+---
+title: "SC Controls RNA-Seq"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-06-18 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+
+# Libraries required for data analysis and plotting
+
+```{r, message=F, warning=FALSE}
+library(reshape2)
+library(plotly)
+library(limma)
+library(devtools)
+library(corrplot)
+library(autoplotly)
+library(ggfortify)
+library(pheatmap)
+library(viridis)
+library(dendextend)
+library(RColorBrewer)
+library(plgINS)
+library(PCAtools)
+library(cowplot)
+library(ggplotify)
+```
+
+# Data import
+```{r}
+load("./input/SC_controls_rnaseq_salmon.tds.RData")
+load("./input/cpm_pData.RData")
+```
+
+# All samples
+
+## Most 500 variable genes
+
+```{r}
+data <- data$cpm[,rownames(salmon@phenoData)]
+data <- log(data + 1)
+xvar <- apply(log(data), 1, var)
+genes500 <- head(sort(xvar, decreasing = TRUE), n = 500)
+x500 <- log2(data[rownames(data) %in% names(genes500), ])
+```
+
+
+### Heatmap
+```{r, fig.align='center', fig.height=8, fig.width=8}
+pCol <- salmon@phenoData[,1,drop = FALSE]
+# pCol$Cage.ID <- as.factor(pCol$Cage.ID)
+pheatmap(x500, scale = "row", show_rownames = F, col = viridis(50), show_colnames = F, annotation_col = pCol, main = "Clustering of samples based on top 500 variable genes")
+```
+
+
+## Correlation
+
+### Computation
+```{r}
+cor.mat <- cor(data)
+```
+
+### Plot
+```{r, fig.align='center', fig.height=6, fig.width=8}
+corrplot(cor.mat,
+  method = "color", type = "upper", title = "Correlation plot of samples",
+  tl.cex = 0.9
+)
+```
+
+
+## Reduced dimensionality representation
+
+### PCA (group)
+```{r, fig.align='center', fig.height=6, fig.width=8}
+pca <- prcomp(t(data))
+# ggplotly(
+  autoplot(pca,
+  data = pCol, colour = "Group",
+  frame = TRUE, frame.type = "norm", size = 2
+) +
+  ggtitle("") + 
+    theme(axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        plot.title = element_text(size = 25, face = "bold"),
+        legend.text=element_text(size=20),
+        legend.title=element_text(size=20, face = "bold"))
+# )
+```
+
+
+# PCA Tools
+```{r}
+p <- pca(data, metadata = pCol, removeVar = 0.1)
+
+pscree <- screeplot(p,
+  components = getComponents(p, 1:20),
+  hline = 80, vline = 2.6, axisLabSize = 20, returnPlot = FALSE
+) +
+  geom_text(aes(4, 80, label = "80% explained variation", vjust = -1, size = 30))
+
+ppairs <- pairsplot(p,
+  components = getComponents(p, c(1:3)),
+  triangle = TRUE, trianglelabSize = 12,
+  hline = 0, vline = 0,
+  pointSize = 0.8, gridlines.major = FALSE, gridlines.minor = FALSE,
+  colby = "Group",
+  title = "", titleLabSize = 16, plotaxes = FALSE,
+  margingaps = unit(c(0.01, 0.01, 0.01, 0.01), "cm"),
+  returnPlot = FALSE
+)
+
+pbiplot <- biplot(p,
+  lab = FALSE,
+  colby = "Group",
+  hline = 0, vline = c(-25, 0, 25), vlineType = c("dotdash", "solid", "dashed"),
+  gridlines.major = FALSE, gridlines.minor = FALSE,
+  pointSize = 4, axisLabSize = 22,
+  legendPosition = "left", legendLabSize = 18, legendIconSize = 6.0,
+  drawConnectors = FALSE,
+  title = "PCA bi-plot", subtitle = "PC1 versus PC2",
+  caption = "2 PCs > 75%",
+  returnPlot = FALSE, titleLabSize = 22, subtitleLabSize = 20
+)
+
+ploadings <- plotloadings(p,
+  rangeRetain = 0.01, labSize = 5,
+  title = "Loadings plot", axisLabSize = 20,
+  subtitle = "PC1, PC2, PC3, PC4, PC5",
+  caption = "Top 1% variables",
+  shape = 23, shapeSizeRange = c(4, 4),
+  col = c("limegreen", "black", "red3"),
+  legendPosition = "none",
+  drawConnectors = FALSE,
+  returnPlot = FALSE
+)
+
+top_row <- plot_grid(pscree, ppairs, pbiplot,
+  ncol = 3,
+  labels = c("A", "B  Pairs plot", "C"),
+  label_fontfamily = "serif",
+  label_fontface = "bold",
+  label_size = 22,
+  align = "h",
+  rel_widths = c(1.05, 0.9, 1.05)
+)
+
+bottom_row <- plot_grid(ploadings,
+  ncol = 1,
+  labels = c("D"),
+  label_fontfamily = "serif",
+  label_fontface = "bold",
+  label_size = 22,
+  align = "h",
+  rel_widths = c(1.5, 1.5)
+)
+```
+
+```{r, fig.align='center', fig.height=8.5, fig.width=11}
+plot_grid(top_row, bottom_row, ncol = 1, rel_heights = c(1.0, 1.0))
+```
+
+```{r}
+top_row <- plot_grid(pscree, pbiplot,
+  ncol = 2,
+  labels = c("A", "B"),
+  label_fontfamily = "serif",
+  label_fontface = "bold",
+  label_size = 22,
+  align = "h",
+  rel_widths = c(1, 1)
+)
+
+bottom_row <- plot_grid(ploadings,
+  ncol = 1,
+  labels = c("C"),
+  label_fontfamily = "serif",
+  label_fontface = "bold",
+  label_size = 22,
+  align = "h",
+  rel_widths = c(2)
+)
+```
+
+```{r, fig.align='center', fig.height=8.5, fig.width=11}
+plot_grid(top_row, ncol = 1, rel_heights = c(1.0, 1.0))
+```
+
+
+
+# SessionInfo
+
+```{r}
+devtools::session_info()
+```

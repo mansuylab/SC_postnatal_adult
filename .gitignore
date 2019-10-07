@@ -7,3 +7,5 @@
 \.nfs*
 \.~*
 \.log
+.Rproj.user
+packrat/lib*/

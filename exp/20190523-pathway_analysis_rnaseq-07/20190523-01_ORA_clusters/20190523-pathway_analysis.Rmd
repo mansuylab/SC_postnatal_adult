@@ -1,0 +1,634 @@
+---
+title: "RNA-Seq: ORA analysis for clusters"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-05-23 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = F)
+```
+
+# Libraries required
+```{r 20190523-pathway-analysis-1, message=FALSE, warning=FALSE}
+library(EnrichmentBrowser)
+library(clusterProfiler)
+library(org.Mm.eg.db)
+library(multiGSEA)
+library(data.table)
+library(GOSemSim)
+library(goseq)
+library(gprofiler2)
+library(enrichplot)
+library(plyr)
+library(DT)
+```
+
+
+# Data
+
+## Clusters
+```{r 20190523-pathway-analysis-2 }
+load("./input/kmeans_sort_heatmaps_all_dge.RData")
+mat <- mat.sort.clust[[4]]
+kmeans.new <- kmeans[[4]]$cluster
+kmeans.new <- kmeans.new[rownames(mat)]
+kmeans.new <- c(
+  kmeans.new[kmeans.new == 5],
+  kmeans.new[kmeans.new == 3],
+  kmeans.new[kmeans.new == 1],
+  kmeans.new[kmeans.new == 2],
+  kmeans.new[kmeans.new == 4]
+)
+genes.cluster <- split(x = names(kmeans.new), f = kmeans.new)
+names(genes.cluster) <- paste0("cluster", names(genes.cluster))
+```
+
+## Universe
+```{r 20190523-pathway-analysis-3 }
+load("./input/gencode.vM18.anno.RData")
+universe <- unique(anno$symbol)
+```
+
+Now, we have loaded genes cluster information.
+
+
+# Databases
+
+**Gene Ontology:**
+
+Gene Ontology(GO) is a directed acyclic graph structure that defines biological functions and their relationships to one another. The GO annotations, accompanied by evidence-based statements describe specific gene product and specific ontology term (biological function) relationship. The GO has three major subontologies - Molecular Functions (MF) that describe gene product's functions; Biological Process (BP) that describe in which biological process the gene product participates; and Cellular Component (CC) that describe in which part of the cell the particular gene product is physically located.
+
+**Biological Pathway databases**
+Reactome, KEGG and WikiPathways. Reactome pathways are centrally curated by selected domain experts. KEGG pathways are a mixture of species specific curation and orthologous knowlege mapping between species. WikiPathways is a community driven platform where pathways are curated by anyone interested.
+
+**Regulatory motifs in DNA**
+Transfac putative transcription factor binding sites (TFBSs) from TRANSFAC database are retrieved into g:GOSt through a special prediction pipeline. First, TFBSs are found by matching TRANSFAC position specific matrices using the program Match on range +/-1kb from TSS as provided by APPRIS (Annotating principal splice isoforms) via Ensembl biomart. For genes with multiple primary TSS annotations we selected one with most TF matches. The matching range for C. elegans, D. melanogaster and S. cerevisiae is 1kb upstream from ATG (translation start site). A cut-off value to minimize the number of false positive matches (provided by TRANSFAC) is then applied to remove spurious motifs. Remaining matches are split into two inclusive groups based on the amount of matches, i.e TFBSs that have at least 1 match are classified as match class 0 and TFBSs that have at least 2 matches per gene are classified as match class 1.
+
+**mirTarBase** is a database that holds experimentally validated information about genes that are targetted by miRNAs. We include all the organisms that are covered by mirTarBase.
+
+**Protein databases**
+CORUM is a database of manually annotated protein complexes from mammalian organisms. Includes gene annotations for all CORUM protein complexes in human, mouse and rat.
+
+**Human Phonotype Ontology**
+Gene annotations from the Human Phenotype Ontology (HPO), a standardized vocabulary of phenotypic abnormalities encountered in human disease. Due to ethical constraints, a significant portion of research on human disease is conducted in model organisms like mouse and rat. However HPO only provides annotations to human genes at the time. To complement HPO annotations of human genes, we have extended their gene database to genes of other organisms in g:Profiler using gene orthology information from Ensembl. As a result, researchers can directly see enrichments of human disease associations in their gene lists of model organisms.
+
+
+## Read `gmt` files from gProfileR
+
+<!-- ### Pathways online -->
+
+<!-- ```{r} -->
+<!-- MSigdb <- getMSigGeneSetDb( -->
+<!--   collection = c("c1", "c2", "c3", "c4", "c5", "c6", "c7", "h"), -->
+<!--   species = "mouse", with.kegg = T, species.specific = T -->
+<!-- ) -->
+
+<!-- go <- GeneSetDb(getGenesets(org = "mmu", db = "go"), collectionName = "Gene Ontology") -->
+<!-- go.bp <- GeneSetDb(getGenesets(org = "mmu", go.onto = "BP"), collectionName = "GO_BP") -->
+<!-- go.mf <- GeneSetDb(getGenesets(org = "mmu", go.onto = "MF"), collectionName = "GO_MF") -->
+<!-- go.cc <- GeneSetDb(getGenesets(org = "mmu", go.onto = "CC"), collectionName = "GO_CC") -->
+
+<!-- kegg <- GeneSetDb(getGenesets(org = "mmu", db = "kegg"), collectionName = "KEGG") -->
+
+<!-- reactome <- getReactomeGeneSetDb(species = "mouse", rm.species.prefix = T) -->
+
+<!-- gdb <- Reduce(append, list(go, go.bp, go.cc, go.mf, kegg, reactome, MSigdb)) -->
+<!-- gdb@table$organism <- "Mus musculus" -->
+<!-- ``` -->
+
+### Function to read `gmt` files
+```{r 20190523-pathway-analysis-4 }
+readGMT <- function(file) {
+  if (!grepl("\\.gmt$", file)[1]) {
+    stop("Pathway information must be a .gmt file")
+  }
+  geneSetDB <- readLines(file)
+  geneSetDB <- strsplit(geneSetDB, "\t")
+  n1 <- sapply(geneSetDB, "[", 1)
+  n2 <- sapply(geneSetDB, "[", 2)
+  names(geneSetDB) <- paste(n1, n2, sep = "::")
+  geneSetDB <- lapply(geneSetDB, "[", -1:-2)
+  geneSetDB <- lapply(geneSetDB, function(x) {
+    x[which(x != "")]
+  })
+  return(geneSetDB)
+}
+```
+
+### Read `gmt` files
+```{r 20190523-pathway-analysis-5 }
+files <- list.files(path = "input/gprofileR", pattern = "gmt", full.names = T)
+pathways <- lapply(files, readGMT)
+
+names(pathways) <- sapply(files, function(x) strsplit(x, "/|\\.")[[1]][4])
+```
+
+### Pathways for `clusterProfiler`
+```{r 20190523-pathway-analysis-6 }
+pathways.cp <- lapply(pathways, function(x) {
+  df <- ldply(x, data.frame)
+  df$TERM <- sub("\\::.*", "", df[, 1])
+  df$NAME <- sub(".*\\::", "", df[, 1])
+  df$GENE <- df[, 2]
+
+  df <- df[, -1:-2]
+
+  res <- list(TERM2GENE = df[, c("TERM", "GENE")], TERM2NAME = df[, c("TERM", "NAME")])
+  res$TERM2NAME <- res$TERM2NAME[!duplicated(res$TERM2NAME), ]
+
+  return(res)
+})
+```
+
+
+# Pathway analysis
+
+## clusterProfiler
+
+### ORA analysis
+```{r 20190523-pathway-analysis-7 }
+cp.analysis <- lapply(genes.cluster, function(clust) {
+  analysis <- lapply(pathways.cp, function(gs)
+    enricher(
+      gene = clust,
+      minGSSize = 10,
+      universe = universe,
+      TERM2GENE = gs$TERM2GENE,
+      TERM2NAME = gs$TERM2NAME
+    ))
+  return(analysis)
+})
+```
+
+### Adding Ontology information
+```{r 20190523-pathway-analysis-8 }
+cp.analysis.ont <- lapply(cp.analysis, function(x) {
+  for (i in 1:length(x)) {
+    if (substr(x = names(x)[i], start = 1, 2) == "GO") {
+      x[[i]]@ontology <- substr(x = names(x)[i], start = 4, 5)
+    }
+  }
+  return(x)
+})
+```
+
+### Similarity based correction (GO)
+```{r 20190523-pathway-analysis-9, warning=FALSE, message=FALSE}
+ont <- c("BP", "CC", "MF")
+sim <- sapply(ont, function(x)
+  godata(OrgDb = org.Mm.eg.db, keytype = "SYMBOL", ont = x, computeIC = T))
+
+GO <- lapply(cp.analysis.ont, function(x) x[grep(pattern = "GO", x = names(x))])
+
+GO.IC <- lapply(GO, function(x) {
+  for (i in 1:length(x)) {
+    a <- names(x)[i]
+    a <- sub(".*\\:", "", a)
+    x[[i]] <- simplify(x[[i]], measure = "Resnik", semData = sim[[a]])
+  }
+  return(x)
+})
+```
+
+### Graph based correction (GO)
+```{r 20190523-pathway-analysis-10, warning=FALSE, message=FALSE}
+GO.graph <- lapply(GO, function(x)
+  lapply(x, function(y) simplify(y, measure = "Wang")))
+```
+
+
+## GOseq (GO)
+```{r 20190523-pathway-analysis-11 }
+len <- anno[, c("symbol", "size")]
+rownames(len) <- NULL
+len <- len[!duplicated(len), ]
+len <- len[complete.cases(len), ]
+len.sp <- split(x = len, f = len$symbol)
+
+len <- lapply(len.sp, function(x) {
+  r <- NULL
+  if (nrow(x) == 1) {
+    r <- x
+  } else {
+    a <- x[1, ]
+    a[, 2] <- mean(x[, 2])
+  }
+  return(r)
+})
+
+len <- ldply(len, data.frame)[, -1]
+
+rownames(len) <- len$symbol
+
+df <- data.frame(Genes = universe)
+rownames(df) <- df$Genes
+df$length <- len[rownames(df), 2]
+df$cluster1 <- df$cluster2 <- df$cluster3 <- df$cluster4 <- df$cluster5 <- 0
+df[genes.cluster$cluster1, ]$cluster1 <- 1
+df[genes.cluster$cluster2, ]$cluster2 <- 1
+df[genes.cluster$cluster3, ]$cluster3 <- 1
+df[genes.cluster$cluster4, ]$cluster4 <- 1
+df[genes.cluster$cluster5, ]$cluster5 <- 1
+
+df <- df[, order(colnames(df))]
+
+goseq.res <- list()
+
+for (i in 1:5) {
+  n <- colnames(df)[i]
+  g <- df[, n]
+  names(g) <- rownames(df)
+  pwf <- nullp(DEgenes = g, bias.data = as.numeric(df$length), plot.fit = F)
+
+  res1 <- goseq(pwf = pwf, genome = "mm10", id = "geneSymbol", method = "Wallenius", test.cats = c("GO:BP"))
+  res2 <- goseq(pwf = pwf, genome = "mm10", id = "geneSymbol", method = "Wallenius", test.cats = c("GO:CC"))
+  res3 <- goseq(pwf = pwf, genome = "mm10", id = "geneSymbol", method = "Wallenius", test.cats = c("GO:MF"))
+
+  res1$p.adj.over <- p.adjust(res1$over_represented_pvalue, method = "BH")
+  res1$p.adj.under <- p.adjust(res1$under_represented_pvalue, method = "BH")
+
+  res2$p.adj.over <- p.adjust(res2$over_represented_pvalue, method = "BH")
+  res2$p.adj.under <- p.adjust(res2$under_represented_pvalue, method = "BH")
+
+  res3$p.adj.over <- p.adjust(res3$over_represented_pvalue, method = "BH")
+  res3$p.adj.under <- p.adjust(res3$under_represented_pvalue, method = "BH")
+
+  goseq.res[[i]] <- list(`GO:BP` = res1, `GO:CC` = res2, `GO:MF` = res3)
+
+  names(goseq.res)[i] <- n
+}
+```
+
+## gProfileR (TF)
+```{r 20190523-pathway-analysis-12, warning=FALSE, message=FALSE}
+gostres <- lapply(genes.cluster, function(x)
+  gost(query = x, organism = "mmusculus", significant = F, custom_bg = universe, sources = "TF"))
+
+# gost.res.mult <- gost(query = genes.cluster, organism = "mmusculus", significant = F, custom_bg = universe, sources = "TF", multi_query = TRUE)
+```
+
+
+<!-- ### Kegg overview -->
+<!-- ```{r} -->
+<!-- kegg <- read.csv("./input/pathways.csv", stringsAsFactors = F) -->
+<!-- kegg$PathwayID <- paste0("mmu", as.character(sapply(kegg$Pathways, function(y) -->
+<!--   paste(strsplit(y, "")[[1]][1:5], collapse = "")))) -->
+
+<!-- kegg$Pathway <- as.character(sapply(kegg$Pathways, function(y) { -->
+<!--   a <- strsplit(y, "")[[1]] -->
+<!--   return(paste(a[8:length(a)], collapse = "")) -->
+<!-- })) -->
+
+<!-- rownames(kegg) <- kegg$PathwayID -->
+<!-- ``` -->
+
+
+# Function to show tables
+
+```{r 20190523-pathway-analysis-13 }
+showDT <- function(df) {
+  datatable(
+    setDF(df),
+    rownames = F,
+    filter = "top", extensions = c("Buttons", "ColReorder"), options = list(
+      pageLength = 10,
+      buttons = c("copy", "csv", "excel", "pdf", "print"),
+      colReorder = list(realtime = FALSE),
+      dom = "fltBip"
+    )
+  )
+}
+```
+
+# Results together
+```{r 20190523-pathway-analysis-14 }
+GO.IC <- lapply(GO.IC, function(x) {
+  names(x) <- paste(names(x), "(IC)")
+  return(x)
+})
+
+GO.graph <- lapply(GO.graph, function(x) {
+  names(x) <- paste(names(x), "(Graph)")
+  return(x)
+})
+
+goseq.res <- lapply(goseq.res, function(x) {
+  names(x) <- paste(names(x), "(GOseq)")
+  return(x)
+})
+
+res <- cp.analysis.ont
+
+for (i in 1:length(res)) {
+  n <- names(res)[i]
+  res[[n]]$TF <- gostres[[n]]$result
+}
+
+res1 <- lapply(res, function(x) x[grep(pattern = "GO", x = names(x), invert = T)])
+res2 <- lapply(res, function(x) x[grep(pattern = "GO", x = names(x))])
+
+
+cluster1 <- res1[["cluster1"]]
+cluster2 <- res1[["cluster2"]]
+cluster3 <- res1[["cluster3"]]
+cluster4 <- res1[["cluster4"]]
+cluster5 <- res1[["cluster5"]]
+
+names(cluster1) <- names(cluster1)[order(names(cluster1))]
+names(cluster2) <- names(cluster2)[order(names(cluster2))]
+names(cluster3) <- names(cluster3)[order(names(cluster3))]
+names(cluster4) <- names(cluster4)[order(names(cluster4))]
+names(cluster5) <- names(cluster5)[order(names(cluster5))]
+
+res2 <- lapply(res2, function(x) lapply(x, data.frame))
+GO.IC <- lapply(GO.IC, function(x) lapply(x, data.frame))
+GO.graph <- lapply(GO.graph, function(x) lapply(x, data.frame))
+
+cluster1.go <- c(res2[["cluster1"]], goseq.res[["cluster1"]], GO.IC[["cluster1"]], GO.graph[["cluster1"]])
+cluster2.go <- c(res2[["cluster2"]], goseq.res[["cluster2"]], GO.IC[["cluster2"]], GO.graph[["cluster2"]])
+cluster3.go <- c(res2[["cluster3"]], goseq.res[["cluster3"]], GO.IC[["cluster3"]], GO.graph[["cluster3"]])
+cluster4.go <- c(res2[["cluster4"]], goseq.res[["cluster4"]], GO.IC[["cluster4"]], GO.graph[["cluster4"]])
+cluster5.go <- c(res2[["cluster5"]], goseq.res[["cluster5"]], GO.IC[["cluster5"]], GO.graph[["cluster5"]])
+
+names(cluster1.go) <- names(cluster1.go)[order(names(cluster1.go))]
+names(cluster2.go) <- names(cluster2.go)[order(names(cluster2.go))]
+names(cluster3.go) <- names(cluster3.go)[order(names(cluster3.go))]
+names(cluster4.go) <- names(cluster4.go)[order(names(cluster4.go))]
+names(cluster5.go) <- names(cluster5.go)[order(names(cluster5.go))]
+```
+
+
+
+# Pathways (without GO) {.tabset .tabset-dropdown}
+
+```{r 20190523-pathway-analysis-15, include=FALSE, echo=FALSE}
+showDT(df = data.frame(matrix(data = 1:10, nrow = 2)))
+```
+
+
+## Cluster1 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-16, results='asis', eval = T}
+for (i in 1:length(cluster1)) {
+  cat("###", names(cluster1)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster1[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-17 }
+for (i in 1:length(cluster1)) {
+  n <- paste0("./output/cluster1_", names(cluster1)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster1[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+
+## Cluster2 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-18, results='asis', eval = T}
+for (i in 1:length(cluster2)) {
+  cat("###", names(cluster2)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster2[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-19 }
+for (i in 1:length(cluster2)) {
+  n <- paste0("./output/cluster2_", names(cluster2)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster2[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+## Cluster3 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-20, results='asis', eval = T}
+for (i in 1:length(cluster3)) {
+  cat("###", names(cluster3)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster3[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-21 }
+for (i in 1:length(cluster3)) {
+  n <- paste0("./output/cluster3_", names(cluster3)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster3[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+
+## Cluster4 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-22, results='asis', eval = T}
+for (i in 1:length(cluster4)) {
+  cat("###", names(cluster4)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster4[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-23 }
+for (i in 1:length(cluster4)) {
+  n <- paste0("./output/cluster4_", names(cluster4)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster4[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+## Cluster5 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-24, results='asis', eval = T}
+for (i in 1:length(cluster5)) {
+  cat("###", names(cluster5)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster5[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-25 }
+for (i in 1:length(cluster5)) {
+  n <- paste0("./output/cluster5_", names(cluster5)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster5[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+
+# Gene Ontology {.tabset .tabset-dropdown}
+
+## Cluster1 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-26, results='asis', eval = T}
+for (i in 1:length(cluster1.go)) {
+  cat("###", names(cluster1.go)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster1.go[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-27 }
+for (i in 1:length(cluster1.go)) {
+  n <- paste0("./output/cluster1_", names(cluster1.go)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster1.go[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+## Cluster2 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-28, results='asis', eval = T}
+for (i in 1:length(cluster2.go)) {
+  cat("###", names(cluster2.go)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster2.go[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-29 }
+for (i in 1:length(cluster2.go)) {
+  n <- paste0("./output/cluster2_", names(cluster2.go)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster2.go[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+## Cluster3 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-30, results='asis', eval = T}
+for (i in 1:length(cluster3.go)) {
+  cat("###", names(cluster3.go)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster3.go[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-31 }
+for (i in 1:length(cluster3.go)) {
+  n <- paste0("./output/cluster3_", names(cluster3.go)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster3.go[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+
+## Cluster4 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-32, results='asis', eval = T}
+for (i in 1:length(cluster4.go)) {
+  cat("###", names(cluster4.go)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster4.go[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-33 }
+for (i in 1:length(cluster4.go)) {
+  n <- paste0("./output/cluster4_", names(cluster4.go)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster4.go[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+## Cluster5 {.tabset .tabset-pills}
+
+```{r 20190523-pathway-analysis-34, results='asis', eval = T}
+for (i in 1:length(cluster5.go)) {
+  cat("###", names(cluster5.go)[i], "\n\n")
+  print(htmltools::tagList(showDT(data.frame(cluster5.go[[i]]))))
+  cat("\n\n")
+}
+```
+
+```{r 20190523-pathway-analysis-35 }
+for (i in 1:length(cluster5.go)) {
+  n <- paste0("./output/cluster5_", names(cluster5.go)[i], ".xlsx")
+  writexl::write_xlsx(x = data.frame(cluster5.go[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
+
+# SessionInfo
+```{r 20190523-pathway-analysis-36 }
+devtools::session_info()
+```
+
+
+<!-- ### GOseq KEGG -->
+
+<!-- ```{r} -->
+<!-- en2eg=as.list(org.Mm.egSYMBOL2EG) -->
+<!--  # Get the mapping from Entrez 2 KEGG -->
+<!--  eg2kegg=as.list(org.Mm.egPATH) -->
+<!--  # Define a function which gets all unique KEGG IDs -->
+<!--  # associated with a set of Entrez IDs -->
+<!--  grepKEGG=function(id,mapkeys){unique(unlist(mapkeys[id],use.names=FALSE))} -->
+<!--  # Apply this function to every entry in the mapping from -->
+<!--  # ENSEMBL 2 Entrez to combine the two maps -->
+<!--  kegg=lapply(en2eg,grepKEGG,eg2kegg) -->
+<!--  head(kegg) -->
+
+
+<!-- KEGG=goseq(pwf = pwf, genome = "mm10", id = "geneSymbol",gene2cat=kegg) -->
+<!-- head(KEGG) -->
+
+
+<!-- KEGG=goseq(pwf = pwf,genome = 'mm10',id = 'geneSymbol',test.cats="KEGG") -->
+<!-- head(KEGG) -->
+
+
+<!-- kegg=as.list(org.Hs.egPATH) -->
+<!-- head(kegg) -->
+
+
+<!-- library(KEGG.db) -->
+<!-- for(go in KEGG$category[1:10]){ -->
+<!--   print(KEGG.db::[[go]]) -->
+<!--   cat("--------------------------------------\n") -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- kegg_ORA <- function(genes, org = "mmu") { -->
+<!--   genes <- bitr( -->
+<!--     geneID = genes, -->
+<!--     fromType = "SYMBOL", -->
+<!--     toType = "ENTREZID", drop = T, -->
+<!--     OrgDb = org.Mm.eg.db -->
+<!--   )[, 2] -->
+
+<!--   kk <- data.frame( -->
+<!--     enrichKEGG( -->
+<!--       gene = genes, -->
+<!--       organism = org, -->
+<!--       qvalueCutoff = 0.05 -->
+<!--     ), -->
+<!--     stringsAsFactors = F -->
+<!--   ) -->
+
+<!--   mkk <- data.frame(enrichMKEGG(gene = genes, organism = org), stringsAsFactors = F) -->
+
+<!--   return(list(KEGG = kk, KEGGM = mkk)) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- # ```{r} -->
+<!-- # library(GO.db) -->
+<!-- # for (go in enriched.GO[1:10]) { -->
+<!-- #   print(GOTERM[[go]]) -->
+<!-- #   cat("--------------------------------------\n") -->
+<!-- # } -->
+<!-- # ``` -->

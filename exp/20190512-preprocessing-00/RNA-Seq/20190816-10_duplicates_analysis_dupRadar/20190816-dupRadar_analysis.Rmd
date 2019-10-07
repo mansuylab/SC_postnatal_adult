@@ -1,0 +1,223 @@
+---
+title: "SC RNA-Seq: Checking for duplicates with dupRadar"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-08-16 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+    # toc: true
+    # toc_depth: 5
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print = "75")
+opts_chunk$set(
+  echo = TRUE,
+  cache = FALSE,
+  prompt = FALSE,
+  tidy = TRUE,
+  comment = NA,
+  message = TRUE,
+  warning = FALSE
+)
+opts_knit$set(width = 75)
+```
+
+
+# Libraries required
+```{r}
+library(dupRadar)
+library(biomaRt)
+library(parallel)
+library(viridis)
+```
+
+
+# Bam files (marked duplicates)
+```{r}
+bamFiles <- list.files(path = "./input", pattern = ".bam$", full.names = T)
+names(bamFiles) <- as.character(unlist(sapply(bamFiles, function(x) strsplit(x, "\\.|\\/")[[1]][4])))
+```
+
+# Analyze duplicates
+```{r}
+dm <- NULL
+if (!file.exists("./output/analyzedDuplicates.rds")) {
+  dm <- lapply(bamFiles, function(x) {
+    a <- analyzeDuprates(
+      bam = x,
+      gtf = "./input/gencode.vM18.gff3",
+      stranded = 0, paired = F, threads = detectCores() - 1
+    )
+
+    # removing versions from gene IDs
+    a$ID <- as.character(sapply(as.character(a$ID), function(y) strsplit(y, "\\.")[[1]][1]))
+    return(a)
+  })
+  saveRDS(object = dm, file = "./output/analyzedDuplicates.rds")
+} else {
+  dm <- readRDS("./output/analyzedDuplicates.rds")
+}
+```
+
+
+# Plotting and interpretation
+
+The number of reads per base assigned to a gene in an ideal RNA-Seq data set is expected to be proportional to the abundance of its transcripts in the sample. For lowly expressed genes we expect read duplication to happen rarely by chance, while for highly expressed genes - depending on the total sequencing depth - we expect read duplication to happen often.
+
+A good way to learn if a dataset is following this trend is by relating the normalized number of counts per gene (RPK, as a quantification of the gene expression) and the fraction represented by duplicated reads.
+
+
+## A duprate plot (blue cloud) {.tabset .tabset-pills}
+```{r, results='asis', fig.align='center', fig.width=7, fig.height=7}
+for (i in seq_along(dm)) {
+  name <- names(dm)[i]
+  cat("\n \n")
+  cat(paste("###", name))
+  cat("\n \n")
+  duprateExpDensPlot(DupMat = dm[[i]], pal = viridis(n = 1000), main = name)
+  cat("\n \n")
+}
+```
+
+
+
+## Duprate Boxplot{.tabset .tabset-pills}
+
+The `duprateExpBoxplot` plot shows the range of the duplication rates at 5% bins (default) along the distribution of RPK gene counts. The x-axis displays the quantile of the RPK distribution, and the average RPK of the genes contained in this quantile.
+
+```{r, results='asis', fig.align='center', fig.width=8, fig.height=7}
+for (i in seq_along(dm)) {
+  name <- names(dm)[i]
+  cat("\n \n")
+  cat(paste("###", name))
+  cat("\n \n")
+  duprateExpBoxplot(DupMat = dm[[i]], main = name)
+  cat("\n \n")
+}
+```
+
+
+## Read counts expression {.tabset .tabset-pills}
+```{r, results='asis', fig.align='center', fig.width=8, fig.height=7}
+for (i in seq_along(dm)) {
+  name <- names(dm)[i]
+  cat("\n \n")
+  cat(paste("###", name))
+  cat("\n \n")
+  readcountExpBoxplot(DupMat = dm[[i]])
+  cat("\n \n")
+}
+```
+
+## Read counts expression histogram {.tabset .tabset-pills}
+```{r, results='asis', fig.align='center', fig.width=7, fig.height=7}
+for (i in seq_along(dm)) {
+  name <- names(dm)[i]
+  cat("\n \n")
+  cat(paste("###", name))
+  cat("\n \n")
+  expressionHist(DupMat = dm[[i]])
+  cat("\n \n")
+}
+```
+
+## Comparison of multi-mapping RPK and uniquely-mapping RPK{.tabset .tabset-pills}
+```{r, results='asis', fig.align='center', fig.width=7, fig.height=7}
+for (i in seq_along(dm)) {
+  name <- names(dm)[i]
+  cat("\n \n")
+  cat(paste("###", name))
+  cat("\n \n")
+  plot(log2(dm[[i]]$RPK),
+    log2(dm[[i]]$RPKMulti),
+    xlab = "Reads per kb (uniquely mapping reads only)",
+    ylab = "Reads per kb (all including multimappers, non-weighted)"
+  )
+  cat("\n \n")
+}
+```
+
+# Connection between possible PCR artefacts and GC content
+```{r}
+## set up biomart connection for mouse (needs internet connection)
+ensm <- useMart("ensembl")
+ensm <- useDataset("mmusculus_gene_ensembl", mart = ensm)
+
+## get a table which has the gene GC content for the IDs that have been used to generate the table
+tr <- getBM(
+  attributes = c("ensembl_gene_id", "percentage_gene_gc_content"),
+  values = TRUE, mart = ensm
+)
+
+## create a GC vector with IDs as element names
+mgi.gc <- tr$percentage_gene_gc_content
+names(mgi.gc) <- tr$ensembl_gene_id
+```
+
+<!-- ## Check distribution of annotated gene GC content (in %) {.tabset .tabset-pills} -->
+<!-- ```{r, results='asis'} -->
+<!-- for (i in seq_along(dm)) { -->
+<!--   name <- names(dm)[i] -->
+<!--   cat("\n \n") -->
+<!--   cat(paste("###", name)) -->
+<!--   cat("\n \n") -->
+
+<!--   ## using dm duplication matrix that comes with the package add GC content to our demo data and keep only subset for which we can retrieve data -->
+<!--   keep <- dm[[i]]$ID %in% tr$ensembl_gene_id -->
+<!--   dm.gc <- dm[[i]][keep, ] -->
+<!--   dm.gc$gc <- mgi.gc[dm.gc$ID] -->
+
+<!--   boxplot(dm.gc$gc, main = "Gene GC content", ylab = "% GC") -->
+<!--   cat("\n \n") -->
+<!-- } -->
+<!-- ``` -->
+
+## Compare the dependence of duplication rate on expression level independently for below and above median GC genes {.tabset .tabset-pills}
+```{r, fig.align='center', fig.width=10, fig.height=7, results='asis'}
+for (i in seq_along(dm)) {
+  name <- names(dm)[i]
+  cat("\n \n")
+  cat(paste("###", name))
+  cat("\n \n")
+
+  keep <- dm[[i]]$ID %in% tr$ensembl_gene_id
+  dm.gc <- dm[[i]][keep, ]
+  dm.gc$gc <- mgi.gc[dm.gc$ID]
+
+  par(mfrow = c(1, 2))
+
+  ## below median GC genes
+  duprateExpDensPlot(dm.gc[dm.gc$gc <= 45, ], main = "below median GC genes")
+
+  ## above median GC genes
+  duprateExpDensPlot(dm.gc[dm.gc$gc >= 45, ], main = "above median GC genes")
+  cat("\n \n")
+}
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
