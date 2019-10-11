@@ -1,0 +1,1 @@
+../../../../../../../../reference/genome/gencode/bowtie2/build_bowtie2_index.sh
