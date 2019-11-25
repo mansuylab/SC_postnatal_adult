@@ -1,0 +1,267 @@
+---
+title: "ATAC-Seq: Peak annotation and figures"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-18 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+library(csaw)
+library(edgeR)
+library(ChIPseeker)
+library(ggplotify)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(org.Mm.eg.db)
+library(EnrichedHeatmap)
+```
+
+# TxDb and Promoter
+```{r 20191118-peaks-annotation-other-figs-2 }
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+promoter <- getPromoters(TxDb = txdb, upstream = 1000, downstream = 1000)
+```
+
+# All peaks
+
+## Reading the peak file
+```{r 20191118-peaks-annotation-other-figs-3 }
+allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+```
+
+## Analysis
+```{r 20191118-peaks-annotation-other-figs-4, message=FALSE, warning=FALSE}
+tagMatrix.all <- getTagMatrix(allAtac, windows = promoter)
+
+tagPlot <- as.ggplot(~ tagHeatmap(
+    tagMatrix = tagMatrix.all, xlim = c(-1000, 1000),
+    color = "red", title = "All peaks"
+))
+
+peakAnno.all <- annotatePeak(peak = allAtac, 
+                             TxDb = txdb, 
+                             tssRegion = c(-1000, 1000), 
+                             annoDb = "org.Mm.eg.db")
+
+pie <- as.ggplot(~plotAnnoPie(peakAnno.all))
+barPlot <- plotAnnoBar(peakAnno.all)
+tssPlot <- plotDistToTSS(peakAnno.all)
+upset <- upsetplot(peakAnno.all, vennpie = TRUE)
+avgProfile <- plotAvgProf(tagMatrix.all, xlim = c(-1000, 1000), conf = 0.95, resample = 1000)
+
+allPeaks <- list(tagMatrix = tagMatrix.all,
+                 peakAnno = peakAnno.all,
+                 tagsPlot = tagPlot,
+                 barPlot = barPlot,
+                 tssPlot = tssPlot,
+                 upsetPlot = upset,
+                 avgProfile = avgProfile,
+                 pieChart = pie)
+```
+
+## TagMatrix Plot
+```{r 20191118-peaks-annotation-other-figs-5, fig.align='center', fig.height=11, fig.width=6}
+allPeaks$tagsPlot
+```
+
+## Pie chart
+```{r 20191118-peaks-annotation-other-figs-6, fig.width=8, fig.height=8, fig.align='center'}
+allPeaks$pieChart
+```
+
+## Barplot
+```{r 20191118-peaks-annotation-other-figs-7, fig.width=8, fig.height=3, fig.align='center'}
+allPeaks$barPlot
+```
+
+## Distance to TSS plot
+```{r 20191118-peaks-annotation-other-figs-8, fig.width=8, fig.height=3, fig.align='center'}
+allPeaks$tssPlot
+```
+
+## UpSet plot
+```{r 20191118-peaks-annotation-other-figs-9, warning=FALSE, message=FALSE, fig.align='center'}
+allPeaks$upset
+```
+
+## Average Profile of ATAC peaks
+```{r 20191118-peaks-annotation-other-figs-10, fig.align='center', fig.width=8, fig.height=7, warning=FALSE, message=FALSE}
+allPeaks$avgProfile
+```
+
+# Differential accessible regions (peaks)
+
+## Reading the data
+```{r 20191118-peaks-annotation-other-figs-11 }
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F)
+da <- da[da$qvalue <= 0.05,]
+da <- merge(data.frame(allAtac)[,1:6], da, by = "Name")
+
+da.GR <- GRanges(da)
+```
+
+## Analysis
+```{r 20191118-peaks-annotation-other-figs-12, message=FALSE, warning=FALSE}
+tagMatrix.da <- getTagMatrix(da.GR, windows = promoter)
+
+tagPlot <- as.ggplot(~ tagHeatmap(
+    tagMatrix = tagMatrix.da, xlim = c(-1000, 1000),
+    color = "red", title = "Differential accessible peaks"
+))
+
+peakAnno.da <- annotatePeak(peak = da.GR, 
+                             TxDb = txdb, 
+                             tssRegion = c(-1000, 1000), 
+                             annoDb = "org.Mm.eg.db")
+
+pie <- as.ggplot(~plotAnnoPie(peakAnno.da))
+barPlot <- plotAnnoBar(peakAnno.da)
+tssPlot <- plotDistToTSS(peakAnno.da)
+upset <- upsetplot(peakAnno.da, vennpie = TRUE)
+avgProfile <- plotAvgProf(tagMatrix.da, xlim = c(-1000, 1000), conf = 0.95, resample = 1000)
+
+daPeaks <- list(tagMatrix = tagMatrix.da,
+                 peakAnno = peakAnno.da,
+                 tagsPlot = tagPlot,
+                 barPlot = barPlot,
+                 tssPlot = tssPlot,
+                 upsetPlot = upset,
+                 avgProfile = avgProfile,
+                 pieChart = pie)
+```
+
+## TagMatrix Plot
+```{r 20191118-peaks-annotation-other-figs-13, fig.align='center', fig.height=11, fig.width=6}
+daPeaks$tagsPlot
+```
+
+## Pie chart
+```{r 20191118-peaks-annotation-other-figs-14, fig.width=8, fig.height=8, fig.align='center'}
+daPeaks$pieChart
+```
+
+## Barplot
+```{r 20191118-peaks-annotation-other-figs-15, fig.width=8, fig.height=3, fig.align='center'}
+daPeaks$barPlot
+```
+
+## Distance to TSS plot
+```{r 20191118-peaks-annotation-other-figs-16, fig.width=8, fig.height=3, fig.align='center'}
+daPeaks$tssPlot
+```
+
+## UpSet plot
+```{r 20191118-peaks-annotation-other-figs-17, warning=FALSE, message=FALSE, fig.align='center'}
+daPeaks$upset
+```
+
+## Average Profile of ATAC peaks
+```{r 20191118-peaks-annotation-other-figs-18, fig.align='center', fig.width=8, fig.height=7, warning=FALSE, message=FALSE}
+daPeaks$avgProfile
+```
+
+# SessionInfo
+```{r 20191118-peaks-annotation-other-figs-19 }
+devtools::session_info()
+```
+
+
+
+<!-- # EnrichedHeatmap -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- tss <- promoters(txdb, upstream = 0, downstream = 1) -->
+
+<!-- mat1 <- normalizeToMatrix(peaks, tss, value_column = "Score", extend = 1000) -->
+<!-- mat1 -->
+<!-- ``` -->
+
+<!-- ```{r, fig.align='center', fig.height=11, fig.width=7} -->
+<!-- EnrichedHeatmap(mat1, name = "ATAC (combined)", col = c("white", "red")) -->
+<!-- ``` -->
+
+
+<!-- ```{r, echo = FALSE, eval = FALSE} -->
+<!-- library(GenomicAlignments) -->
+
+<!-- atacReads <- readGAlignmentPairs( -->
+<!--   file = "input/PND15_343.bam", index = "input/PND15_343.bam.bai", -->
+<!--   param = ScanBamParam( -->
+<!--     mapqFilter = 1, -->
+<!--     flag = scanBamFlag( -->
+<!--       isPaired = TRUE, -->
+<!--       isProperPair = TRUE -->
+<!--     ), -->
+<!--     what = c("qname", "mapq", "isize") -->
+<!--   ) -->
+<!-- ) -->
+<!-- atacReads_read1 <- GenomicAlignments::first(atacReads) -->
+<!-- insertSizes <- abs(elementMetadata(atacReads_read1)$) -->
+<!-- head(insertSizes) -->
+
+<!-- library(magrittr) -->
+<!-- library(dplyr) -->
+<!-- library(ggplot2) -->
+<!-- library(plotly) -->
+
+<!-- fragLenPlot <- table(insertSizes) %>% -->
+<!--   data.frame() %>% -->
+<!--   rename( -->
+<!--     InsertSize = insertSizes, -->
+<!--     Count = Freq -->
+<!--   ) %>% -->
+<!--   mutate( -->
+<!--     InsertSize = as.numeric(as.vector(InsertSize)), -->
+<!--     Count = as.numeric(as.vector(Count)) -->
+<!--   ) %>% -->
+<!--   ggplot(aes(x = InsertSize, y = Count)) + -->
+<!--   geom_line() -->
+
+<!-- ggplotly(fragLenPlot + theme_bw()) -->
+
+
+<!-- ggplotly(fragLenPlot + scale_y_continuous(trans = "log2") + theme_bw()) -->
+
+<!-- ggplotly(fragLenPlot + geom_vline(xintercept = c(180, 247), colour = "red") + geom_vline(xintercept = c( -->
+<!--   315, -->
+<!--   437 -->
+<!-- ), colour = "darkblue") + geom_vline(xintercept = c(100), colour = "darkgreen") + -->
+<!--   theme_bw() -->
+<!-- ) -->
+
+
+<!-- ggplotly(fragLenPlot + scale_y_continuous(trans = "log2") + geom_vline(xintercept = c( -->
+<!--   180, -->
+<!--   247 -->
+<!-- ), colour = "red") + geom_vline(xintercept = c(315, 437), colour = "darkblue") + -->
+<!--   geom_vline(xintercept = c(100), colour = "darkgreen") + theme_bw() -->
+<!-- ) -->
+<!-- ``` -->
