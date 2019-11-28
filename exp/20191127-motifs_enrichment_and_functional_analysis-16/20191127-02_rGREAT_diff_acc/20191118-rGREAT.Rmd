@@ -1,0 +1,86 @@
+---
+title: "ATAC-Seq: rGREAT"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r, message=FALSE, warning=FALSE}
+library(rGREAT)
+```
+
+# Data
+
+```{r}
+allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F)
+da <- da[da$qvalue <= 0.05,]
+da <- merge(data.frame(allAtac)[,1:6], da, by = "Name")
+
+da.GR <- GRanges(da)
+```
+
+
+# rGREAT
+```{r}
+set.seed(123)
+bed <- data.frame(da.GR, stringsAsFactors = F)
+bed <- bed[grep(pattern = "chr", x = bed$seqnames),]
+
+
+job = submitGreatJob(gr = bed, species = "mm10")
+
+job
+
+tb = getEnrichmentTables(job)
+names(tb)
+
+job
+```
+
+# Annotation plot
+```{r, fig.width = 10, fig.height = 10/3, fig.align = 'center'}
+res = plotRegionGeneAssociationGraphs(job)
+
+plotRegionGeneAssociationGraphs(job)
+```
+
+# Save tables
+```{r}
+writexl::write_xlsx(x = tb$`GO Molecular Function`, path = "output/GO_MF.xlsx", col_names = T, format_headers = T)
+writexl::write_xlsx(x = tb$`GO Biological Process`, path = "output/GO_BP.xlsx", col_names = T, format_headers = T)
+writexl::write_xlsx(x = tb$`GO Cellular Component`, path = "output/GO_CC.xlsx", col_names = T, format_headers = T)
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

@@ -1,0 +1,81 @@
+---
+title: "ATAC-Seq: Motif overlap (HOCOMOCO)"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r, message=FALSE, warning=FALSE}
+library(SummarizedExperiment)
+library(BSgenome.Mmusculus.UCSC.mm10)
+source("./input/ranges_utils.R")
+```
+
+
+# Differential accessible regions
+```{r, message=FALSE, warning=FALSE}
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F)
+da <- da[da$qvalue <= 0.05, ]
+da <- merge(data.frame(data@metadata$annotation@anno, stringsAsFactors = F), da)
+
+da.GR <- GRanges(da)
+```
+
+
+# TFBS overlap
+```{r, message=FALSE, warning=FALSE}
+hocomoco <- readRDS("./input/HOCOMOCOv11_mouse.PFMatrixList.rds")
+desc <- read.table("input/MOUSE_mono_motifs_HOCOMOCO.tsv",
+  sep = "\t",
+  header = T, stringsAsFactors = F, check.names = F
+)
+
+da <- da.GR[which(seqnames(da.GR) %in% seqnames(BSgenome.Mmusculus.UCSC.mm10))]
+tf.overlap.diffAcc <- cpg2motifs(se = da, motifs = hocomoco)
+```
+
+
+# Results
+```{r}
+tab.GR <- plgINS::metaGR(gr2 = da.GR, gr1 = tf.overlap.diffAcc$occurences)
+tab.GR$TF.HOCOMOCO <- names(tab.GR)
+tab.GR <- tab.GR[names(tf.overlap.diffAcc$topMotifs)]
+tab.GR$topMotifsScore <- as.numeric(tf.overlap.diffAcc$topMotifs)
+
+tab <- data.frame(tab.GR, stringsAsFactors = F)
+
+table <- merge(desc, tab, by.x = "Model", by.y = "TF.HOCOMOCO")
+table <- table[,grep(pattern = "GRanges.", x = colnames(table), invert = TRUE, value = TRUE)]
+
+
+writexl::write_xlsx(
+  x = table, path = "./output/atac_diff_acc_tfbs_hocomoco_overlap.xlsx",
+  col_names = T, format_headers = T
+)
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
