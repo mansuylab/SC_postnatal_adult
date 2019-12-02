@@ -1,0 +1,89 @@
+---
+title: "ATAC-Seq/ RNA-Seq (PND15 vs Adultys): Diff accessible peaks and diff exp genes"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+library(plotly)
+library(SummarizedExperiment)
+```
+
+
+# Data
+```{r, warning=FALSE, message=FALSE}
+load("./input/atac_diff_chromatin_accessibility.RData")
+load("./input/limma_SC_Controls.RData")
+
+dea <- dea.limma$`PND15 vs Adult`
+anno <- data.frame(data@metadata$annotation@anno, stringsAsFactors = F)
+dar <- data.frame(rowData(data), stringsAsFactors = F)[, -c(2:6)]
+dar <- merge(anno, dar, all.y = TRUE)
+```
+
+
+# Map with Genes
+```{r}
+dea.map <- dea[abs(dea$logFC) >= 1 & dea$adj.P.Val <= 0.05, ]
+colnames(dea.map)[2:ncol(dea.map)] <- paste("DEA", colnames(dea.map)[2:ncol(dea.map)], sep = "_")
+
+dar.map <- dar[abs(dar$logFC) >= 1 & dar$qvalue <= 0.05, ]
+
+tab <- merge(dar.map, dea.map, by.x = "SYMBOL", by.y = "Genes")
+tab.promoter <- tab[tab$annotation == "Promoter", ]
+```
+
+# Save table
+```{r}
+writexl::write_xlsx(tab, "./output/dea_genes_mapped_to_diff_acc.xlsx", col_names = T, format_headers = T)
+```
+
+# Plot for promoters
+```{r, fig.align='center', fig.height=7, fig.width=8, warning=FALSE, message=FALSE}
+plot_ly(
+  data = tab.promoter, x = ~DEA_logFC, y = ~logFC,
+  marker = list(size = 5, color = "blue"),
+  text = ~ paste(
+    "Gene: ", SYMBOL,
+    "<br>Name: ", GENENAME,
+    "<br>DA logFC: ", logFC,
+    "<br>DA FDR: ", qvalue,
+    "<br>DE logFC: ", DEA_logFC,
+    "<br>DE FDR: ", DEA_adj.P.Val
+  ),
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = "Differential accessible regions (promoters) vs differentially expressed genes",
+    yaxis = list(title = "logFC: Differential Accessibility (DA)"),
+    xaxis = list(title = "logFC: Differential Expression (DE)")
+  )
+```
+
+
+# SessionInfo
+```{r 20191118-peaks-annotation-other-figs-19 }
+devtools::session_info()
+```

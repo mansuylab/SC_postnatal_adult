@@ -399,11 +399,19 @@ sehm(
 #### PND8 vs PND15
 ```{r}
 make_DT(tab = rowData(tfa.all.pnd8_pnd15))
+write.table(data.frame(rowData(tfa.all.pnd8_pnd15)),
+  "./output/all_regulons_pnd8_pnd15.txt",sep = "\t",
+  quote = F, row.names = T
+)
 ```
 
 #### PND15 vs Adult
 ```{r}
 make_DT(tab = rowData(tfa.all.pnd15_adult))
+write.table(data.frame(rowData(tfa.all.pnd15_adult)),
+  "./output/all_regulons_pnd15_adults.txt",sep = "\t",
+  quote = F, row.names = T
+)
 ```
 
 
@@ -412,11 +420,19 @@ make_DT(tab = rowData(tfa.all.pnd15_adult))
 #### PND8 vs PND15
 ```{r}
 make_DT(tab = rowData(tfa.filt.pnd8_pnd15))
+write.table(data.frame(rowData(tfa.filt.pnd8_pnd15)),
+  "./output/filt_regulons_pnd8_pnd15.txt",sep = "\t",
+  quote = F, row.names = T
+)
 ```
 
 #### PND15 vs Adult
 ```{r}
 make_DT(tab = rowData(tfa.filt.pnd15_adult))
+write.table(data.frame(rowData(tfa.filt.pnd15_adult)),
+  "./output/filt_regulons_pnd15_adults.txt", sep = "\t",
+  quote = F, row.names = T
+)
 ```
 
 
