@@ -26,6 +26,7 @@ link-citations: yes
 # Library
 ```{r, message=FALSE, warning=FALSE}
 library(rGREAT)
+library(SummarizedExperiment)
 ```
 
 # Data
@@ -42,8 +43,8 @@ allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
 
 load("./input/atac_diff_chromatin_accessibility.RData")
 da <- data.frame(rowData(data), stringsAsFactors = F)
-da <- da[da$qvalue <= 0.05,]
-da <- merge(data.frame(allAtac)[,1:6], da, by = "Name")
+da <- da[da$qvalue <= 0.05, ]
+da <- merge(data.frame(allAtac)[, 1:6], da, by = "Name")
 
 da.GR <- GRanges(da)
 ```
@@ -53,31 +54,43 @@ da.GR <- GRanges(da)
 ```{r}
 set.seed(123)
 bed <- data.frame(da.GR, stringsAsFactors = F)
-bed <- bed[grep(pattern = "chr", x = bed$seqnames),]
+bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
 
+bg <- data.frame(allAtac)
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
 
-job = submitGreatJob(gr = bed, species = "mm10")
+job <- submitGreatJob(gr = bed, species = "mm10")
+job1 <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
 
 job
 
-tb = getEnrichmentTables(job)
+job1
+
+tb <- getEnrichmentTables(job)
 names(tb)
 
+tb1 <- getEnrichmentTables(job1)
+names(tb1)
+
 job
+
+job1
 ```
 
 # Annotation plot
 ```{r, fig.width = 10, fig.height = 10/3, fig.align = 'center'}
-res = plotRegionGeneAssociationGraphs(job)
+res <- plotRegionGeneAssociationGraphs(job)
+res1 <- plotRegionGeneAssociationGraphs(job1)
 
 plotRegionGeneAssociationGraphs(job)
+plotRegionGeneAssociationGraphs(job1)
 ```
 
 # Save tables
 ```{r}
-writexl::write_xlsx(x = tb$`GO Molecular Function`, path = "output/GO_MF.xlsx", col_names = T, format_headers = T)
-writexl::write_xlsx(x = tb$`GO Biological Process`, path = "output/GO_BP.xlsx", col_names = T, format_headers = T)
-writexl::write_xlsx(x = tb$`GO Cellular Component`, path = "output/GO_CC.xlsx", col_names = T, format_headers = T)
+writexl::write_xlsx(x = tb1$`GO Molecular Function`, path = "output/GO_MF.xlsx", col_names = T, format_headers = T)
+writexl::write_xlsx(x = tb1$`GO Biological Process`, path = "output/GO_BP.xlsx", col_names = T, format_headers = T)
+writexl::write_xlsx(x = tb1$`GO Cellular Component`, path = "output/GO_CC.xlsx", col_names = T, format_headers = T)
 ```
 
 # SessionInfo

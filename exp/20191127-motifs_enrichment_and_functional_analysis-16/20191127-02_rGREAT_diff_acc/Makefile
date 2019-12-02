@@ -7,4 +7,4 @@
 
 all: task1
 task1:
-	Rscript -e 'rmarkdown::render("20191118-differential_analysis.Rmd")' 2> log >> log
+	Rscript -e 'rmarkdown::render("20191118-rGREAT.Rmd")' 2> log >> log
