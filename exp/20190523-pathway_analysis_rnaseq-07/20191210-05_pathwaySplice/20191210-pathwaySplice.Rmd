@@ -1,0 +1,114 @@
+---
+title: "PathwaySplice"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+```{r, message=FALSE, warning=FALSE}
+library(PathwaySplice)
+library(EnrichmentBrowser)
+```
+
+# Data
+```{r}
+data(featureBasedData)
+head(featureBasedData)
+```
+
+```{r}
+gene.based.table <- makeGeneTable(featureBasedData, stat = "pvalue")
+head(gene.based.table)
+```
+
+```{r}
+lrTestBias(gene.based.table, boxplot.width = 0.3)
+```
+
+```{r}
+gene.based.table.fdr <- makeGeneTable(featureBasedData, stat = "fdr")
+lrTestBias(gene.based.table.fdr, boxplot.width = 0.3)
+```
+
+# Pathway analysis
+```{r}
+result.adjusted <- runPathwaySplice(genewise.table = gene.based.table.fdr,
+                                    genome = "hg19",
+                                    id = "ensGene",
+                                    test.cats = c("GO:BP"),
+                                    go.size.limit = c(5, 30),
+                                    method = "Wallenius",
+                                    use.genes.without.cat = TRUE)
+
+head(result.adjusted)
+```
+
+```{r}
+enmap <- enrichmentMap(pathway.res = result.adjusted,
+                       n = 7,
+                       output.file.dir = tempdir(),
+                       similarity.threshold = 0.5, 
+                       scaling.factor = 2)
+```
+
+```{r}
+dir.name <- system.file("extdata", package = "PathwaySplice")
+hallmark.local.pathways <- file.path(dir.name, "h.all.v6.0.symbols.gmt.txt")
+hlp <- gmtGene2Cat(hallmark.local.pathways, genomeID = "hg19")
+
+result.hallmark <- runPathwaySplice(genewise.table = gene.based.table.fdr,
+                                    genome = "hg19",
+                                    id = "ensGene",
+                                    gene2cat = hlp, 
+                                    go.size.limit = c(5, 100), 
+                                    method = "Wallenius", 
+                                    binsize = 20,
+                                    use.genes.without.cat = TRUE)
+
+head(result.hallmark)
+```
+
+```{r}
+PathwaySplice:::outKegg2Gmt("hsa", file.path(dir.name, "kegg.gmt.txt"))
+
+kegg.pathways <- gmtGene2Cat(file.path(dir.name, "kegg.gmt.txt"),
+                             genomeID = "hg19")
+
+result.kegg <- runPathwaySplice(genewise.table = gene.based.table.fdr,
+                                genome = "hg19",
+                                id = "ensGene",
+                                gene2cat = kegg.pathways, 
+                                go.size.limit = c(5, 100), 
+                                method = "Wallenius", 
+                                use.genes.without.cat = TRUE)
+```
+
+
+# Comparison of results before and after bias correction
+```{r}
+dir <- system.file("extdata", package="PathwaySplice")
+all.gene.table <- readRDS(file.path(dir, "AllGeneTable.rds"))
+```
+
+```{r}
+res.adj <- runPathwaySplice(genewise.table = all.gene.table,
+                            genome = "hg19",
+                            id = "ensGene",
+                            test.cats = "GO:BP", 
+                            go.size.limit = c(5, 30),
+                            method = "Wallenius")
+ 
+res.unadj <- runPathwaySplice(genewise.table = all.gene.table,
+                              genome = "hg19",
+                              id = "ensGene",
+                              test.cats = "GO:BP",
+                              go.size.limit = c(5, 30),
+                              method = "Hypergeometric")
+compareResults(n.go = 20,
+               adjusted = res.adj,
+               unadjusted = res.unadj,
+               gene.based.table = all.gene.table,
+               output.dir = tempdir(),
+               type.boxplot = "Only3")
+```
