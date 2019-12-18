@@ -40,6 +40,7 @@ library(EnrichedHeatmap)
 ```{r 20191118-peaks-annotation-other-figs-2 }
 txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
 promoter <- getPromoters(TxDb = txdb, upstream = 1000, downstream = 1000)
+regions <- getPromoters(TxDb = txdb, upstream = 5000, downstream = 5000)
 ```
 
 # All peaks
@@ -47,6 +48,24 @@ promoter <- getPromoters(TxDb = txdb, upstream = 1000, downstream = 1000)
 ## Reading the peak file
 ```{r 20191118-peaks-annotation-other-figs-3 }
 allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+PNDAtac <- GRanges(read.table("input/PND15_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+AdultAtac <- GRanges(read.table("input/Adult_NF_peaks.narrowPeak",
   header = F,
   col.names = c(
     "Chr", "Start", "End", "Name", "Score", "Strand",
