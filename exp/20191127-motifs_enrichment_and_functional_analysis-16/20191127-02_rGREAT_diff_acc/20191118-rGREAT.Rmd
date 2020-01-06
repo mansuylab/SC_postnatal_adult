@@ -43,55 +43,79 @@ allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
 
 load("./input/atac_diff_chromatin_accessibility.RData")
 da <- data.frame(rowData(data), stringsAsFactors = F)
-da <- da[da$qvalue <= 0.05, ]
+da <- da[da$qvalue <= 0.05 & (da$logFC >= 1 | da$logFC <= -1), ]
 da <- merge(data.frame(allAtac)[, 1:6], da, by = "Name")
+```
 
-da.GR <- GRanges(da)
+# rGREAT
+
+## Function
+```{r}
+perform_rGREAT <- function(df, FC, bg, fName) {
+  d <- NULL
+
+  if (FC == "pos") {
+    d <- df[df$logFC > 0, ]
+  } else {
+    d <- df[df$logFC < 0, ]
+  }
+
+  df_GR <- GRanges(d)
+
+  set.seed(123)
+  bed <- data.frame(df_GR, stringsAsFactors = F)
+  bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
+  job <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
+  tb <- getEnrichmentTables(job)
+
+  writexl::write_xlsx(
+    x = tb$`GO Molecular Function`,
+    path = paste0("output/", fName, "_GO_MF.xlsx"),
+    col_names = T, format_headers = T
+  )
+  writexl::write_xlsx(
+    x = tb$`GO Biological Process`,
+    path = paste0("output/", fName, "_GO_BP.xlsx"),
+    col_names = T, format_headers = T
+  )
+  writexl::write_xlsx(
+    x = tb$`GO Cellular Component`,
+    path = paste0("output/", fName, "_GO_CC.xlsx"),
+    col_names = T, format_headers = T
+  )
+
+  return(list(
+    table = tb,
+    job = job
+  ))
+}
+```
+
+## Background
+```{r}
+bg <- data.frame(data@rowRanges)
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
 ```
 
 
-# rGREAT
+## Analysis
 ```{r}
-set.seed(123)
-bed <- data.frame(da.GR, stringsAsFactors = F)
-bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
-
-bg <- data.frame(allAtac)
-bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
-
-job <- submitGreatJob(gr = bed, species = "mm10")
-job1 <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
-
-job
-
-job1
-
-tb <- getEnrichmentTables(job)
-names(tb)
-
-tb1 <- getEnrichmentTables(job1)
-names(tb1)
-
-job
-
-job1
+pnd15 <- perform_rGREAT(df = da, FC = "neg", bg = bg, fName = "PND15")
+adult <- perform_rGREAT(df = da, FC = "pos", bg = bg, fName = "Adult")
 ```
 
 # Annotation plot
+
+## PND15
 ```{r, fig.width = 10, fig.height = 10/3, fig.align = 'center'}
-res <- plotRegionGeneAssociationGraphs(job)
-res1 <- plotRegionGeneAssociationGraphs(job1)
-
-plotRegionGeneAssociationGraphs(job)
-plotRegionGeneAssociationGraphs(job1)
+plotRegionGeneAssociationGraphs(pnd15$job)
 ```
 
-# Save tables
-```{r}
-writexl::write_xlsx(x = tb1$`GO Molecular Function`, path = "output/GO_MF.xlsx", col_names = T, format_headers = T)
-writexl::write_xlsx(x = tb1$`GO Biological Process`, path = "output/GO_BP.xlsx", col_names = T, format_headers = T)
-writexl::write_xlsx(x = tb1$`GO Cellular Component`, path = "output/GO_CC.xlsx", col_names = T, format_headers = T)
+## Adult
+```{r, fig.width = 10, fig.height = 10/3, fig.align = 'center'}
+plotRegionGeneAssociationGraphs(adult$job)
 ```
+
 
 # SessionInfo
 ```{r}
