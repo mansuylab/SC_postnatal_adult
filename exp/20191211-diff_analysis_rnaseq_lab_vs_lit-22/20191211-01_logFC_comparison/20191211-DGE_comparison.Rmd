@@ -1,0 +1,100 @@
+---
+title: "RNA-Seq: differential expression analysis of controls (literature)"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-12-11 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(plotly)
+```
+
+
+# Data
+```{r}
+load("input/limma_SC_Controls.RData")
+lab <- dea.limma
+
+load("input/limma_SC_Controls_lit.RData")
+lit <- dea.limma
+```
+
+# logFC comparison
+
+## PND7/8 vs PND14/15
+```{r, warning=FALSE, message=FALSE}
+lab.fc.pnd <- lab$`PND8 vs PND15`[abs(lab$`PND8 vs PND15`$logFC) >= 1 & lab$`PND8 vs PND15`$adj.P.Val <= 0.05, ]
+lab.fc.pnd1 <- lab.fc.pnd$logFC
+names(lab.fc.pnd1) <- lab.fc.pnd$Genes
+
+lit.fc.pnd <- lit$`PND7 vs PND14`[abs(lit$`PND7 vs PND14`$logFC) >= 1 & lit$`PND7 vs PND14`$adj.P.Val <= 0.05, ]
+lit.fc.pnd1 <- lit.fc.pnd$logFC
+names(lit.fc.pnd1) <- lit.fc.pnd$Genes
+
+genes <- intersect(names(lab.fc.pnd1), names(lit.fc.pnd1))
+
+fit <- lm(lit.fc.pnd1[genes] ~ lab.fc.pnd1[genes])
+
+plot_ly() %>%
+  add_trace(x = lab.fc.pnd1[genes], y = lit.fc.pnd1[genes], mode = "markers") %>%
+  add_trace(x = lab.fc.pnd1[genes], y = predict(fit), mode = "lines") %>%
+  layout(
+    xaxis = list(title = "PND8 vs PND15 (Lab)"),
+    yaxis = list(title = "PND7 vs PND14 (Literature)"),
+    title = "SC controls logFC: Lab vs Literature"
+  )
+```
+
+
+## PND14/15 vs Adult/PNW8
+```{r, warning=FALSE, message=FALSE}
+lab.fc <- lab$`PND15 vs Adult`[abs(lab$`PND15 vs Adult`$logFC) >= 1 & lab$`PND15 vs Adult`$adj.P.Val <= 0.05, ]
+lab.fc1 <- lab.fc$logFC
+names(lab.fc1) <- lab.fc$Genes
+
+lit.fc <- lit$`PND14 vs Adult`[abs(lit$`PND14 vs Adult`$logFC) >= 1 & lit$`PND14 vs Adult`$adj.P.Val <= 0.05, ]
+lit.fc1 <- lit.fc$logFC
+names(lit.fc1) <- lit.fc$Genes
+
+genes <- intersect(names(lab.fc1), names(lit.fc1))
+
+fit <- lm(lit.fc1[genes] ~ lab.fc1[genes])
+
+plot_ly() %>%
+  add_trace(x = lab.fc1[genes], y = lit.fc1[genes], mode = "markers") %>%
+  add_trace(x = lab.fc1[genes], y = predict(fit), mode = "lines") %>%
+  layout(
+    xaxis = list(title = "PND15 vs Adult (Lab)"),
+    yaxis = list(title = "PND14 vs PNW8 (Literature)"),
+    title = "SC controls logFC: Lab vs Literature"
+  )
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

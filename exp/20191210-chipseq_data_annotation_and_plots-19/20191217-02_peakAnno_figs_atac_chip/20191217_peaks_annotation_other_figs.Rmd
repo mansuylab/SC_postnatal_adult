@@ -1,0 +1,158 @@
+---
+title: "ChIP-Seq: Peak annotation and figures"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-12-10 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+library(ChIPseeker)
+library(ggplotify)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(org.Mm.eg.db)
+library(EnrichedHeatmap)
+library(parallel)
+library(patchwork)
+library(ggplot2)
+```
+
+# TxDb, Promoters, Regions, Reading peak files, analysis and generating plots
+```{r, warn}
+if (!file.exists("./output/peaks_anno_plots.RData")) {
+
+  # Transcript database
+  txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+
+  # Promoter regions 1kb TSS
+  promoter <- getPromoters(TxDb = txdb, upstream = 1000, downstream = 1000)
+
+  # Promoters around 5kb TSS
+  regions <- getPromoters(TxDb = txdb, upstream = 5000, downstream = 5000)
+
+  # Peak files
+  files <- list.files(path = "input", pattern = "narrowPeak", full.names = T)
+  files <- files[c(2,1,5,4,3)]
+  names(files) <- gsub("_S.*|_NF.*|.*/", "", files)
+  names(files)[1:2] <- paste(names(files)[1:2], "ATAC", sep = "_")
+
+  # Reading peak files
+  all <- mclapply(files, function(x) {
+    GRanges(read.table(x,
+      header = F,
+      col.names = c(
+        "Chr", "Start", "End", "Name", "Score", "Strand",
+        "FoldChange", "negLog10pvalue", "negLog10qvalue",
+        "Summit"
+      ), stringsAsFactors = F
+    ))
+  }, mc.preschedule = F, mc.cores = length(files))
+
+
+  # Tag matrix 1kb promoters
+  tagMatrix.1kb <- mclapply(all, function(x) getTagMatrix(x, windows = promoter),
+    mc.preschedule = F, mc.cores = length(all)
+  )
+
+  # Tag matrix 5kb promoters
+  tagMatrix.5kb <- mclapply(all, function(x) getTagMatrix(x, windows = regions),
+    mc.preschedule = F, mc.cores = length(all)
+  )
+
+  # Peaks annotation for 1kb TSS
+  peakAnnoList <- lapply(files, function(x) {
+    annotatePeak(
+      peak = x, TxDb = txdb,
+      tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db",
+      verbose = FALSE
+    )
+  })
+
+  # Tag matric plot for 5kb TSS
+  tagPlot.5kb <- as.ggplot(~ tagHeatmap(tagMatrix.5kb, xlim = c(-5000, 5000), color = NULL))
+
+  # Bar plot for 1kb TSS
+  barPlot <- plotAnnoBar(peakAnnoList)
+
+  # TSS plot for 1kb TSS
+  tssPlot <- plotDistToTSS(peakAnnoList)
+
+  # AverageProfile plot for 1kb TSS
+  avgProfile <- plotAvgProf(tagMatrix.1kb,
+    xlim = c(-1000, 1000),
+    conf = 0.95,
+    resample = 100
+  )
+
+
+  # Putting all data together
+  allPeaks <- list(
+    tagMatrix.1kb = tagMatrix.1kb,
+    tagMatrix.5kb = tagMatrix.5kb,
+    peakAnno = peakAnnoList,
+    tagsPlot = tagPlot.5kb,
+    barPlot = barPlot,
+    tssPlot = tssPlot,
+    avgProfile = avgProfile
+  )
+
+  # Save data
+  save(allPeaks, file = "./output/peaks_anno_plots.RData")
+} else {
+  load("./output/peaks_anno_plots.RData")
+}
+```
+
+
+# TagMatrix Plot
+```{r 20191118-peaks-annotation-other-figs-5, fig.align='center', fig.height=11, fig.width=13}
+allPeaks$tagsPlot
+```
+
+
+# Barplot
+```{r 20191118-peaks-annotation-other-figs-7, fig.width=8, fig.height=3, fig.align='center'}
+allPeaks$barPlot
+```
+
+
+# Distance to TSS plot
+```{r 20191118-peaks-annotation-other-figs-8, fig.width=8, fig.height=3, fig.align='center'}
+allPeaks$tssPlot
+```
+
+
+# Average Profile
+```{r 20191118-peaks-annotation-other-figs-10, fig.align='center', fig.width=11, fig.height=8.5, warning=FALSE, message=FALSE}
+
+p1 <- allPeaks$avgProfile
+p2 <- allPeaks$avgProfile + facet_grid(.id ~ .)
+
+(plot_spacer() / p1 / plot_spacer()) | p2
+```
+
+
+# SessionInfo
+```{r 20191118-peaks-annotation-other-figs-19 }
+devtools::session_info()
+```

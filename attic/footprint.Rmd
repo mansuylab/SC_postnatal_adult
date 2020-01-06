@@ -1,0 +1,34 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(BiFET)
+library(ChIPseeker)
+library(SummarizedExperiment)
+library(marge)
+```
+
+```{r}
+peak_file <- system.file("extdata", "input_peak_motif.Rdata",
+                         package = "BiFET")
+load(peak_file)
+head(GRpeaks)
+
+load("../exp/20191118-differential_analysis_peaksAnnotation_atac-15/20191118-01_diff_chromatin_acc_analysis/output/atac_diff_chromatin_accessibility.RData")
+
+a <- annotatePeak(peak = peaks, TxDb = TxDb.Hsapiens.UCSC.hg38.knownGene, 
+                  tssRegion = c(-3000, 3000), annoDb = org.Hs.eg.db)
+```
+
+```{r}
+head(GRmotif)
+```
+
+```{r}
+result <- calculate_enrich_p(GRpeaks, GRmotif)
+result
+```
