@@ -1,0 +1,108 @@
+---
+title: "ChIP-Seq & ATAC-Seq: Peak annotation and figures"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-12-10 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+library(ChIPseeker)
+library(ggplotify)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(org.Mm.eg.db)
+library(EnrichedHeatmap)
+library(parallel)
+library(patchwork)
+library(ggplot2)
+library(RColorBrewer)
+library(circlize)
+```
+
+# TxDb, Promoters, Regions, Reading peak files, analysis and generating plots
+```{r, warning=FALSE, eval=FALSE}
+# Transcript database
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+
+# Peak files
+files <- list.files(path = "input", pattern = "narrowPeak", full.names = T)
+files <- files[c(2, 1, 5, 4, 3)]
+names(files) <- gsub("_S.*|_NF.*|.*/", "", files)
+names(files)[1:2] <- paste(names(files)[1:2], "ATAC", sep = "_")
+
+# Reading peak files
+all <- mclapply(files, function(x) {
+  GRanges(read.table(x,
+    header = F,
+    col.names = c(
+      "Chr", "Start", "End", "Name", "Score", "Strand",
+      "FoldChange", "negLog10pvalue", "negLog10qvalue",
+      "Summit"
+    ), stringsAsFactors = F
+  ))
+}, mc.preschedule = F, mc.cores = length(files))
+
+tss <- promoters(txdb, upstream = 0, downstream = 1)
+tss[1:5]
+
+
+normMat <- mclapply(all, function(x) {
+  normalizeToMatrix(x, tss,
+    value_column = "Score",
+    extend = 5000, mean_mode = "w0", w = 50
+  )
+}, mc.preschedule = F, mc.cores = length(all))
+
+saveRDS(object = normMat, file = "./output/normMat_EnrichedHeatmap.rds")
+```
+
+
+# TagMatrix Plot
+```{r 20191118-peaks-annotation-other-figs-5, fig.align='center', fig.height=11, fig.width=13}
+normMat <- readRDS("./output/normMat_EnrichedHeatmap.rds")
+
+ht <- EnrichedHeatmap(normMat[[1]], name = names(normMat)[1], 
+                      column_title = names(normMat)[1]) + 
+  
+  EnrichedHeatmap(normMat[[2]], name = names(normMat)[2],
+                  column_title = names(normMat)[2]) + 
+  
+  EnrichedHeatmap(normMat[[3]], name = names(normMat)[3],
+                  column_title = names(normMat)[3]) + 
+  
+  EnrichedHeatmap(normMat[[4]], name = names(normMat)[4],
+                  column_title = names(normMat)[4]) +
+  
+  EnrichedHeatmap(normMat[[5]], name = names(normMat)[5],
+                  column_title = names(normMat)[5])
+
+saveRDS(object = ht, file = "./output/plot_EnrichedHeatmap.rds")
+
+draw(ht)
+```
+
+
+# SessionInfo
+```{r 20191118-peaks-annotation-other-figs-19 }
+devtools::session_info()
+```

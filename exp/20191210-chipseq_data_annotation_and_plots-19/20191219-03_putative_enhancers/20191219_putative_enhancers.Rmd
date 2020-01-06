@@ -1,0 +1,147 @@
+---
+title: "ChIP-Seq: Putative enhancers"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-12-19 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+library(ChIPseeker)
+library(ggplotify)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(org.Mm.eg.db)
+library(EnrichedHeatmap)
+library(parallel)
+library(patchwork)
+library(ggplot2)
+library(rGREAT)
+```
+
+# TxDb, Promoters, Regions, Reading peak files, analysis and generating plots
+```{r, warn}
+# Transcript database
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+
+# Promoter regions 1kb TSS
+promoter <- getPromoters(TxDb = txdb, upstream = 1000, downstream = 1000)
+
+# Promoters around 5kb TSS
+regions <- getPromoters(TxDb = txdb, upstream = 5000, downstream = 5000)
+
+# Peak files
+files <- list.files(path = "input", pattern = "narrowPeak", full.names = T)
+names(files) <- gsub("_S.*|_NF.*|.*/", "", files)
+
+# Reading peak files
+all <- mclapply(files, function(x) {
+  GRanges(read.table(x,
+    header = F,
+    col.names = c(
+      "Chr", "Start", "End", "Name", "Score", "Strand",
+      "FoldChange", "negLog10pvalue", "negLog10qvalue",
+      "Summit"
+    ), stringsAsFactors = F
+  ))
+}, mc.preschedule = F, mc.cores = length(files))
+
+# Peaks annotation for 1kb TSS
+peakAnnoList <- lapply(files, function(x) {
+  annotatePeak(
+    peak = x, TxDb = txdb,
+    tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db",
+    verbose = FALSE
+  )
+})
+```
+
+# Putative enhancers
+
+The putative enhancers are identified as specified in this paper: [10.1038/s41588-019-0545-1](https://doi.org/10.1038/s41588-019-0545-1).
+
+> For putative enhancer identification, those H3K27ac peaks that overlapped with promoters and the H3K4me3 signals were excluded. The H3K27ac peaks that were unique to each lineage were identified as tissue-specific enhancers.
+
+## Removing H3K27ac peaks that overlap with promoters and H3K4me3 peaks
+```{r, warning=FALSE}
+nonPromoter <- peakAnnoList$PNW8_H3K27ac@anno[peakAnnoList$PNW8_H3K27ac@anno$annotation != "Promoter"]
+nonOverlap <- nonPromoter[!nonPromoter %over% all$PNW8_H3K4me3]
+putativeEnhancers <- nonOverlap
+colnames(putativeEnhancers@elementMetadata)[1:7] <- c(
+  "Name", "Score", "Strand",
+  "FoldChange", "negLog10pvalue",
+  "negLog10qvalue", "Summit"
+)
+```
+
+# rGREAT analysis on putative enhancers
+```{r}
+set.seed(123)
+bed <- data.frame(putativeEnhancers, stringsAsFactors = F)
+bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
+bed$start <- bed$start - 1
+
+bg <- data.frame(all$PNW8_H3K27ac)
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
+
+job <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
+job
+
+tb <- getEnrichmentTables(job)
+names(tb)
+
+job
+```
+
+## Annotation plot
+```{r, fig.width = 10, fig.height = 10/3, fig.align = 'center'}
+res <- plotRegionGeneAssociationGraphs(job)
+
+plotRegionGeneAssociationGraphs(job)
+```
+
+## Save tables
+```{r}
+writexl::write_xlsx(
+  x = tb$`GO Molecular Function`,
+  path = "output/putativeEnhancers_PNW8_GO_MF.xlsx",
+  col_names = T, format_headers = T
+)
+
+writexl::write_xlsx(
+  x = tb$`GO Biological Process`,
+  path = "output/putativeEnhancers_PNW8_GO_BP.xlsx",
+  col_names = T, format_headers = T
+)
+
+writexl::write_xlsx(
+  x = tb$`GO Cellular Component`,
+  path = "output/putativeEnhancers_PNW8_GO_CC.xlsx",
+  col_names = T, format_headers = T
+)
+```
+
+
+# SessionInfo
+```{r 20191118-peaks-annotation-other-figs-19 }
+devtools::session_info()
+```
