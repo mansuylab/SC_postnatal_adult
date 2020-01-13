@@ -56,8 +56,10 @@ perform_rGREAT <- function(df, FC, bg, fName) {
 
   if (FC == "pos") {
     d <- df[df$logFC > 0, ]
-  } else {
+  } else if (FC == "neg"){
     d <- df[df$logFC < 0, ]
+  } else{
+    d <- df
   }
 
   df_GR <- GRanges(d)
@@ -100,11 +102,18 @@ bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
 
 ## Analysis
 ```{r}
-pnd15 <- perform_rGREAT(df = da, FC = "neg", bg = bg, fName = "PND15")
-adult <- perform_rGREAT(df = da, FC = "pos", bg = bg, fName = "Adult")
+all <- perform_rGREAT(df = da, FC = "all", bg = bg, fName = "PND15_Adult")
+pnd15 <- perform_rGREAT(df = da, FC = "neg", bg = bg, fName = "Adult_Negative")
+adult <- perform_rGREAT(df = da, FC = "pos", bg = bg, fName = "Adult_Positive")
 ```
 
 # Annotation plot
+
+## All
+```{r, fig.width = 10, fig.height = 10/3, fig.align = 'center'}
+plotRegionGeneAssociationGraphs(all$job)
+```
+
 
 ## PND15
 ```{r, fig.width = 10, fig.height = 10/3, fig.align = 'center'}

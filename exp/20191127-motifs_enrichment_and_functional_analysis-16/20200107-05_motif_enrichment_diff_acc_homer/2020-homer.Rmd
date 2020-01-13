@@ -1,0 +1,198 @@
+---
+title: "ATAC-Seq: HOMER"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-01-07 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r, message=FALSE, warning=FALSE}
+library(marge)
+library(GenomicRanges)
+library(SummarizedExperiment)
+```
+
+# Data
+
+```{r}
+allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F)
+da <- da[da$qvalue <= 0.05 & (da$logFC >= 1 | da$logFC <= -1), ]
+da <- merge(data.frame(allAtac)[, 1:6], da, by = "Name")
+```
+
+# HOMER
+
+## Function
+
+### Homer DB
+```{r}
+perform_homer <- function(df, FC, bg, out) {
+  d <- NULL
+
+  if (FC == "pos") {
+    d <- df[df$logFC > 0, ]
+  } else if (FC == "neg") {
+    d <- df[df$logFC < 0, ]
+  } else {
+    d <- df
+  }
+
+  results_dir <- out
+
+  find_motifs_genome(
+    x = d[, c(2:4, 1, 5:ncol(da))],
+    path = results_dir,
+    genome = "mm10",
+    motif_length = c(8, 10, 12),
+    scan_size = 100,
+    optimize_count = 8,
+    background = bg,
+    local_background = FALSE,
+    only_known = FALSE, only_denovo = FALSE,
+    fdr_num = 5,
+    cores = 16, cache = 1000,
+    overwrite = TRUE, keep_minimal = FALSE
+  )
+}
+```
+
+
+### HOCOMO
+```{r}
+perform_homer_DB <- function(df, FC, bg, out, motifFile = NULL) {
+  d <- NULL
+
+  if (FC == "pos") {
+    d <- df[df$logFC > 0, ]
+  } else if (FC == "neg") {
+    d <- df[df$logFC < 0, ]
+  } else {
+    d <- df
+  }
+
+  results_dir <- out
+
+  findMotifs(
+    x = d[, c(2:4, 1, 5:ncol(da))],
+    path = results_dir,
+    genome = "mm10",
+    motif_length = c(8, 10, 12),
+    scan_size = 100,
+    optimize_count = 8,
+    background = bg,
+    local_background = FALSE,
+    only_known = FALSE, only_denovo = FALSE,
+    fdr_num = 5,
+    cores = 16, cache = 1000,
+    overwrite = TRUE, keep_minimal = FALSE,
+    motif_file = motifFile
+  )
+}
+```
+
+
+
+## Background
+```{r}
+bg <- data.frame(data@rowRanges)
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
+```
+
+
+## Analysis
+```{r, warning=FALSE, message=FALSE, eval=FALSE}
+# source("input/findMotif.R")
+# motifFile <- "input/HOCOMOCOv11_core_MOUSE_mono_homer_format_0.001.motif"
+perform_homer(df = da, FC = "all", bg = bg, out = "output/homerDB/PND_Adult/")
+perform_homer(df = da, FC = "neg", bg = bg, out = "output/homerDB/Adult_Negative/")
+perform_homer(df = da, FC = "pos", bg = bg, out = "output/homerDB/Adult_Positive/")
+```
+
+
+## Analysis HOCOMOCO
+```{r, warning=FALSE, message=FALSE, eval = F}
+source("input/findMotif.R")
+motifFile <- "input/HOCOMOCOv11_core_MOUSE_mono_homer_format_0.001.motif"
+
+perform_homer_DB(
+  df = da, FC = "all", bg = bg, out = "output/hocomocoDB/PND_Adult/",
+  motifFile = motifFile
+)
+perform_homer_DB(
+  df = da, FC = "neg", bg = bg, out = "output/hocomocoDB/Adult_Negative/",
+  motifFile = motifFile
+)
+perform_homer_DB(
+  df = da, FC = "pos", bg = bg, out = "output/hocomocoDB/Adult_Positive/",
+  motifFile = motifFile
+)
+```
+
+
+<!-- ## Read results -->
+
+<!-- ## Adult_Negative -->
+<!-- ```{r} -->
+<!-- read_motifs <- function(path){ -->
+<!--   p <- paste0(path, "/knownResults") -->
+<!--   m <- list.files(path = p, pattern = ".motif", full.names = T) -->
+<!--   m_read <- lapply(m, read_homer) -->
+<!-- } -->
+
+<!-- universalmotif::read_homer() -->
+
+<!-- plot(motifs_pcm, ic.scale=FALSE) -->
+
+<!-- ``` -->
+
+<!-- # Results -->
+
+<!-- ```{r, eval = F, echo = F} -->
+<!-- library(motifStack) -->
+
+<!-- motifStack:::readPWM -->
+
+<!-- pcm <- read.table(file.path(find.package("motifStack"),  -->
+<!--                             "extdata", "bin_SOLEXA.pcm")) -->
+<!-- pcm <- pcm[,3:ncol(pcm)] -->
+<!-- rownames(pcm) <- c("A","C","G","T") -->
+<!-- motif <- new("pcm", mat=as.matrix(pcm), name="bin_SOLEXA") -->
+<!-- ##pfm object -->
+<!-- #motif <- pcm2pfm(pcm) -->
+<!-- #motif <- new("pfm", mat=motif, name="bin_SOLEXA") -->
+<!-- plot(motif) -->
+<!-- ``` -->
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
