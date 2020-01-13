@@ -157,6 +157,41 @@ perform_homer_DB(
 ```
 
 
+# Adding additional information
+
+## Files
+```{r}
+motifFile <- read.delim("input/MOUSE_mono_motifs_HOCOMOCO.tsv",
+  sep = "\t",
+  header = T, stringsAsFactors = F, check.names = F
+)
+
+load("input/limma_SC_Controls.RData")
+dea <- dea.limma$`PND15 vs Adult`
+```
+
+## Function
+```{r}
+addInfo <- function(res) {
+  df <- read.delim(res, header = T, sep = "\t", stringsAsFactors = F, check.names = F)
+
+  tab <- merge(motifFile, df, by.x = "Model", by.y = "Motif Name")
+  tab.m <- merge(tab, dea.limma$`PND15 vs Adult`, by.x = "Transcription factor",
+                 by.y = "Genes", all.x = T)
+
+  n <- gsub(pattern = "knownResults.txt", replacement = "knownResults.xlsx", x = res)
+  writexl::write_xlsx(x = tab.m, path = n, col_names = T, format_headers = T)
+}
+```
+
+## Adding information
+```{r, warning=FALSE, message=FALSE}
+files <- list.files(path = "output/hocomocoDB", pattern = "knownResults.txt", full.names = T, recursive = T)
+
+lapply(files, addInfo)
+```
+
+
 <!-- ## Read results -->
 
 <!-- ## Adult_Negative -->

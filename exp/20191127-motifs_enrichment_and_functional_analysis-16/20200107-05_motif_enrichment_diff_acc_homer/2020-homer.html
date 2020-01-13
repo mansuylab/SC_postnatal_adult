@@ -2894,6 +2894,12 @@ $(document).ready(function () {
       <li><a href="#analysis">Analysis</a></li>
       <li><a href="#analysis-hocomoco">Analysis HOCOMOCO</a></li>
       </ul></li>
+      <li><a href="#adding-additional-information">Adding additional information</a>
+      <ul>
+      <li><a href="#files">Files</a></li>
+      <li><a href="#function-1">Function</a></li>
+      <li><a href="#adding-information">Adding information</a></li>
+      </ul></li>
       <li><a href="#sessioninfo">SessionInfo</a></li>
       </ul>
     </div>
@@ -3020,6 +3026,46 @@ $(document).ready(function () {
 <span id="cb7-13"><a href="#cb7-13"></a>  <span class="dt">df =</span> da, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">out =</span> <span class="st">&quot;output/hocomocoDB/Adult_Positive/&quot;</span>,</span>
 <span id="cb7-14"><a href="#cb7-14"></a>  <span class="dt">motifFile =</span> motifFile</span>
 <span id="cb7-15"><a href="#cb7-15"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="adding-additional-information" class="section level1">
+<h1>Adding additional information</h1>
+<div id="files" class="section level2">
+<h2>Files</h2>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>motifFile &lt;-<span class="st"> </span><span class="kw">read.delim</span>(<span class="st">&quot;input/MOUSE_mono_motifs_HOCOMOCO.tsv&quot;</span>,</span>
+<span id="cb8-2"><a href="#cb8-2"></a>  <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,</span>
+<span id="cb8-3"><a href="#cb8-3"></a>  <span class="dt">header =</span> T, <span class="dt">stringsAsFactors =</span> F, <span class="dt">check.names =</span> F</span>
+<span id="cb8-4"><a href="#cb8-4"></a>)</span>
+<span id="cb8-5"><a href="#cb8-5"></a></span>
+<span id="cb8-6"><a href="#cb8-6"></a><span class="kw">load</span>(<span class="st">&quot;input/limma_SC_Controls.RData&quot;</span>)</span>
+<span id="cb8-7"><a href="#cb8-7"></a>dea &lt;-<span class="st"> </span>dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span></span></code></pre></div>
+</div>
+<div id="function-1" class="section level2">
+<h2>Function</h2>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a>addInfo &lt;-<span class="st"> </span><span class="cf">function</span>(res) {</span>
+<span id="cb9-2"><a href="#cb9-2"></a>  df &lt;-<span class="st"> </span><span class="kw">read.delim</span>(res, <span class="dt">header =</span> T, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">stringsAsFactors =</span> F, <span class="dt">check.names =</span> F)</span>
+<span id="cb9-3"><a href="#cb9-3"></a></span>
+<span id="cb9-4"><a href="#cb9-4"></a>  tab &lt;-<span class="st"> </span><span class="kw">merge</span>(motifFile, df, <span class="dt">by.x =</span> <span class="st">&quot;Model&quot;</span>, <span class="dt">by.y =</span> <span class="st">&quot;Motif Name&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5"></a>  tab.m &lt;-<span class="st"> </span><span class="kw">merge</span>(tab, dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>, <span class="dt">by.x =</span> <span class="st">&quot;Transcription factor&quot;</span>,</span>
+<span id="cb9-6"><a href="#cb9-6"></a>                 <span class="dt">by.y =</span> <span class="st">&quot;Genes&quot;</span>, <span class="dt">all.x =</span> T)</span>
+<span id="cb9-7"><a href="#cb9-7"></a></span>
+<span id="cb9-8"><a href="#cb9-8"></a>  n &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;knownResults.txt&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;knownResults.xlsx&quot;</span>, <span class="dt">x =</span> res)</span>
+<span id="cb9-9"><a href="#cb9-9"></a>  writexl<span class="op">::</span><span class="kw">write_xlsx</span>(<span class="dt">x =</span> tab.m, <span class="dt">path =</span> n, <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T)</span>
+<span id="cb9-10"><a href="#cb9-10"></a>}</span></code></pre></div>
+</div>
+<div id="adding-information" class="section level2">
+<h2>Adding information</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="dt">path =</span> <span class="st">&quot;output/hocomocoDB&quot;</span>, <span class="dt">pattern =</span> <span class="st">&quot;knownResults.txt&quot;</span>, <span class="dt">full.names =</span> T, <span class="dt">recursive =</span> T)</span>
+<span id="cb10-2"><a href="#cb10-2"></a></span>
+<span id="cb10-3"><a href="#cb10-3"></a><span class="kw">lapply</span>(files, addInfo)</span></code></pre></div>
+<pre><code>## [[1]]
+## [1] &quot;/mnt/IM/projects/SC_controls/exp/20191127-motifs_enrichment_and_functional_analysis-16/20200107-05_motif_enrichment_diff_acc_homer/output/hocomocoDB/Adult_Negative/knownResults.xlsx&quot;
+## 
+## [[2]]
+## [1] &quot;/mnt/IM/projects/SC_controls/exp/20191127-motifs_enrichment_and_functional_analysis-16/20200107-05_motif_enrichment_diff_acc_homer/output/hocomocoDB/Adult_Positive/knownResults.xlsx&quot;
+## 
+## [[3]]
+## [1] &quot;/mnt/IM/projects/SC_controls/exp/20191127-motifs_enrichment_and_functional_analysis-16/20200107-05_motif_enrichment_diff_acc_homer/output/hocomocoDB/PND_Adult/knownResults.xlsx&quot;</code></pre>
 <!-- ## Read results -->
 <!-- ## Adult_Negative -->
 <!-- ```{r} -->
@@ -3049,7 +3095,7 @@ $(document).ready(function () {
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>()</span></code></pre></div>
 <pre><code>## ─ Session info ───────────────────────────────────────────────────────────────
 ##  setting  value                       
 ##  version  R version 3.6.2 (2019-12-12)
@@ -3060,7 +3106,7 @@ $(document).ready(function () {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2020-01-10                  
+##  date     2020-01-13                  
 ## 
 ## ─ Packages ───────────────────────────────────────────────────────────────────
 ##  package              * version    date       lib
@@ -3128,6 +3174,7 @@ $(document).ready(function () {
 ##  usethis                1.5.1      2019-07-04 [1]
 ##  vctrs                  0.2.1      2019-12-17 [1]
 ##  withr                  2.1.2      2018-03-15 [1]
+##  writexl                1.2        2019-11-27 [1]
 ##  xfun                   0.11       2019-11-12 [1]
 ##  XVector                0.26.0     2019-10-29 [1]
 ##  yaml                   2.2.0      2018-07-25 [1]
@@ -3199,6 +3246,7 @@ $(document).ready(function () {
 ##  CRAN (R 3.6.1)                        
 ##  CRAN (R 3.6.1)                        
 ##  CRAN (R 3.6.1)                        
+##  CRAN (R 3.6.1)                        
 ##  Bioconductor                          
 ##  CRAN (R 3.6.1)                        
 ##  CRAN (R 3.6.1)                        
@@ -3217,7 +3265,7 @@ $(document).ready(function () {
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-01-07 <br> <b>Updated on:</b> 2020-01-10</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-01-07 <br> <b>Updated on:</b> 2020-01-13</p>
 </div>
 
 
