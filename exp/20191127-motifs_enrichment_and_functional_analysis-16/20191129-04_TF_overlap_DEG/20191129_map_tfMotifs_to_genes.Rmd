@@ -26,13 +26,13 @@ editor_options:
 ---
 
 # Library
-```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+```{r 20191129-map-tfMotifs-to-genes-1, message=FALSE, warning=FALSE}
 library(plotly)
 ```
 
 
 # Data
-```{r, warning=FALSE, message=FALSE}
+```{r 20191129-map-tfMotifs-to-genes-2, warning=FALSE, message=FALSE}
 load("./input/limma_SC_Controls.RData")
 dea <- dea.limma$`PND15 vs Adult`
 colnames(dea) <- paste("DEA", colnames(dea), sep = "_")
@@ -44,28 +44,28 @@ tf <- readxl::read_xlsx(path = "input/atac_diff_acc_tfbs_hocomoco_overlap.xlsx",
 
 
 # Map with Genes
-```{r}
-tab <- merge(tf, dea, by.y = "DEA_Genes", by.x = "Transcription factor")
+```{r 20191129-map-tfMotifs-to-genes-3}
+tab <- merge(tf, dea, by.y = "DEA_Genes", by.x = "TF-Transcription factor")
 ```
 
 # Save table
-```{r}
+```{r 20191129-map-tfMotifs-to-genes-4}
 writexl::write_xlsx(tab, "./output/dea_genes_overlap_tf_motifs.xlsx", col_names = T, format_headers = T)
 ```
 
 # Plot for TF overlapping DEGs
-```{r, fig.align='center', fig.height=7, fig.width=8, warning=FALSE, message=FALSE}
+```{r 20191129-map-tfMotifs-to-genes-5, fig.align='center', fig.height=7, fig.width=8, warning=FALSE, message=FALSE}
 plot_ly(
-  data = tab, x = ~DEA_logFC, y = ~logFC,
+  data = tab, x = tab$DEA_logFC, y = tab$`diffAccessibility-logFC`,
   marker = list(size = 5, color = "blue"),
   text = ~ paste(
-    "Gene: ", SYMBOL,
-    "<br>Name: ", GENENAME,
-    "<br>Annotation: ", annotation,
-    "<br>DA logFC: ", logFC,
-    "<br>DA FDR: ", qvalue,
-    "<br>DE logFC: ", DEA_logFC,
-    "<br>DE FDR: ", DEA_adj.P.Val
+    "Gene: ", tab$`Peak-SYMBOL`,
+    "<br>Name: ", tab$`Peak-GENENAME`,
+    "<br>Annotation: ", tab$`Peak-annotation`,
+    "<br>DA logFC: ", tab$`diffAccessibility-logFC`,
+    "<br>DA FDR: ", tab$`diffAccessibility-qvalue`,
+    "<br>DE logFC: ", tab$DEA_logFC,
+    "<br>DE FDR: ", tab$DEA_adj.P.Val
   ),
   hoverinfo = "text"
 ) %>%
@@ -78,6 +78,6 @@ plot_ly(
 
 
 # SessionInfo
-```{r 20191118-peaks-annotation-other-figs-19 }
+```{r 20191129-map-tfMotifs-to-genes-6 }
 devtools::session_info()
 ```

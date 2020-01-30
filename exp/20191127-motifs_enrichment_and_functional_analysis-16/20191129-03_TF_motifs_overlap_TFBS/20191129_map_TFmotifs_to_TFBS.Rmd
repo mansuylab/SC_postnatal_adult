@@ -26,14 +26,14 @@ editor_options:
 ---
 
 # Library
-```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+```{r 20191129-map-TFmotifs-to-TFBS-1, message=FALSE, warning=FALSE}
 library(plotly)
 library(SummarizedExperiment)
 ```
 
 
 # Data
-```{r, warning=FALSE, message=FALSE}
+```{r 20191129-map-TFmotifs-to-TFBS-2, warning=FALSE, message=FALSE}
 atac <- readxl::read_xlsx(path = "input/atac_diff_acc_tfbs_hocomoco_overlap.xlsx", sheet = 1, trim_ws = T)
 
 rna.all <- read.table("input/all_regulons_pnd15_adults.txt", header = T, sep = "\t", stringsAsFactors = F)
@@ -45,13 +45,13 @@ rna.filt$"Transcription factor" <- rownames(rna.filt)
 
 
 # Mapping
-```{r}
+```{r 20191129-map-TFmotifs-to-TFBS-3 }
 atac.rna.all <- merge(atac, rna.all)
 atac.rna.filt <- merge(atac, rna.filt)
 ```
 
 # Save table
-```{r}
+```{r 20191129-map-TFmotifs-to-TFBS-4 }
 write.table(
   x = atac.rna.all, file = "./output/tfMotifs_mapped_TFBA_all.txt",
   sep = "\t", quote = F, row.names = F
@@ -64,6 +64,6 @@ write.table(
 
 
 # SessionInfo
-```{r 20191118-peaks-annotation-other-figs-19 }
+```{r 20191129-map-TFmotifs-to-TFBS-5 }
 devtools::session_info()
 ```
