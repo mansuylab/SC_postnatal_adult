@@ -47,12 +47,17 @@ incoming <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
   ), stringsAsFactors = F
 ))
 
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db")
+
 # Reading counts from the peak regions
 counts <- regionCounts(bamFiles,
-  regions = incoming,
+  regions = peakAnno@anno,
   param = readParam(pe = "both"),
   BPPARAM = MulticoreParam(16)
 )
+
+rowData(counts) <- DataFrame(data.frame(rowRanges(counts)))
 ```
 
 # Filtering counts
@@ -76,6 +81,7 @@ counts.filt <- counts[keep]
 # Differential binding
 ```{r}
 data <- normFactors(counts.filt)
+colnames(rowData(data)) <- paste("Peak", colnames(rowData(data)), sep = "-")
 
 y <- asDGEList(data)
 colnames(y) <- gsub(".*/|\\..*", "", bamFiles)
@@ -89,13 +95,8 @@ y <- estimateDisp(y, design)
 fit <- glmQLFit(y, design, robust = TRUE)
 results <- glmQLFTest(fit, contrast = contrast.matrix)
 results$table$qvalue <- p.adjust(p = results$table$PValue, method = "BH")
+colnames(results$table) <- paste("diffAccessibility", colnames(results$table), sep = "-")
 rowData(data) <- cbind(rowData(data), results$table)
-```
-
-# Annotating peaks
-```{r, message=F, warning=F}
-txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
-peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db")
 ```
 
 
@@ -104,13 +105,17 @@ peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000
 data@metadata$annotation <- peakAnno
 save(data, file = "output/atac_diff_chromatin_accessibility.RData")
 
-res <- data.frame(rowData(data))[, -c(2:6)]
-inc <- data.frame(peakAnno@anno)
+tab <- data.frame(rowData(data), check.names = F, stringsAsFactors = F)
 
-tab <- merge(inc, res, by = "Name", all.y = TRUE)
-writexl::write_xlsx(x = tab, path = "./output/atac_diff_chromatin_accessibility.xlsx", col_names = T, format_headers = T)
+writexl::write_xlsx(
+  x = tab, path = "./output/atac_diff_chromatin_accessibility.xlsx",
+  col_names = T, format_headers = T
+)
 
-tab.sig <- tab[tab$qvalue <= 0.05, ]
+tab.sig <- tab[(tab$`diffAccessibility-logFC` >= 1 |
+  tab$`diffAccessibility-logFC` <= 1) &
+  tab$`diffAccessibility-qvalue` <= 0.05, ]
+
 writexl::write_xlsx(
   x = tab.sig, path = "./output/atac_diff_chromatin_accessibility_sig_qval05.xlsx",
   col_names = T, format_headers = T
