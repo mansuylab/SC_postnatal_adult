@@ -1,0 +1,167 @@
+---
+title: "BS & RRBS: DMRs analysis"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-01-13 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r, message=FALSE, warning=FALSE}
+library(dmrseq)
+library(ggplotify)
+library(patchwork)
+library(parallel)
+```
+
+# Reading the data
+```{r, eval = T, message=FALSE, warning=FALSE}
+files <- list.files(path = "input", pattern = "gz", full.names = T, recursive = T)
+names(files) <- gsub(pattern = ".*S/|_1_v.*|_t.*", replacement = "", x = files)
+# files_read <- ReadBismark2DGE(files = files, sample.names = names(files), nParallel = 16)
+
+df <- data.frame(Files = files, sampleID = names(files), stringsAsFactors = F)
+df$Group <- gsub(pattern = "_.*", replacement = "", x = df$sampleID)
+
+bs <- read.bismark(
+  files = df$Files, colData = df,
+  BPPARAM = BiocParallel::MulticoreParam(workers = 16)
+)
+
+bs.filt <- bs[, bs$Group == "PNW8" | bs$Group == "PND8"]
+```
+
+# DMRs analysis
+```{r, message=FALSE, warning=FALSE}
+n <- "./output/dmrs.RData"
+
+if (!file.exists(n)) {
+  loci.idx <- which(
+    rowSums(
+      getCoverage(
+        bs.filt[, pData(bs.filt)[, "Group"] == "PND8"],
+        type = "Cov"
+      ) > 0
+    ) >= 4 &
+      rowSums(
+        getCoverage(
+          bs.filt[, pData(bs.filt)[, "Group"] == "PNW8"],
+          type = "Cov"
+        ) > 0
+      ) == 2
+  )
+  
+  bs.filtered <- bs.filt[loci.idx, ]
+
+  m <- getCoverage(BSseq = bs.filtered, type = "M")
+  cov <- getCoverage(BSseq = bs.filtered, type = "Cov")
+  
+  dm <- m/cov
+  dm[mapply(is.nan, dm)] <- 0
+  
+  # Remove if alll CpGs are methylated or all are not methylated
+  row_sub = apply(dm, 1, function(row) all(row ==0 | row ==1))
+  
+  bs_test <- bs.filtered[!row_sub,]
+  
+  dmr <- dmrseq(
+    bs = bs.filtered,
+    testCovariate = "Group",
+    BPPARAM = BiocParallel::MulticoreParam(workers = 16),
+    minNumRegion = 10,
+    adjustCovariate = NULL,
+    cutoff = 0.1,
+  )
+
+  r <- list(bs = bs.filtered, dmr = dmr)
+  save(r, file = n)
+} else {
+  load(n)
+  r$dmr$stat <- -(r$dmr$stat)
+  r$dmr <- r$dmr[order(r$dmr$qval, decreasing = F), ]
+}
+```
+
+# Plotting results
+```{r, eval = T, warning=FALSE, message=FALSE}
+annoTrack <- getAnnot("mm10")
+
+res <- r$dmr[r$dmr$qval <= 0.05, ]
+res$Names <- paste("Region:", 1:length(res))
+
+writexl::write_xlsx(
+  x = data.frame(res), path = "./output/dmrs.xlsx",
+  col_names = T, format_headers = T
+)
+
+# pdf(file = "./output/dmrs_plots.pdf", width = 11, height = 8.5)
+# for (i in 1:length(res)) {
+#   plotDMRs(
+#     BSseq = r$bs, regions = res[i, ],
+#     testCovariate = "Group",
+#     annoTrack = annoTrack,
+#     qval = T, stat = T,
+#     main = res[i, ]$Names
+#   )
+# }
+# dev.off()
+
+# res$split <- c(rep(1:227, each = 12), rep(228, 6))
+#
+# res_sp <- split(res, res$split)
+#
+# names(res_sp) <- NULL
+#
+# plots <- lapply(res_sp[1:2], function(x) {
+#   # x <- data.frame(x, stringsAsFactors = F)
+#   pl <- list()
+#   for (i in 1:length(x)) {
+#     reg <- x[i,]
+#     pl[[i]] <- as.ggplot(~plotDMRs(
+#       BSseq = r$bs, regions = reg,
+#       testCovariate = "Group",
+#       annoTrack = annoTrack,
+#       qval = T, stat = T,
+#       main = reg$Names
+#     ))
+#   }
+#
+#   p <- NULL
+#   if (length(pl) == 12) {
+#     p <- (pl[[1]] | pl[[2]] | pl[[3]]) /
+#       (pl[[4]] | pl[[5]] | pl[[6]]) /
+#       (pl[[7]] | pl[[8]] | pl[[9]]) /
+#       (pl[[10]] | pl[[11]] | pl[[12]])
+#   } else {
+#     p <- (pl[[1]] | pl[[2]]) / (pl[[3]] | pl[[4]]) / (pl[[5]] | pl[[6]])
+#   }
+#   return(p)
+# })
+#
+#
+# pdf(file = "./output/dmrs_plots.pdf", width = 8.5, height = 11)
+# plots
+# dev.off()
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
