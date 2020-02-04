@@ -1,0 +1,123 @@
+---
+title: "ATAC-Seq: Differential analysis"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-18 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r, message=FALSE, warning=FALSE}
+library(csaw)
+library(edgeR)
+library(ChIPseeker)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(org.Mm.eg.db)
+```
+
+# Reading the counts
+```{r}
+# BAM files
+bamFiles <- list.files(path = "input", pattern = "bam$", full.names = T)
+
+# Combined peaks
+incoming <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+# Reading counts from the peak regions
+counts <- regionCounts(bamFiles,
+  regions = incoming,
+  param = readParam(pe = "both"),
+  BPPARAM = MulticoreParam(16)
+)
+```
+
+# Filtering counts
+
+## Function
+```{r}
+counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
+  counts2 <- apply(counts, 1, FUN = function(x) {
+    sum(x >= 15) >= floor(length(x) * 0.4)
+  })
+  return(counts2)
+}
+```
+
+## Filter counts
+```{r}
+keep <- counts_filter(counts = assay(counts))
+counts.filt <- counts[keep]
+```
+
+# Differential binding
+```{r}
+data <- normFactors(counts.filt)
+
+y <- asDGEList(data)
+colnames(y) <- gsub(".*/|\\..*", "", bamFiles)
+
+design <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(y))))
+colnames(design) <- gsub(".*)", "", colnames(design))
+
+contrast.matrix <- makeContrasts(Adult - PND15, levels = design)
+
+y <- estimateDisp(y, design)
+fit <- glmQLFit(y, design, robust = TRUE)
+results <- glmQLFTest(fit, contrast = contrast.matrix)
+results$table$qvalue <- p.adjust(p = results$table$PValue, method = "BH")
+rowData(data) <- cbind(rowData(data), results$table)
+```
+
+# Annotating peaks
+```{r, message=F, warning=F}
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db")
+```
+
+
+# Saving results
+```{r}
+data@metadata$annotation <- peakAnno
+save(data, file = "output/atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data))[, -c(2:6)]
+inc <- data.frame(peakAnno@anno)
+
+tab <- merge(inc, res, by = "Name", all.y = TRUE)
+writexl::write_xlsx(x = tab, path = "./output/atac_diff_chromatin_accessibility.xlsx", col_names = T, format_headers = T)
+
+tab.sig <- tab[tab$qvalue <= 0.05, ]
+writexl::write_xlsx(
+  x = tab.sig, path = "./output/atac_diff_chromatin_accessibility_sig_qval05.xlsx",
+  col_names = T, format_headers = T
+)
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
