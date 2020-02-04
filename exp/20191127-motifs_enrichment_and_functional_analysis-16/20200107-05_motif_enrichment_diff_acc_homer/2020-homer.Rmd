@@ -69,6 +69,8 @@ perform_homer <- function(df, FC, bg, out, fName,
   }
 
   sp_d <- NULL
+  bg_n <- NULL
+  
   if (split) {
     d$`Peak-annotation` <- gsub(
       pattern = "\\ \\(.*|\\'", replacement = "",
@@ -80,9 +82,25 @@ perform_homer <- function(df, FC, bg, out, fName,
     )
     sp_d <- split(d, d$`Peak-annotation`)
     names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+    
+    bg$`Peak-annotation` <- gsub(
+      pattern = "\\ \\(.*|\\'", replacement = "",
+      x = bg$`Peak-annotation`
+    )
+    bg$`Peak-annotation` <- gsub(
+      pattern = " ", replacement = "_",
+      x = bg$`Peak-annotation`
+    )
+    
+    bg_n <- split(bg, bg$`Peak-annotation`)
+    names(bg_n) <- paste(fName, names(bg_n), sep = "-")
+    
   } else {
     sp_d <- list(d)
     names(sp_d) <- paste(fName, sep = "/")
+    
+    bg_n <- list(bg)
+    names(bg_n) <- paste(fName, sep = "/")
   }
 
   results_dir <- out
@@ -90,6 +108,9 @@ perform_homer <- function(df, FC, bg, out, fName,
   if (is.null(DB)) {
     for (i in 1:length(sp_d)) {
       x <- sp_d[[i]]
+      
+      n <- names(sp_d)[i]
+      
       o <- paste0(results_dir, fName, "/", names(sp_d)[i])
       print(o)
       
@@ -100,7 +121,7 @@ perform_homer <- function(df, FC, bg, out, fName,
         motif_length = c(8, 10, 12),
         scan_size = 100,
         optimize_count = 8,
-        background = bg,
+        background = bg_n[[n]],
         local_background = FALSE,
         only_known = FALSE, only_denovo = FALSE,
         fdr_num = 5,
@@ -111,25 +132,27 @@ perform_homer <- function(df, FC, bg, out, fName,
   } else {
     for (i in 1:length(sp_d)) {
       x <- sp_d[[i]]
-
+      
+      n <- names(sp_d)[i]
+      
       o <- paste0(results_dir, fName, "/", names(sp_d)[i])
-
+      
       print(o)
-      # findMotifs(
-      #   x = x[, c(1:3, 6, 4:5, 7:ncol(x))],
-      #   path = o,
-      #   genome = "mm10",
-      #   motif_length = c(8, 10, 12),
-      #   scan_size = 100,
-      #   optimize_count = 8,
-      #   background = bg,
-      #   local_background = FALSE,
-      #   only_known = FALSE, only_denovo = FALSE,
-      #   fdr_num = 5,
-      #   cores = 16, cache = 1000,
-      #   overwrite = TRUE, keep_minimal = FALSE,
-      #   motif_file = DB
-      # )
+      findMotifs(
+        x = x[, c(1:3, 6, 4:5, 7:ncol(x))],
+        path = o,
+        genome = "mm10",
+        motif_length = c(8, 10, 12),
+        scan_size = 100,
+        optimize_count = 8,
+        background = bg_n[[n]],
+        local_background = FALSE,
+        only_known = FALSE, only_denovo = FALSE,
+        fdr_num = 5,
+        cores = 16, cache = 1000,
+        overwrite = TRUE, keep_minimal = FALSE,
+        motif_file = DB
+      )
 
       find_motifs_instances(
         x = x[, c(1:3, 6, 4:5, 7:ncol(x))],
