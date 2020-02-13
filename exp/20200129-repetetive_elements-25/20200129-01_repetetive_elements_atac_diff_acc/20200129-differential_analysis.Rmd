@@ -1,0 +1,237 @@
+---
+title: "Repetitive elements in ATAC-Seq: Differential analysis"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-01-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r, message=FALSE, warning=FALSE}
+library(csaw)
+library(edgeR)
+library(Rsubread)
+```
+
+# Reading the counts
+
+```{r, message = F, warning = F}
+# BAM files
+bamFiles <- list.files(path = "input", pattern = "bam$", full.names = T)
+names(bamFiles) <- gsub(pattern = "\\.bam", replacement = "", basename(bamFiles))
+gtf <- data.frame(rtracklayer::import("input/mm10_rmsk_TE.gtf.gz"))
+```
+
+## subFamily
+```{r, warning=FALSE, message=FALSE}
+fc <- featureCounts(
+  files = bamFiles,
+  annot.ext = "/mnt/IM/anno/Mus_musculus.GRCm38.75.repeats.gtf",
+  isGTFAnnotationFile = T,
+  GTF.attrType = "Name",
+  GTF.featureType = "dispersed_repeat",
+  allowMultiOverlap = T,
+  fraction = T,
+  countMultiMappingReads = T,
+  ignoreDup = T,
+  nthreads = 16
+)
+
+saveRDS(object = fc, file = "./output/fc_subFamily.rds")
+
+rownames(fc$annotation) <- fc$annotation$GeneID
+counts <- SummarizedExperiment(list(counts = fc$counts))
+counts@metadata <- fc$annotation
+```
+
+## Family
+```{r, warning=FALSE, message=FALSE}
+fcF <- featureCounts(
+  files = bamFiles,
+  annot.ext = "/mnt/IM/anno/Mus_musculus.GRCm38.75.repeats.gtf",
+  isGTFAnnotationFile = T,
+  GTF.attrType = "Derives_from",
+  GTF.featureType = "dispersed_repeat",
+  allowMultiOverlap = T,
+  fraction = T,
+  countMultiMappingReads = T,
+  ignoreDup = T,
+  nthreads = 16
+)
+
+saveRDS(object = fcF, file = "./output/fc_subFamily.rds")
+
+rownames(fcF$annotation) <- fcF$annotation$GeneID
+countsF <- SummarizedExperiment(list(counts = fcF$counts))
+countsF@metadata <- fcF$annotation
+```
+
+
+# Filtering counts
+
+## Function
+```{r}
+counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
+  counts2 <- apply(counts, 1, FUN = function(x) {
+    sum(x >= 15) >= floor(length(x) * 0.4)
+  })
+  return(counts2)
+}
+```
+
+## subFamily
+```{r}
+keep <- counts_filter(counts = assay(counts))
+counts.filt <- counts[keep]
+counts.filt$totals <- colSums(assay(counts.filt))
+```
+
+
+## Family
+```{r}
+keep <- counts_filter(counts = assay(counts))
+counts.filtF <- countsF[keep]
+counts.filtF$totals <- colSums(assay(counts.filtF))
+```
+
+
+
+# Differential binding
+
+## subFamily
+```{r}
+data <- normFactors(counts.filt)
+# colnames(rowData(data)) <- paste("Peak", colnames(rowData(data)), sep = "-")
+
+y <- asDGEList(data)
+colnames(y) <- names(bamFiles)
+
+design <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(y))))
+colnames(design) <- gsub(".*)", "", colnames(design))
+
+contrast.matrix <- makeContrasts(Adult - PND15, levels = design)
+
+y <- estimateDisp(y, design)
+fit <- glmQLFit(y, design, robust = TRUE)
+results <- glmQLFTest(fit, contrast = contrast.matrix)
+results$table$qvalue <- p.adjust(p = results$table$PValue, method = "BH")
+# colnames(results$table) <- paste("diffEnrichment", colnames(results$table), sep = "-")
+rowData(data) <- cbind(rowData(data), results$table)
+
+tab <- data.frame(rowData(data))
+tab <- data.frame(Name = rownames(tab), tab)
+tab <- merge(gtf[,10:11], tab)
+
+rowData(data) <- tab
+```
+
+## Family
+```{r}
+dataF <- normFactors(counts.filtF)
+
+yF <- asDGEList(dataF)
+colnames(yF) <- names(bamFiles)
+
+designF <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(yF))))
+colnames(designF) <- gsub(".*)", "", colnames(designF))
+
+contrast.matrixF <- makeContrasts(Adult - PND15, levels = designF)
+
+yF <- estimateDisp(yF, designF)
+fitF <- glmQLFit(yF, designF, robust = TRUE)
+resultsF <- glmQLFTest(fitF, contrast = contrast.matrixF)
+resultsF$table$qvalue <- p.adjust(p = resultsF$table$PValue, method = "BH")
+rowData(dataF) <- cbind(rowData(dataF), resultsF$table)
+```
+
+
+# Saving results
+
+## subFamily
+```{r}
+save(data, file = "output/repeat_elements_subFamily.RData")
+
+tab <- data.frame(rowData(data), check.names = F, stringsAsFactors = F)
+
+data.table::fwrite(
+  x = tab,
+  file = "./output/repeat_elements_subFamily.txt.gz",
+  sep = "\t", quote = F, row.names = F, nThread = 16
+)
+
+tab.sig <- tab[abs(tab$logFC) >= 0.5 & tab$qvalue <= 0.05, ]
+
+writexl::write_xlsx(
+  x = tab.sig, path = "./output/repeat_elements_subFamily_sig.xlsx",
+  col_names = T, format_headers = T
+)
+```
+
+## Family
+```{r}
+save(dataF, file = "output/repeat_elements_Family.RData")
+
+tabF <- data.frame(rowData(dataF), check.names = F, stringsAsFactors = F)
+
+data.table::fwrite(
+  x = tabF,
+  file = "./output/repeat_elements_Family.txt.gz",
+  sep = "\t", quote = F, row.names = F, nThread = 16
+)
+
+tab.sigF <- tabF[abs(tabF$logFC) >= 0.5 & tabF$qvalue <= 0.05, ]
+
+writexl::write_xlsx(
+  x = tab.sigF, path = "./output/repeat_elements_Family_sig.xlsx",
+  col_names = T, format_headers = T
+)
+```
+
+
+<!-- # Merging with diff Accessibility -->
+<!-- ```{r} -->
+<!-- tab1 <- rowData(data) -->
+<!-- load("input/atac_diff_chromatin_accessibility.RData") -->
+<!-- tab2 <- rowData(data) -->
+<!-- tab2 <- tab2[tab2$`diffAccessibility-qvalue` <= 0.05 & abs(tab2$`diffAccessibility-logFC`) >= 1, ] -->
+<!-- colnames(tab2)[1:5] <- gsub(pattern = "Peak-", replacement = "", x = colnames(tab2)[1:5]) -->
+
+<!-- tab1_GR <- GRanges(tab1) -->
+<!-- tab2_GR <- GRanges(tab2) -->
+
+<!-- meta <- data.frame(plgINS::metaGR(gr1 = tab1_GR, gr2 = tab2_GR, minOverlap = 5), -->
+<!--   stringsAsFactors = F -->
+<!-- ) -->
+<!-- colnames(meta)[1:13] <- paste0("RE-", colnames(meta)[1:13]) -->
+<!-- colnames(meta) <- gsub(pattern = "\\.", replacement = "-", x = colnames(meta)) -->
+<!-- colnames(meta) <- gsub(pattern = "GRanges-", replacement = "", x = colnames(meta)) -->
+<!-- colnames(meta)[19:23] <- paste0("Peak-", colnames(meta)[19:23]) -->
+
+<!-- writexl::write_xlsx( -->
+<!--   x = meta, path = "output/repeat_elements_overlap_peaks.xlsx", -->
+<!--   col_names = T, format_headers = T -->
+<!-- ) -->
+<!-- ``` -->
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
