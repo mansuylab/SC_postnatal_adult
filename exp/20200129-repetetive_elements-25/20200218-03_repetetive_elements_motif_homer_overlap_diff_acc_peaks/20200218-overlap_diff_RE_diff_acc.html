@@ -2915,7 +2915,7 @@ $(document).ready(function () {
 <span id="cb2-14"><a href="#cb2-14"></a>    <span class="dt">input =</span> x, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>,</span>
 <span id="cb2-15"><a href="#cb2-15"></a>    <span class="dt">header =</span> T, <span class="dt">stringsAsFactors =</span> F,</span>
 <span id="cb2-16"><a href="#cb2-16"></a>    <span class="dt">check.names =</span> F, <span class="dt">data.table =</span> F,</span>
-<span id="cb2-17"><a href="#cb2-17"></a>    <span class="dt">nThread =</span> <span class="kw">detectCores</span>(), <span class="dt">showProgress =</span> T</span>
+<span id="cb2-17"><a href="#cb2-17"></a>    <span class="dt">nThread =</span> <span class="kw">detectCores</span>()</span>
 <span id="cb2-18"><a href="#cb2-18"></a>  )</span>
 <span id="cb2-19"><a href="#cb2-19"></a>},</span>
 <span id="cb2-20"><a href="#cb2-20"></a><span class="dt">mc.preschedule =</span> F, <span class="dt">mc.cores =</span> <span class="kw">length</span>(files)</span>
@@ -2961,8 +2961,11 @@ $(document).ready(function () {
 <h1>Save results</h1>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(overlap)) {</span>
 <span id="cb5-2"><a href="#cb5-2"></a>  n &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, <span class="kw">names</span>(overlap)[i], <span class="st">&quot;.xlsx&quot;</span>)</span>
-<span id="cb5-3"><a href="#cb5-3"></a>  writexl<span class="op">::</span><span class="kw">write_xlsx</span>(<span class="dt">x =</span> overlap[[i]], <span class="dt">path =</span> n, <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T)</span>
-<span id="cb5-4"><a href="#cb5-4"></a>}</span></code></pre></div>
+<span id="cb5-3"><a href="#cb5-3"></a>  tmp &lt;-<span class="st"> </span>overlap[[i]]</span>
+<span id="cb5-4"><a href="#cb5-4"></a>  tmp &lt;-<span class="st"> </span>tmp[,<span class="op">-</span><span class="kw">c</span>(<span class="dv">24</span><span class="op">:</span><span class="dv">27</span>)]</span>
+<span id="cb5-5"><a href="#cb5-5"></a>  tmp &lt;-<span class="st"> </span>tmp[<span class="op">!</span><span class="kw">duplicated</span>(tmp),]</span>
+<span id="cb5-6"><a href="#cb5-6"></a>  writexl<span class="op">::</span><span class="kw">write_xlsx</span>(<span class="dt">x =</span> tmp, <span class="dt">path =</span> n, <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T)</span>
+<span id="cb5-7"><a href="#cb5-7"></a>}</span></code></pre></div>
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
@@ -2977,7 +2980,7 @@ $(document).ready(function () {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2020-02-18                  
+##  date     2020-02-19                  
 ## 
 ## ─ Packages ───────────────────────────────────────────────────────────────────
 ##  package              * version    date       lib
@@ -3222,7 +3225,7 @@ $(document).ready(function () {
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-02-18 <br> <b>Updated on:</b> 2020-02-18</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-02-18 <br> <b>Updated on:</b> 2020-02-19</p>
 </div>
 
 

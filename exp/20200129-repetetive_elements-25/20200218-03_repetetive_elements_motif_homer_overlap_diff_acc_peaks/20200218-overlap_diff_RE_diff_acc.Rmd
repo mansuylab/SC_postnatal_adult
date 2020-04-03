@@ -101,7 +101,10 @@ mc.preschedule = F, mc.cores = length(read_files_GR)
 ```{r 20200218-overlap-diff-RE-diff-acc-5}
 for (i in 1:length(overlap)) {
   n <- paste0("output/", names(overlap)[i], ".xlsx")
-  writexl::write_xlsx(x = overlap[[i]], path = n, col_names = T, format_headers = T)
+  tmp <- overlap[[i]]
+  tmp <- tmp[,-c(24:27)]
+  tmp <- tmp[!duplicated(tmp),]
+  writexl::write_xlsx(x = tmp, path = n, col_names = T, format_headers = T)
 }
 ```
 
