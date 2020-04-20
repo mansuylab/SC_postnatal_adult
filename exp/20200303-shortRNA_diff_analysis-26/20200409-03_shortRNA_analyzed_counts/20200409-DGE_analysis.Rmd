@@ -1,0 +1,301 @@
+---
+title: "short RNA-Seq: differential expression analysis of controls"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-03-03 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r 20200409-DGE-analysis-1, message=FALSE, warning=FALSE}
+library(limma)
+library(edgeR)
+library(plgINS)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(SummarizedExperiment)
+library(scales)
+library(viridis)
+library(hrbrthemes)
+library(randomcoloR)
+```
+
+# Read data
+```{r 20200409-DGE-analysis-2 }
+# Counts matrix
+m <- readRDS("input/counts.rds")
+m_df <- data.frame(m)
+m_df$seq <- rownames(m_df)
+dim(m_df)
+
+# assigned reads
+ar <- readRDS("input/assignedReads.rds")
+ar_df <- data.frame(ar)
+ar_df$seq <- rownames(ar_df)
+dim(ar_df)
+
+# Merging both tables
+tab_ij <- inner_join(x = ar_df, y = m_df)
+rownames(tab_ij) <- tab_ij$seq
+dim(tab_ij)
+
+# There are some genes as NA values
+tab_ij_NA <- tab_ij[is.na(tab_ij$gene_id), ]
+dim(tab_ij_NA)
+
+# Genes without NA values
+tab_ij <- tab_ij[!is.na(tab_ij$gene_id), ]
+dim(tab_ij)
+
+# Aggregating counts based on gene IDs
+ag <- plag(x = tab_ij[, 17:ncol(tab_ij)], by = tab_ij$gene_id)
+colnames(ag) <- gsub(pattern = "_trimmed.fq", replacement = "", x = colnames(ag))
+dim(ag)
+
+
+# Annotation
+anno_file <- "./output/anno_features.RData"
+
+if (!file.exists(anno_file)) {
+  file <- tab_ij[, c("gene_id", "transcript_type")]
+  file <- file[!duplicated(file), ]
+  rownames(file) <- NULL
+
+  dup <- file$gene_id[duplicated(file$gene_id)]
+  df1 <- file[file$gene_id %in% dup, ]
+  df2 <- file[!file$gene_id %in% dup, ]
+
+  anno1 <- split(x = df1, f = df1$gene_id)
+
+  an1 <- mylapply(anno1, function(x) {
+    id <- unique(x$gene_id)
+    type <- as.character(unique(x$transcript_type))
+    type <- type[!is.na(type)]
+    if (length(type) > 1) {
+      type <- paste(type, collapse = "|")
+    } else if (length(type) == 0) {
+      type <- "ambiguous"
+    }
+    df <- data.frame(ID = id, Type = type)
+    return(df)
+  })
+
+  ann1 <- ldply(an1, data.frame)[, -1]
+
+  an2 <- data.frame(ID = df2$gene_id, Type = df2$transcript_type)
+  an2$Type[is.na(an2$Type)] <- "ambiguous"
+
+  ann <- rbind(ann1, an2)
+
+  save(ann, file = anno_file)
+} else {
+  load(anno_file)
+}
+```
+
+# Features plot
+```{r 20200409-DGE-analysis-3}
+gt <- split(x = ar[["gene_id"]], f = ar[["transcript_type"]])
+cont <- sapply(gt, FUN = function(x) colSums(ag[unique(x), ], na.rm = TRUE))
+cont <- cont[c(7:14, 1:6), ]
+
+# col_sub = apply(cont, 2, function(col) all(col !=0 ))
+## Subset as usual
+# cont <- cont[c(7:14, 1:6),col_sub]
+
+dat <- reshape2::melt(cont)
+
+a <- ifelse(substr(x = dat$Var1, start = 1, stop = 4) == "PND8", "red", "blue")
+
+# Grouped
+p <- ggplot(dat, aes(fill = Var2, y = value, x = Var1)) +
+  labs(
+    title = "Feature types",
+    x = "",
+    y = "",
+    fill = "Feature types"
+  ) +
+  scale_fill_viridis(discrete = T) +
+  theme(plot.title = element_text(face = "bold", size = 20, hjust = 0.5)) +
+  theme(
+    axis.title.x = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(face = "bold", size = 12)
+  ) +
+  theme(
+    axis.title.y = element_text(face = "bold", size = 15),
+    axis.text.y = element_text(face = "bold", size = 12)
+  ) +
+  theme(legend.title = element_text(face = "bold", size = 15)) +
+  theme(legend.text = element_text(size = 14))
+```
+
+## Individual  {.tabset .tabset-pills}
+
+### Samples
+```{r 20200409-DGE-analysis-4, warning=FALSE, fig.width=16.5, fig.align='center', fig.height=12.75}
+p + geom_bar(position = "dodge", stat = "identity") +
+  facet_wrap(facets = ~Var1, scales = "free")
+```
+
+### Features
+```{r 20200409-DGE-analysis-5, warning=FALSE, fig.width=16.5, fig.align='center', fig.height=12.75}
+p + geom_bar(position = "dodge", stat = "identity") +
+  facet_wrap(facets = ~Var2, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, color = a))
+```
+
+## One plot  {.tabset .tabset-pills}
+
+### Stacked
+```{r 20200409-DGE-analysis-6, warning=FALSE, fig.align='center', fig.width=16.5, fig.height=12.75}
+p + geom_bar(position = "stack", stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, color = a))
+```
+
+### Stacked + percent
+```{r 20200409-DGE-analysis-7, fig.align='center', warning=FALSE, fig.width=16.5, fig.height=12.75}
+p + geom_bar(position = "fill", stat = "identity") +
+  scale_y_continuous(labels = percent) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, color = a))
+```
+
+# Filtering counts
+## Function
+```{r 20200409-DGE-analysis-8 }
+counts_filter <- function(counts, nReads = 5, nSamplesPercent = 0.4) {
+  counts2 <- counts[apply(counts, 1, FUN = function(x) {
+    sum(x >= nReads) >= floor(length(x) * 0.4)
+  }), ]
+  return(counts2)
+}
+```
+
+## Filter data
+```{r 20200409-DGE-analysis-9 }
+counts <- counts_filter(ag)
+dim(counts)
+
+meta <- data.frame(Samples = colnames(counts))
+meta$Group <- gsub(pattern = "_.*", replacement = "", x = meta$Samples)
+rownames(meta) <- meta$Samples
+```
+
+
+# Differeitial analysis using `limma`
+## limma fit
+```{r 20200409-DGE-analysis-10 }
+design <- model.matrix(~ 0 + Group, data = meta)
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+dea_analysis <- function(counts, design) {
+  dds <- calcNormFactors(DGEList(counts = counts))
+  v <- voom(dds, design = design)
+
+  contrast.matrix <- makeContrasts(PND15 - PND8, levels = design)
+  fit <- lmFit(v)
+
+  fit2 <- contrasts.fit(fit, contrast.matrix)
+  fit2 <- eBayes(fit2)
+  tb <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+  tb <- data.frame(ID = rownames(tb), tb)
+  return(tb)
+}
+
+dea_res <- dea_analysis(counts = counts, design = design)
+
+# Merge with anno
+dea_res <- inner_join(x = ann, y = dea_res)
+rownames(dea_res) <- dea_res$ID
+```
+
+# Counts data and pData
+
+```{r 20200409-DGE-analysis-11 }
+dge <- cpm(calcNormFactors(DGEList(counts = counts, group = meta$Group), method = "TMM"), log = T)
+
+data_s <- list(cpm = dge, pData = meta)
+
+save(data_s,
+  file = "./output/data_pData.RData", compress = T,
+  compression_level = 3
+)
+```
+
+
+# Results
+```{r 20200409-DGE-analysis-12 }
+writexl::write_xlsx(x = dea_res, path = "output/dea_short_RNA.xlsx", col_names = T, format_headers = T)
+```
+
+# Heatmap
+
+```{r 20200409-DGE-analysis-13, fig.align='center', fig.width=11, fig.height=8.5}
+mat <- data_s[[1]]
+pData <- data_s[[2]]
+dea <- dea_res
+d <- dea[order(dea$adj.P.Val), ]
+ge <- as.character(d$ID[1:30])
+ge <- ge[!is.na(ge)]
+
+pheatmap::pheatmap(
+  mat = mat[ge, ], color = viridis::viridis(100),
+  scale = "row", border_color = NA,
+  annotation_col = pData[, 2, drop = F],
+  annotation_row = dea[, c(2:4, 7)],
+  show_rownames = FALSE
+)
+```
+
+# MA plots
+```{r 20200409-DGE-analysis-14, fig.align='center', fig.width=11, fig.height=8.5}
+
+res <- dea
+res$threshold <- as.factor(res$adj.P.Val < 0.05)
+
+ggplot(data = res, aes(x = AveExpr, y = logFC, colour = threshold)) +
+  geom_point(alpha = 0.7, size = 1.8) +
+  geom_hline(aes(yintercept = 0), colour = "blue", size = 1) +
+  ylim(c(min(res$logFC), max(res$logFC))) +
+  xlab("Mean expression") +
+  ylab("Log2 Fold Change") +
+  theme(plot.title = element_text(face = "bold", size = 20, hjust = 0.5)) +
+  theme(
+    axis.title.x = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(face = "bold", size = 12)
+  ) +
+  theme(
+    axis.title.y = element_text(face = "bold", size = 15),
+    axis.text.y = element_text(face = "bold", size = 12)
+  ) +
+  scale_colour_discrete(name = "p.adjusted < 0.05") +
+  theme(legend.title = element_text(face = "bold", size = 15)) +
+  theme(legend.text = element_text(size = 14))
+```
+
+
+# SessionInfo
+```{r 20200409-DGE-analysis-15 }
+devtools::session_info()
+```
