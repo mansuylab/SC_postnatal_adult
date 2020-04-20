@@ -77,6 +77,10 @@ names(tss_mm10) <- tss_mm10$tx_name
 tss_5k <- promoters(TxDb.Mmusculus.UCSC.mm10.knownGene, upstream = 5000, downstream = 5000)
 tss_5k <- one_chr(tss_5k)
 names(tss_5k) <- tss_5k$tx_name
+tss_5k <- slidingWindows(x = tss_5k, width = 50, step = 50)
+tss_5k <- unlist(tss_5k)
+names(tss_5k) <- gsub(pattern = "\\.EN.*" , replacement = "" , x = names(tss_5k))
+tss_5k$tx_name <- names(tss_5k)
 ```
 
 The task of visualization are separated into two steps:
@@ -122,7 +126,7 @@ if (!file.exists(nm_atac)) {
   
   mat_adult_AS <- normalizeToMatrix(adult_AS, tss_mm10,
     value_column = "Score",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
 
@@ -151,7 +155,7 @@ if (!file.exists(nm_atac)) {
   
   mat_pnd15_AS <- normalizeToMatrix(pnd15_AS, tss_mm10,
     value_column = "Score",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
   save(mat_adult_AS, mat_pnd15_AS, file = nm_atac)
@@ -193,7 +197,7 @@ if (!file.exists(nm_chip)) {
   
   mat_adult_CS_H3K27ac <- normalizeToMatrix(adult_CS_H3K27ac, tss_mm10,
     value_column = "Score",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
 
@@ -223,7 +227,7 @@ if (!file.exists(nm_chip)) {
   
   mat_adult_CS_H3K27me3 <- normalizeToMatrix(adult_CS_H3K27me3, tss_mm10,
     value_column = "Score",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
 
@@ -253,7 +257,7 @@ if (!file.exists(nm_chip)) {
 
   mat_adult_CS_H3K4me3 <- normalizeToMatrix(adult_CS_H3K4me3, tss_mm10,
     value_column = "Score",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
   save(mat_adult_CS_H3K4me3, mat_adult_CS_H3K27me3, mat_adult_CS_H3K27ac, file = nm_chip)
@@ -283,7 +287,7 @@ if (!file.exists(nm_bs)) {
 
   mat_pnd7_BS <- normalizeToMatrix(pnd7_BS, tss_mm10,
     value_column = "meth",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
 
@@ -301,7 +305,7 @@ if (!file.exists(nm_bs)) {
 
   mat_pnd14_BS <- normalizeToMatrix(pnd14_BS, tss_mm10,
     value_column = "meth",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
 
@@ -332,7 +336,7 @@ if (!file.exists(nm_bs)) {
 
   mat_pnw8_BS <- normalizeToMatrix(pnw8_BS, tss_mm10,
     value_column = "meth",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10
   )
 
   save(mat_pnd7_BS, mat_pnd14_BS, mat_pnw8_BS, file = nm_bs)
@@ -376,7 +380,7 @@ if (!file.exists(nm_rrbs)) {
 
   mat_pnd8_rrbs <- normalizeToMatrix(pnd8_rrbs, tss_mm10,
     value_column = "meth",
-    extend = 5000, mean_mode = "w0", w = 50
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
   )
 
   save(mat_pnd8_rrbs, file = nm_rrbs)
@@ -391,7 +395,7 @@ if (!file.exists(nm_rrbs)) {
 
 ## Function
 ```{r }
-create_heatmap <- function(nc = 2) {
+create_heatmap <- function(nc = 4) {
   pdf_file <- paste0("./output/subset/heatmap_atac_chip_cluster_", nc, ".pdf")
 
   if (!file.exists(pdf_file)) {
@@ -466,8 +470,8 @@ create_heatmap <- function(nc = 2) {
       top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
     )
 
-    ht_list <- hm_partition + hm_atac + hm_chip + hm_bs + hm_rrbs
-
+    # ht_list <- hm_partition + hm_atac + hm_chip + hm_bs + hm_rrbs
+    ht_list <- hm_partition + hm_atac + hm_bs + hm_rrbs
 
 
     pdf(file = pdf_file, width = 22, height = 17)
