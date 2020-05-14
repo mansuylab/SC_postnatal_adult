@@ -338,7 +338,7 @@ if (!file.exists(nm_rrbs)) {
 ## Function
 ```{r }
 create_heatmap <- function(nc = 2) {
-  pdf_file <- paste0("./output/heatmap_atac_chip_cluster_", nc, ".pdf")
+  pdf_file <- paste0("./output/subset/heatmap_atac_chip_cluster_", nc, ".pdf")
 
   if (!file.exists(pdf_file)) {
     partition <- paste0("cluster", kmeans(mat_adult_AS, centers = nc)$cluster)
@@ -412,25 +412,40 @@ create_heatmap <- function(nc = 2) {
       top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
     )
 
-    ht_list <- hm_partition + hm_atac + hm_chip + hm_bs + hm_rrbs
-
-
 
     pdf(file = pdf_file, width = 22, height = 17)
 
-    draw(ht_list,
-      split = partition, annotation_legend_list = list(lgd),
-      ht_gap = unit(2, "mm")
-    )
+    if (nc == 1) {
+      ht_list <- hm_atac + hm_chip + hm_bs + hm_rrbs
+      draw(ht_list, ht_gap = unit(2, "mm"))
+    } else {
+      ht_list <- hm_partition + hm_atac + hm_chip + hm_bs + hm_rrbs + hm_rna
+      draw(ht_list,
+        split = partition, annotation_legend_list = list(lgd),
+        ht_gap = unit(2, "mm")
+      )
+    }
 
     dev.off()
+    invisible(gc())
   }
 }
 ```
 
 ## Make heatmaps
 ```{r }
-mylapply(2:10, create_heatmap)
+mylapply(1:10, create_heatmap)
+```
+
+## Convert to PNG
+```{r}
+pdf <- list.files(path = "output", pattern = "pdf", recursive = T, full.names = T)
+png <- mylapply(pdf, function(x) {
+  pdftools::pdf_convert(
+    pdf = x, format = "png", dpi = 200,
+    filenames = gsub(pattern = ".pdf", replacement = ".png", x = x)
+  )
+}, mc.cores = length(pdf))
 ```
 
 # SessionInfo
