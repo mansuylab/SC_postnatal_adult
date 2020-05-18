@@ -24,7 +24,7 @@ link-citations: yes
 ---
 
 # Library
-```{r, warning = F, message = F}
+```{r subset-integration-1, warning = F, message = F}
 library(EnrichedHeatmap)
 library(circlize)
 library(data.table)
@@ -32,10 +32,11 @@ library(tidyverse)
 library(plgINS)
 library(BSgenome.Mmusculus.UCSC.mm10)
 library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(bsselectR)
 ```
 
 # Function to subset data to one chromosome
-```{r }
+```{r subset-integration-2 }
 one_chr <- function(input, chr = "chr1") {
   df <- data.frame(input)
   df <- df[df$seqnames == chr, ]
@@ -57,7 +58,7 @@ We would need following:
 
 # TSS
 Here, we extract the promoters for transcripts from RNA-Seq
-```{r }
+```{r subset-integration-3 }
 cgi_tss_file <- "./output/cgi_tss_mm10.RData"
 
 if (!file.exists(cgi_tss_file)) {
@@ -85,7 +86,7 @@ The task of visualization are separated into two steps:
 
 
 ## ATAC-Seq
-```{r }
+```{r subset-integration-4 }
 nm_atac <- "./output/subset/mat_atac.RData"
 
 if (!file.exists(nm_atac)) {
@@ -135,7 +136,7 @@ if (!file.exists(nm_atac)) {
 
 
 ## ChIP-Seq
-```{r }
+```{r subset-integration-5 }
 nm_chip <- "./output/subset/mat_chip.RData"
 
 if (!file.exists(nm_chip)) {
@@ -210,7 +211,7 @@ if (!file.exists(nm_chip)) {
 
 
 ## Bisulphite-Seq
-```{r }
+```{r subset-integration-6 }
 nm_bs <- "./output/subset/mat_bs.RData"
 
 if (!file.exists(nm_bs)) {
@@ -288,7 +289,7 @@ if (!file.exists(nm_bs)) {
 ```
 
 ## RRBS
-```{r }
+```{r subset-integration-7 }
 nm_rrbs <- "./output/subset/mat_rrbs.RData"
 
 if (!file.exists(nm_rrbs)) {
@@ -336,7 +337,7 @@ if (!file.exists(nm_rrbs)) {
 # Heatmaps
 
 ## Function
-```{r }
+```{r subset-integration-8 }
 create_heatmap <- function(nc = 2) {
   pdf_file <- paste0("./output/subset/heatmap_atac_chip_cluster_", nc, ".pdf")
 
@@ -433,12 +434,12 @@ create_heatmap <- function(nc = 2) {
 ```
 
 ## Make heatmaps
-```{r }
+```{r subset-integration-9, eval=FALSE}
 mylapply(1:10, create_heatmap)
 ```
 
 ## Convert to PNG
-```{r}
+```{r subset-integration-10, eval = FALSE}
 pdf <- list.files(path = "output", pattern = "pdf", recursive = T, full.names = T)
 png <- mylapply(pdf, function(x) {
   pdftools::pdf_convert(
@@ -448,7 +449,27 @@ png <- mylapply(pdf, function(x) {
 }, mc.cores = length(pdf))
 ```
 
+# Heatmaps
+```{r subset-integration-11, echo=FALSE}
+plots <- list.files(path = "output/subset", pattern = "png", full.names = TRUE)
+
+names(plots) <- sapply(plots, function(x){
+  n <- as.numeric(gsub(pattern = "\\..*|.*_cluster_", replacement = "", x = x))
+  if(n ==1){
+    return("No clustering")
+  } else{
+    return(paste("Cluster:", sprintf("%01d", n)))
+  }
+})
+
+plots <- plots[c(2:10, 1)]
+
+bs <- bsselectR::bsselect(plots, type = "img", live_search = TRUE, show_tick = TRUE)
+
+bsselectR::as_iframe(widget = bs, file = "v1.html")
+```
+
 # SessionInfo
-```{r }
+```{r subset-integration-12 }
 devtools::session_info()
 ```
