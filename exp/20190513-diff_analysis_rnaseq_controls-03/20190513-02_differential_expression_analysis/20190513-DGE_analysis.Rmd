@@ -175,7 +175,7 @@ dge <- calcNormFactors(object = dge, method = "TMM")
 cpm <- cpm(dge, log = T)
 cpm <- removeBatchEffect(x = cpm, covariates = design[, 1:3], design = design[, 4:6])
 
-data <- list(cpm = cpm, vstSV = sv.pl@assays[[2]], voomE = v$E, pData = salmon@phenoData)
+data <- list(cpm = cpm, vstSV = assay(sv.pl), voomE = v$E, pData = salmon@phenoData)
 
 save(data,
   file = "./output/data_pData.RData", compress = T,
