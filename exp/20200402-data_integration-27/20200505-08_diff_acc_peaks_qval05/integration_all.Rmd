@@ -1,0 +1,551 @@
+---
+title: "Integration on all chromosome"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-05-06 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r integration-all-1, warning = F, message = F}
+library(EnrichedHeatmap)
+library(circlize)
+library(data.table)
+library(tidyverse)
+library(plgINS)
+library(BSgenome.Mmusculus.UCSC.mm10)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(csaw)
+library(gUtils)
+```
+
+
+# Function to subset data to one chromosome
+```{r integration-all-2 }
+one_chr <- function(input, chr = "chr1") {
+  df <- data.frame(input)
+  df <- df[df$seqnames == chr, ]
+  df$seqnames <- as.character(df$seqnames)
+  df_GR <- GRanges(df)
+  return(df_GR)
+}
+```
+```{r integration-all-3, echo = F}
+mylapply <- function(...) {
+  if (require(parallel) && .Platform$OS.type == "unix") {
+    mclapply(..., mc.preschedule = F)
+  }
+  else {
+    lapply(...)
+  }
+}
+```
+
+
+
+# Usage
+
+We would need following:
+
+1. CGI information for mm10
+2. Genes GRanges from gencode GTF file
+3. Methylation from RRBS and WGBS
+4. Gene expression values from RNA-Seq (named vector)
+
+
+# ATAC Peaks
+```{r integration-all-4}
+adult_AS <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+tss_mm10 <- gr.mid(adult_AS)
+# tss_mm10 <- one_chr(tss_mm10)
+names(tss_mm10) <- tss_mm10$Name
+
+tss_5k <- promoters(tss_mm10, upstream = 2500, downstream = 2500)
+tss_5k <- one_chr(tss_5k)
+names(tss_5k) <- tss_5k$Name
+```
+
+# ATAC differential analysis
+```{r}
+load("input/atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data))
+colnames(res) <- gsub(pattern = "Peak.", replacement = "", x = colnames(res))
+res_p <- res[res$diffAccessibility.qvalue <= 0.05, ]
+res_lp <- res[res$diffAccessibility.qvalue <= 0.05 & abs(res$diffAccessibility.logFC) > 1, ]
+
+tss_mm10 <- gr.mid(GRanges(res_p))
+# tss_mm10 <- one_chr(tss_mm10)
+names(tss_mm10) <- tss_mm10$Name
+
+tss_5k <- promoters(tss_mm10, upstream = 2500, downstream = 2500)
+tss_5k <- one_chr(tss_5k)
+names(tss_5k) <- tss_5k$Name
+```
+
+The task of visualization are separated into two steps:
+
+1. To get association between genomic signals and targets by normalizing into a matrix.
+2. To visualize the matrix by heatmap.
+
+
+# Normalize signal to tss
+
+`normalizeToMatrix()` converts the association between genomic signals (H3K4me3) and targets(tss) into a matrix (actually mat1 is just a normal matrix with several additional attributes). It first splits the extended targets regions (the extension to upstream and downstream is controlled by extend argument) into a list of small windows (the width of the windows is controlled by w), then overlaps genomic signals to these small windows and calculates the value for every small window, which is the mean value of genomic signals that intersects with the window (the value corresponds to genomic signals are controlled by value_column and how to calcualte the mean value is controlled by mean_mode).
+
+
+## ATAC-Seq
+```{r integration-all-5 }
+nm_atac <- "./output/mat_atac.RData"
+
+if (!file.exists(nm_atac)) {
+  atac_files <- list.files("input/atacseq", pattern = "\\.bw$", full.names = TRUE)
+  names(atac_files) <- gsub(pattern = "\\.bw", replacement = "", x = basename(atac_files))
+  atac_bw <- mylapply(atac_files, function(x) rtracklayer::import(x))
+
+  mat_AS <- mylapply(atac_bw, FUN = function(x) {
+    normalizeToMatrix(x, tss_mm10,
+      extend = 2500,
+      value_column = "score",
+      include_target = TRUE,
+      mean_mode = "w0",
+      w = 50
+    )
+  }, mc.cores = length(atac_files))
+
+  save(mat_AS, file = nm_atac)
+} else {
+  load(nm_atac)
+}
+```
+
+
+## ChIP-Seq
+```{r integration-all-6 }
+nm_chip <- "./output/mat_chip.RData"
+
+if (!file.exists(nm_chip)) {
+  chip_files <- list.files("input/chipseq", pattern = "\\.bw$", full.names = TRUE)
+  names(chip_files) <- gsub(pattern = "\\.bw", replacement = "", x = basename(chip_files))
+  chip_bw <- mylapply(chip_files, function(x) rtracklayer::import(x))
+
+  mat_CS <- mylapply(chip_bw, FUN = function(x) {
+    normalizeToMatrix(x, tss_mm10,
+      extend = 2500,
+      value_column = "score",
+      include_target = TRUE,
+      mean_mode = "w0",
+      w = 50
+    )
+  }, mc.cores = length(chip_files))
+
+  save(mat_CS, file = nm_chip)
+} else {
+  load(nm_chip)
+}
+```
+
+
+## Bisulphite-Seq
+```{r integration-all-7}
+nm_bs <- "./output/mat_bs.RData"
+
+if (!file.exists(nm_bs)) {
+  bs_files <- list.files("input/bsseq", pattern = "\\.gz$", full.names = TRUE)
+  names(bs_files) <- gsub(
+    pattern = "_1_val_1_bismark_bt2_pe.bismark.cov.gz",
+    replacement = "", x = basename(bs_files)
+  )
+
+  bs_cov <- mylapply(bs_files, function(x) {
+    fread(
+      input = x,
+      sep = "\t", quote = F, stringsAsFactors = F,
+      data.table = FALSE, nThread = detectCores(), showProgress = F,
+      col.names = c("seqnames", "start", "end", "percent", "Me", "Un")
+    )
+  }, mc.cores = length(bs_files))
+
+  bs_cov <- mylapply(bs_cov, function(x) {
+    # a <- one_chr(GRanges(x))
+    a <- GRanges(x)
+    a$meth <- a$percent / 100
+    a <- a[, 4]
+    return(a)
+  }, mc.cores = length(bs_files))
+
+
+  mat_BS <- mylapply(bs_cov, FUN = function(x) {
+    normalizeToMatrix(x, tss_mm10,
+      extend = 2500,
+      value_column = "meth",
+      include_target = TRUE,
+      smooth = TRUE,
+      mean_mode = "absolute",
+      background = NA
+    )
+  }, mc.cores = length(bs_files))
+
+  save(mat_BS, file = nm_bs)
+} else {
+  load(nm_bs)
+}
+```
+
+
+## RRBS
+```{r integration-all-8}
+nm_rrbs <- "./output/mat_rrbs.RData"
+
+if (!file.exists(nm_rrbs)) {
+  rrbs_file <- "input/rrbs/PND8_trimmed_bismark_bt2.bismark.cov.gz"
+  names(rrbs_file) <- gsub(
+    pattern = "_trimmed_bismark_bt2.bismark.cov.gz",
+    replacement = "", x = basename(rrbs_file)
+  )
+
+  rrbs_cov <- fread(
+    input = rrbs_file,
+    sep = "\t", quote = F, stringsAsFactors = F,
+    data.table = FALSE, nThread = detectCores(), showProgress = F,
+    col.names = c("seqnames", "start", "end", "percent", "Me", "Un")
+  )
+
+  # rrbs_cov <- one_chr(GRanges(rrbs_cov))
+  rrbs_cov <- GRanges(rrbs_cov)
+  rrbs_cov$meth <- rrbs_cov$percent / 100
+  rrbs_cov <- rrbs_cov[, 4]
+
+  mat_RRBS <- normalizeToMatrix(
+    signal = rrbs_cov, target = tss_mm10,
+    extend = 2500,
+    value_column = "meth",
+    include_target = TRUE,
+    smooth = TRUE,
+    mean_mode = "absolute",
+    background = NA
+  )
+
+  save(mat_RRBS, file = nm_rrbs)
+} else {
+  load(nm_rrbs)
+}
+```
+
+## RNA-Seq
+
+### Norm mat
+```{r integration-all-9 }
+nm_rna <- "./output/mat_rna.RData"
+
+if (!file.exists(nm_rna)) {
+  rna_files <- list.files("input/rnaseq", pattern = "\\.bw$", full.names = TRUE)
+  names(rna_files) <- gsub(pattern = "\\.bw", replacement = "", x = basename(rna_files))
+  rna_bw <- mylapply(rna_files, function(x) rtracklayer::import(x))
+
+  mat_RNA <- mylapply(rna_bw, FUN = function(x) {
+    normalizeToMatrix(x, tss_mm10,
+      extend = 2500,
+      value_column = "score",
+      include_target = TRUE
+    )
+  }, mc.cores = length(rna_files))
+
+  save(mat_RNA, file = nm_rna)
+} else {
+  load(nm_rna)
+}
+```
+
+## Counts
+```{r}
+nm_rna_counts <- "./output/mat_rna_counts.RData"
+
+if (!file.exists(nm_rna_counts)) {
+  rna_f <- list.files("input/rnaseq", pattern = "\\.bw$", full.names = TRUE, recursive = T)
+  names(rna_f) <- gsub(pattern = "\\.bw", replacement = "", x = basename(rna_f))
+
+  # rna_f <- BigWigFileList(rna_f)
+
+  counts_rna <- mylapply(rna_f, function(x) {
+    coverage <- import(x, as = "RleList")
+    c <- mylapply(coverage, function(x) data.frame(sum(Views(x, ranges(tss_5k)))))
+    d <- rlist::list.cbind(c)
+    d <- d[names(tss_5k), ]
+    counts <- data.frame(counts = rowSums(d))
+    return(counts)
+  })
+
+  mat_RNA_counts <- rlist::list.cbind(counts_rna)
+  colnames(mat_RNA_counts) <- names(counts_rna)
+  save(mat_RNA_counts, file = nm_rna_counts)
+} else {
+  load(nm_rna_counts)
+}
+```
+
+
+
+# Heatmaps
+
+## Function
+```{r integration-all-10 }
+generate_diff_color_fun = function(x) {
+    q = quantile(x, c(0.5, .95))
+    max_q = max(abs(q))
+    colorRamp2(c(-max_q, 0, max_q), c("#3794bf", "#FFFFFF", "#df8640"))
+}
+
+generate_color_fun = function(x, col = "red") {
+  q <- NULL
+    if(is.list(x)){
+    a <- lapply(x, function(y) quantile(y, c(0.05, 0.95)))
+    min <- NULL
+    max <- NULL
+    for(i in 1:length(a)){
+      min <- c(min, a[[i]][1])
+      max <- c(max, a[[i]][2])
+    }
+    q <- c(min(min), max(max))
+    } else{
+    q <- quantile(x, c(0.05, 0.95))
+    }
+  max_q = max(abs(q))
+  col <- colorRamp2(c(0, max_q), c("#FFFFFF", col))
+  return(col)
+}
+
+create_heatmap <- function(nc = 4) {
+  set.seed(11111)
+
+  pdf_file <- paste0("./output/heatmap_atac_chip_cluster_", nc, ".pdf")
+
+  if (!file.exists(pdf_file)) {
+    partition <- paste0("cluster", kmeans(mat_AS$Adult_NF, centers = nc)$cluster)
+
+    lgd <- Legend(
+      at = paste0("cluster", 1:nc), title = "Clusters",
+      type = "lines", legend_gp = gpar(col = 2:(nc + 1))
+    )
+
+    hm_partition <- Heatmap(partition,
+      col = structure(2:(nc + 1), names = paste0("cluster", 1:nc)),
+      name = "partition", show_row_names = FALSE, width = unit(5, "mm")
+    )
+
+    axis_name <- c("-2.5kb", "Peak-mid", "2.5kb")
+
+    # an_atac <- HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0, 5)))
+
+    col_atac <- generate_color_fun(mat_AS)
+
+    # ATAC-Seq
+    hm_atac <- EnrichedHeatmap(mat_AS$Adult_NF,
+      name = "Adult ATAC",
+      col = col_atac,
+      column_title = "Adult ATAC",
+      # top_annotation = an_atac
+      axis_name = axis_name,
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0, 55)))
+    ) +
+      EnrichedHeatmap(mat_AS$PND15_NF,
+        name = "PND15 ATAC",
+        col = col_atac,
+        column_title = "PND15 ATAC",
+        # top_annotation = an_atac
+        axis_name = axis_name,
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0, 55)))
+      )
+
+
+    # ChIP-Seq
+    hm_chip <- EnrichedHeatmap(mat_CS$PNW8_H3K4me3_SRX332343,
+      name = "Adult H3K4me3",
+      col = generate_color_fun(mat_CS$PNW8_H3K4me3_SRX332343, col = "darkgreen"),
+      column_title = "Adult H3K4me3",
+      axis_name = axis_name,
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+    ) +
+      EnrichedHeatmap(mat_CS$PNW8_H3K27me3_SRX332346,
+        name = "Adult H3K27me3",
+        col = generate_color_fun(mat_CS$PNW8_H3K27me3_SRX332346, col = "darkgreen"),
+        column_title = "Adult H3K27me3",
+        axis_name = axis_name,
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+      ) +
+      EnrichedHeatmap(mat_CS$PNW8_H3K27ac_SRX332351,
+        name = "Adult H3K27ac",
+        col = generate_color_fun(mat_CS$PNW8_H3K27ac_SRX332351, col = "darkgreen"),
+        column_title = "Adult H3K27ac",
+        axis_name = axis_name,
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+      )
+
+
+    # Methylation color
+    meth_col_fun <- colorRamp2(c(0, 0.5, 1), c("darkgreen", "white", "red"))
+
+    # BSseq
+    hm_bs <- EnrichedHeatmap(mat_BS$PND7_SRX749887,
+      name = "PND7 BS",
+      # col = c("white", "#ba1168"),
+      col = meth_col_fun,
+      column_title = "PND7 BS",
+      axis_name = axis_name,
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0, 3)))
+    ) +
+      EnrichedHeatmap(mat_BS$PND14_SRX749892,
+        name = "PND14 BS",
+        # col = c("white", "#ba1168"),
+        col = meth_col_fun,
+        column_title = "PND14 BS",
+        axis_name = axis_name,
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0, 3)))
+      ) +
+      EnrichedHeatmap(mat_BS$PNW8,
+        name = "PNW8 BS",
+        # col = c("white", "#ba1168"),
+        col = meth_col_fun,
+        column_title = "PNW8 BS",
+        axis_name = axis_name,
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0, 3)))
+      )
+
+
+    # RRBS
+    hm_rrbs <- EnrichedHeatmap(mat_RRBS,
+      name = "PND8 RRBS",
+      # col = c("white", "#ba1168"),
+      column_title = "PND8 RRBS",
+      col = meth_col_fun,
+      axis_name = axis_name,
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+    )
+
+    # RNA-Seq
+    ## Coverage
+    col_rna <- generate_color_fun(mat_RNA, col = "purple")
+
+    hm_rna <- EnrichedHeatmap(log1p(mat_RNA$Adult),
+      name = "Adult RNA",
+      col = col_rna,
+      column_title = "Adult RNA",
+      axis_name = axis_name,
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0.16, 12)))
+    ) +
+      EnrichedHeatmap(log1p(mat_RNA$PND15),
+        name = "PND15 RNA",
+        col = col_rna,
+        column_title = "PND15 RNA",
+        axis_name = axis_name,
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0.16, 12)))
+      ) +
+      EnrichedHeatmap(log1p(mat_RNA$PND8),
+        name = "PND8 RNA",
+        col = col_rna,
+        column_title = "PND8 RNA",
+        axis_name = axis_name,
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1)), ylim = c(0.16, 12)))
+      )
+
+    ## Counts
+
+    hm_rna_counts <- Heatmap(data.matrix(log1p(mat_RNA_counts[, 1:3])),
+      name = "RNA Expression merged",
+      show_row_names = FALSE,
+      show_column_names = FALSE
+    ) +
+      Heatmap(data.matrix(log1p(mat_RNA_counts[, 4:ncol(mat_RNA_counts)])),
+        name = "RNA Expression",
+        show_row_names = FALSE,
+        show_column_names = FALSE
+      )
+
+
+    pdf(file = pdf_file, width = 22, height = 17)
+
+    if (nc == 1) {
+      ht_list <- hm_atac + hm_chip + hm_bs + hm_rrbs + hm_rna + hm_rna_counts
+      draw(ht_list, ht_gap = unit(2, "mm"))
+      hm_rna_counts
+    } else {
+      ht_list <- hm_partition + hm_atac + hm_chip + hm_bs + hm_rrbs + hm_rna + hm_rna_counts
+      draw(ht_list,
+        split = partition, annotation_legend_list = list(lgd),
+        ht_gap = unit(2, "mm")
+      )
+    }
+
+    dev.off()
+    invisible(gc())
+  }
+}
+```
+
+## Make heatmaps
+```{r integration-all-11 }
+mylapply(1:10, create_heatmap, mc.cores = 2)
+```
+
+
+## Convert to PNG
+```{r subset-integration-10, eval = FALSE}
+pdf <- list.files(path = "output", pattern = "pdf", recursive = T, full.names = T)
+png <- mylapply(pdf, function(x) {
+  pdftools::pdf_convert(
+    pdf = x, format = "png", dpi = 200,
+    filenames = gsub(pattern = ".pdf", replacement = ".png", x = x), pages = 1
+  )
+}, mc.cores = length(pdf))
+```
+
+# Heatmaps
+```{r subset-integration-11, echo=FALSE}
+plots <- list.files(path = "output", pattern = "png", full.names = TRUE)
+plots <- plots[grep(pattern = "heat", x = plots)]
+
+names(plots) <- sapply(plots, function(x){
+  n <- as.numeric(gsub(pattern = "\\..*|.*_cluster_", replacement = "", x = x))
+  if(n ==1){
+    return("No clustering")
+  } else{
+    return(paste("Cluster:", sprintf("%01d", n)))
+  }
+})
+
+plots <- plots[c(2:10, 1)]
+
+bs <- bsselectR::bsselect(plots, type = "img", live_search = TRUE, show_tick = TRUE)
+
+bsselectR::as_iframe(widget = bs, file = "qval_05.html")
+```
+
+# SessionInfo
+```{r subset-integration-12 }
+devtools::session_info()
+```
