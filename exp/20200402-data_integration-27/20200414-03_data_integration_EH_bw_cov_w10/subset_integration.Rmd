@@ -358,6 +358,37 @@ create_heatmap <- function(nc = 4) {
 mylapply(1:10, create_heatmap, mc.cores = 3)
 ```
 
+## Convert to PNG
+```{r subset-integration-10, eval = FALSE}
+pdf <- list.files(path = "output", pattern = "pdf", recursive = T, full.names = T)
+png <- mylapply(pdf, function(x) {
+  pdftools::pdf_convert(
+    pdf = x, format = "png", dpi = 200,
+    filenames = gsub(pattern = ".pdf", replacement = ".png", x = x)
+  )
+}, mc.cores = length(pdf))
+```
+
+# Heatmaps
+```{r subset-integration-11, echo=FALSE}
+plots <- list.files(path = "output/subset", pattern = "png", full.names = TRUE)
+
+names(plots) <- sapply(plots, function(x){
+  n <- as.numeric(gsub(pattern = "\\..*|.*_cluster_", replacement = "", x = x))
+  if(n ==1){
+    return("No clustering")
+  } else{
+    return(paste("Cluster:", sprintf("%01d", n)))
+  }
+})
+
+plots <- plots[c(2:10, 1)]
+
+bs <- bsselectR::bsselect(plots, type = "img", live_search = TRUE, show_tick = TRUE)
+
+bsselectR::as_iframe(widget = bs, file = "v2.html")
+```
+
 # SessionInfo
 ```{r }
 devtools::session_info()
