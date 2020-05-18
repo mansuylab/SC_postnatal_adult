@@ -1,0 +1,121 @@
+---
+title: "ATAC-Seq/ RNA-Seq (PND15 vs Adultys): Diff accessible peaks and diff exp genes"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+library(plotly)
+library(csaw)
+library(edgeR)
+library(SummarizedExperiment)
+```
+
+
+# Data
+```{r, warning=FALSE, message=FALSE}
+load("./input/atac_diff_chromatin_accessibility.RData")
+load("./input/limma_SC_Controls.RData")
+
+dea <- dea.limma$`PND15 vs Adult`
+dar_tmm <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+dar_loess <- data.frame(rowData(offsets), stringsAsFactors = F, check.names = F)
+```
+
+
+# Map with Genes
+```{r}
+dea.map <- dea[abs(dea$logFC) >= 1 & dea$adj.P.Val <= 0.05, ]
+colnames(dea.map)[2:ncol(dea.map)] <- paste("DEA", 
+                                            colnames(dea.map)[2:ncol(dea.map)], 
+                                            sep = "_")
+
+dar.map <- dar_loess[abs(dar_loess$`diffAccessibility-logFC`) >= 1 &
+                 dar_loess$`diffAccessibility-qvalue` <= 0.05, ]
+
+tab <- merge(dar.map, dea.map, by.x = "Peak-SYMBOL", by.y = "Genes")
+tab.promoter <- tab[tab$`Peak-annotation` == "Promoter", ]
+```
+
+# Plot for promoters
+```{r, fig.align='center', fig.height=7, fig.width=8, warning=FALSE, message=FALSE}
+plot_ly(
+  data = tab.promoter, x = tab.promoter$DEA_logFC, 
+  y = tab.promoter$`diffAccessibility-logFC`,
+  marker = list(size = 5, color = "blue"),
+  text = ~ paste(
+    "Gene: ", tab.promoter$`Peak-SYMBOL`,
+    "<br>Name: ", tab.promoter$`Peak-GENENAME`,
+    "<br>DA logFC: ", tab.promoter$`Peak-logFC`,
+    "<br>DA FDR: ", tab.promoter$qvalue,
+    "<br>DE logFC: ", tab.promoter$DEA_logFC,
+    "<br>DE FDR: ", tab.promoter$DEA_adj.P.Val
+  ),
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = "Differential accessible regions (promoters) vs differentially expressed genes",
+    yaxis = list(title = "logFC: Differential Accessibility (DA)"),
+    xaxis = list(title = "logFC: Differential Expression (DE)")
+  )
+```
+
+
+```{r}
+data <- normFactors(data)
+cpm <- cpm(asDGEList(data))
+colnames(cpm) <- gsub(pattern = ".*/|\\.bam", replacement = "", x = colData(data)[,1])
+rownames(cpm) <- rowData(data)[,6]
+cpm <- data.frame(Genes = rowData(data)[,"Peak-SYMBOL"], cpm)
+
+loess <- assay(offsets, i = 2)
+colnames(loess) <- gsub(pattern = ".*/|\\.bam", replacement = "", x = colData(offsets)[,1])
+rownames(loess) <- rowData(offsets)[,6]
+loess <- data.frame(Genes = rowData(offsets)[,"Peak-SYMBOL"], loess)
+```
+
+```{r}
+peaks_tmm <- dar_tmm[abs(dar_tmm$`diffAccessibility-logFC`) >= 1 & 
+                       dar_tmm$`diffAccessibility-qvalue` <= 0.05 &
+                       dar_tmm$`diffAccessibility-logCPM` > 0.5, 6]
+peaks_loess <- dar_loess[abs(dar_loess$`diffAccessibility-logFC`) >= 1 & 
+                           dar_loess$`diffAccessibility-qvalue` <= 0.05 &
+                           dar_loess$`diffAccessibility-logCPM` > 0.5,6]
+
+peaks <- intersect(peaks_tmm, peaks_loess)
+
+cpm <- cpm[peaks,]
+loess <- loess[peaks,]
+```
+
+```{r}
+load("input/data_pData.RData")
+genes_cpm <- data$cpm[rownames(data$cpm)%in% as.character(unique(cpm$Genes)),]
+```
+
+# SessionInfo
+```{r 20191118-peaks-annotation-other-figs-19 }
+devtools::session_info()
+```
