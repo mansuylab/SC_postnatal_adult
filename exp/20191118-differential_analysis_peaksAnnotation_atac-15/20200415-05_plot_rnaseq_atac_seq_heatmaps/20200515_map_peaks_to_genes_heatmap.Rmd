@@ -1,5 +1,5 @@
 ---
-title: "ATAC-Seq/ RNA-Seq (PND15 vs Adultys): Diff accessible peaks and diff exp genes"
+title: "ATAC-Seq/ RNA-Seq (PND15 vs Adults): Diff accessible peaks and diff exp genes"
 author: "Deepak Tanwar"
 date: "<b>Created on:</b> 2019-11-29 <br> <b>Updated on:</b> `r Sys.Date()`"
 output:
@@ -26,96 +26,458 @@ editor_options:
 ---
 
 # Library
-```{r 20191118-peaks-annotation-other-figs-1, message=FALSE, warning=FALSE}
+```{r 20200515-map-peaks-to-genes-heatmap-1, message=FALSE, warning=FALSE}
 library(plotly)
 library(csaw)
 library(edgeR)
+library(ComplexHeatmap)
 library(SummarizedExperiment)
 ```
 
 
 # Data
-```{r, warning=FALSE, message=FALSE}
+
+## ATAC
+```{r 20200515-map-peaks-to-genes-heatmap-2, warning=FALSE, message=FALSE}
 load("./input/atac_diff_chromatin_accessibility.RData")
-load("./input/limma_SC_Controls.RData")
 
-dea <- dea.limma$`PND15 vs Adult`
-dar_tmm <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
-dar_loess <- data.frame(rowData(offsets), stringsAsFactors = F, check.names = F)
+atac_tmm <- data
+atac_loess <- offsets
 ```
 
-
-# Map with Genes
-```{r}
-dea.map <- dea[abs(dea$logFC) >= 1 & dea$adj.P.Val <= 0.05, ]
-colnames(dea.map)[2:ncol(dea.map)] <- paste("DEA", 
-                                            colnames(dea.map)[2:ncol(dea.map)], 
-                                            sep = "_")
-
-dar.map <- dar_loess[abs(dar_loess$`diffAccessibility-logFC`) >= 1 &
-                 dar_loess$`diffAccessibility-qvalue` <= 0.05, ]
-
-tab <- merge(dar.map, dea.map, by.x = "Peak-SYMBOL", by.y = "Genes")
-tab.promoter <- tab[tab$`Peak-annotation` == "Promoter", ]
-```
-
-# Plot for promoters
-```{r, fig.align='center', fig.height=7, fig.width=8, warning=FALSE, message=FALSE}
-plot_ly(
-  data = tab.promoter, x = tab.promoter$DEA_logFC, 
-  y = tab.promoter$`diffAccessibility-logFC`,
-  marker = list(size = 5, color = "blue"),
-  text = ~ paste(
-    "Gene: ", tab.promoter$`Peak-SYMBOL`,
-    "<br>Name: ", tab.promoter$`Peak-GENENAME`,
-    "<br>DA logFC: ", tab.promoter$`Peak-logFC`,
-    "<br>DA FDR: ", tab.promoter$qvalue,
-    "<br>DE logFC: ", tab.promoter$DEA_logFC,
-    "<br>DE FDR: ", tab.promoter$DEA_adj.P.Val
-  ),
-  hoverinfo = "text"
-) %>%
-  layout(
-    title = "Differential accessible regions (promoters) vs differentially expressed genes",
-    yaxis = list(title = "logFC: Differential Accessibility (DA)"),
-    xaxis = list(title = "logFC: Differential Expression (DE)")
-  )
-```
-
-
-```{r}
-data <- normFactors(data)
-cpm <- cpm(asDGEList(data))
-colnames(cpm) <- gsub(pattern = ".*/|\\.bam", replacement = "", x = colData(data)[,1])
-rownames(cpm) <- rowData(data)[,6]
-cpm <- data.frame(Genes = rowData(data)[,"Peak-SYMBOL"], cpm)
-
-loess <- assay(offsets, i = 2)
-colnames(loess) <- gsub(pattern = ".*/|\\.bam", replacement = "", x = colData(offsets)[,1])
-rownames(loess) <- rowData(offsets)[,6]
-loess <- data.frame(Genes = rowData(offsets)[,"Peak-SYMBOL"], loess)
-```
-
-```{r}
-peaks_tmm <- dar_tmm[abs(dar_tmm$`diffAccessibility-logFC`) >= 1 & 
-                       dar_tmm$`diffAccessibility-qvalue` <= 0.05 &
-                       dar_tmm$`diffAccessibility-logCPM` > 0.5, 6]
-peaks_loess <- dar_loess[abs(dar_loess$`diffAccessibility-logFC`) >= 1 & 
-                           dar_loess$`diffAccessibility-qvalue` <= 0.05 &
-                           dar_loess$`diffAccessibility-logCPM` > 0.5,6]
-
-peaks <- intersect(peaks_tmm, peaks_loess)
-
-cpm <- cpm[peaks,]
-loess <- loess[peaks,]
-```
-
-```{r}
+## RNA-Seq
+```{r 20200515-map-peaks-to-genes-heatmap-3 }
 load("input/data_pData.RData")
-genes_cpm <- data$cpm[rownames(data$cpm)%in% as.character(unique(cpm$Genes)),]
+rna_tmm <- data
 ```
+
+# CPM
+
+## ATAC
+
+### TMM
+```{r 20200515-map-peaks-to-genes-heatmap-4 }
+cpm_atac <- cpm(asDGEList(atac_tmm))
+colnames(cpm_atac) <- gsub(pattern = ".*/|\\.bam", replacement = "", x = colData(atac_tmm)[, 1])
+rownames(cpm_atac) <- rowData(atac_tmm)[, 6]
+cpm_atac <- data.frame(Peak = rownames(cpm_atac), Genes = rowData(atac_tmm)[, "Peak-SYMBOL"], cpm_atac)
+```
+
+### Loess
+```{r 20200515-map-peaks-to-genes-heatmap-5 }
+loess_atac <- log1p(assay(atac_loess, i = 1)) - assay(atac_loess, i = 2)
+colnames(loess_atac) <- gsub(pattern = ".*/|\\.bam", replacement = "", x = colData(atac_loess)[, 1])
+rownames(loess_atac) <- rowData(atac_loess)[, 6]
+loess_atac <- data.frame(Peak = rownames(loess_atac), Genes = rowData(atac_loess)[, "Peak-SYMBOL"], loess_atac)
+```
+
+# Peaks
+```{r 20200515-map-peaks-to-genes-heatmap-6 }
+dar_tmm <- data.frame(rowData(atac_tmm), stringsAsFactors = F, check.names = F)
+
+peaks_tmm <- dar_tmm[abs(dar_tmm$`diffAccessibility-logFC`) >= 1 &
+  dar_tmm$`diffAccessibility-qvalue` <= 0.05, 6]
+
+dar_loess <- data.frame(rowData(atac_loess), stringsAsFactors = F, check.names = F)
+peaks_loess <- dar_loess[abs(dar_loess$`diffAccessibility-logFC`) >= 1 &
+  dar_loess$`diffAccessibility-qvalue` <= 0.05, 6]
+
+peaks_common <- intersect(peaks_tmm, peaks_loess)
+
+peaks_diff <- setdiff(peaks_tmm, peaks_loess)
+```
+
+
+# Expression
+```{r 20200515-map-peaks-to-genes-heatmap-7 }
+rna_cpm_df <- data$cpm
+rna_cpm_df <- rna_cpm_df[, grep(pattern = "PND8", x = colnames(rna_cpm_df), invert = TRUE)]
+rna_cpm_df <- data.frame(Genes = rownames(rna_cpm_df), rna_cpm_df)
+colnames(rna_cpm_df)[2:ncol(rna_cpm_df)] <- paste0("RS_", colnames(rna_cpm_df)[2:ncol(rna_cpm_df)])
+```
+
+# Merging Expression with ATAC
+
+## TMM
+```{r 20200515-map-peaks-to-genes-heatmap-8 }
+ca <- data.frame(distanceTSS = rowData(atac_tmm)[, "Peak-distanceToTSS"], cpm_atac)
+ca <- ca[abs(ca$distanceTSS) <= 5000, ]
+cpm_atac_rna <- merge(ca[, -1], rna_cpm_df)
+rownames(cpm_atac_rna) <- cpm_atac_rna$Peak
+
+cpm_rna <- cpm_atac_rna[, grep(pattern = "RS_", x = colnames(cpm_atac_rna), invert = T)]
+rna_cpm <- cpm_atac_rna[, grep(pattern = "Genes|Peak|RS_", x = colnames(cpm_atac_rna))]
+colnames(rna_cpm) <- gsub(pattern = "RS_", replacement = "", x = colnames(rna_cpm))
+```
+
+## Loess
+```{r 20200515-map-peaks-to-genes-heatmap-9 }
+la <- data.frame(distanceTSS = rowData(atac_loess)[, "Peak-distanceToTSS"], loess_atac)
+la <- la[abs(la$distanceTSS) <= 5000, ]
+loess_atac_rna <- merge(la[, -1], rna_cpm_df)
+rownames(loess_atac_rna) <- loess_atac_rna$Peak
+
+loess_rna <- loess_atac_rna[, grep(pattern = "RS_", x = colnames(loess_atac_rna), invert = T)]
+rna_loess <- loess_atac_rna[, grep(pattern = "Genes|Peak|RS_", x = colnames(loess_atac_rna))]
+colnames(rna_loess) <- gsub(pattern = "RS_", replacement = "", x = colnames(rna_loess))
+```
+
+## Peaks overlapping
+```{r 20200515-map-peaks-to-genes-heatmap-10 }
+peaks_tmm_rna <- rownames(cpm_atac_rna)[rownames(cpm_atac_rna) %in% peaks_tmm]
+
+peaks_loess_rna <- rownames(cpm_atac_rna)[rownames(cpm_atac_rna) %in% peaks_loess]
+
+peaks_common_rna <- rownames(cpm_atac_rna)[rownames(cpm_atac_rna) %in% peaks_common]
+
+peaks_sd_rna <- rownames(cpm_atac_rna)[rownames(cpm_atac_rna) %in% peaks_diff]
+```
+
+# Peaks table
+```{r 20200515-map-peaks-to-genes-heatmap-11 }
+df_peaks <- data.frame(
+  Group = c("TMM", "Loess", "Common", "setDiff"),
+  n = c(
+    length(peaks_tmm), length(peaks_loess),
+    length(peaks_common), length(peaks_diff)
+  ),
+  overlapRNA_dissTSS_5k = c(
+    length(peaks_tmm_rna), length(peaks_loess_rna),
+    length(peaks_common_rna), length(peaks_sd_rna)
+  )
+)
+
+knitr::kable(x = df_peaks, format = "html", align = "c", row.names = FALSE)
+```
+
+
+
+# Heatmaps
+```{r 20200515-map-peaks-to-genes-heatmap-12 }
+anno_atac <- data.frame(Group = colnames(cpm_atac)[-c(1:2)])
+rownames(anno_atac) <- anno_atac$Group
+anno_atac$Group <- gsub(pattern = "_.*", replacement = "", x = anno_atac$Group)
+
+an_atac <- HeatmapAnnotation(
+  Groups = anno_atac$Group,
+  col = list(Groups = c("PND15" = "darkgreen", "Adult" = "Maroon"))
+)
+
+anno_rna <- rna_tmm$pData[, 1, drop = FALSE]
+anno_rna <- anno_rna[grep(pattern = "PND8", x = rownames(anno_rna), invert = T), , drop = FALSE]
+
+an_rna <- HeatmapAnnotation(
+  Groups = anno_rna$Group,
+  col = list(Groups = c("PND15" = "darkgreen", "Adult" = "Maroon"))
+)
+```
+
+## TMM peaks {.tabset .tabset-pills}
+
+### TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-13, fig.align='center', fig.width=11, fig.height=8.5}
+tmm_peak_1 <- Heatmap(
+  matrix = t(scale(t(cpm_atac[peaks_tmm, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+tmm_peak_2 <- Heatmap(
+  matrix = t(scale(t(loess_atac[peaks_tmm, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+draw(tmm_peak_1 + tmm_peak_2)
+```
+
+### RNA + TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-14, fig.align='center', fig.width=11, fig.height=8.5}
+tmm_peak_3 <- Heatmap(
+  matrix = t(scale(t(rna_cpm[peaks_tmm_rna, -c(1:2)]))),
+  column_title = "Gene expression", name = "RS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_rna
+)
+
+
+tmm_peak_4 <- Heatmap(
+  matrix = t(scale(t(cpm_rna[peaks_tmm_rna, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+tmm_peak_5 <- Heatmap(
+  matrix = t(scale(t(loess_rna[peaks_tmm_rna, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+
+draw(tmm_peak_3 + tmm_peak_4 + tmm_peak_5)
+```
+
+## Loess peaks {.tabset .tabset-pills}
+
+### TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-15, fig.align='center', fig.width=11, fig.height=8.5}
+loess_peak_1 <- Heatmap(
+  matrix = t(scale(t(cpm_atac[peaks_loess, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+loess_peak_2 <- Heatmap(
+  matrix = t(scale(t(loess_atac[peaks_loess, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+draw(loess_peak_1 + loess_peak_2)
+```
+
+### RNA + TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-16, fig.align='center', fig.width=11, fig.height=8.5}
+loess_peak_3 <- Heatmap(
+  matrix = t(scale(t(rna_loess[peaks_loess_rna, -c(1:2)]))),
+  column_title = "Gene expression", name = "RS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_rna
+)
+
+
+loess_peak_4 <- Heatmap(
+  matrix = t(scale(t(cpm_rna[peaks_loess_rna, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+loess_peak_5 <- Heatmap(
+  matrix = t(scale(t(loess_rna[peaks_loess_rna, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+
+draw(loess_peak_3 + loess_peak_4 + loess_peak_5)
+```
+
+
+## Common peaks {.tabset .tabset-pills}
+
+### TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-17, fig.align='center', fig.width=11, fig.height=8.5}
+c_peak_1 <- Heatmap(
+  matrix = t(scale(t(cpm_atac[peaks_common, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+c_peak_2 <- Heatmap(
+  matrix = t(scale(t(loess_atac[peaks_common, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+draw(c_peak_1 + c_peak_2)
+```
+
+### RNA + TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-18, fig.align='center', fig.width=11, fig.height=8.5}
+c_peak_3 <- Heatmap(
+  matrix = t(scale(t(rna_cpm[peaks_common_rna, -c(1:2)]))),
+  column_title = "Gene expression", name = "RS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_rna
+)
+
+
+c_peak_4 <- Heatmap(
+  matrix = t(scale(t(cpm_rna[peaks_common_rna, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+c_peak_5 <- Heatmap(
+  matrix = t(scale(t(loess_rna[peaks_common_rna, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+
+draw(c_peak_3 + c_peak_4 + c_peak_5)
+```
+
+
+
+## `setDiff` peaks {.tabset .tabset-pills}
+
+### TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-19, fig.align='center', fig.width=11, fig.height=8.5}
+sd_peak_1 <- Heatmap(
+  matrix = t(scale(t(cpm_atac[peaks_diff, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+sd_peak_2 <- Heatmap(
+  matrix = t(scale(t(loess_atac[peaks_diff, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(8, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+draw(sd_peak_1 + sd_peak_2)
+```
+
+### RNA + TMM + Loess
+```{r 20200515-map-peaks-to-genes-heatmap-20, fig.align='center', fig.width=11, fig.height=8.5}
+sd_peak_3 <- Heatmap(
+  matrix = t(scale(t(rna_cpm[peaks_sd_rna, -c(1:2)]))),
+  column_title = "Gene expression", name = "RS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_rna
+)
+
+
+sd_peak_4 <- Heatmap(
+  matrix = t(scale(t(cpm_rna[peaks_sd_rna, -c(1:2)]))),
+  column_title = "TMM Normalization", name = "AS: TMM",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+sd_peak_5 <- Heatmap(
+  matrix = t(scale(t(loess_rna[peaks_sd_rna, -c(1:2)]))),
+  column_title = "Loess Normalization", name = "AS: Loess",
+  show_row_names = FALSE, cluster_columns = FALSE,
+  na_col = "grey", km = 2, show_column_names = FALSE,
+  width = unit(6, "cm"), height = unit(12, "cm"),
+  top_annotation = an_atac
+)
+
+
+draw(sd_peak_3 + sd_peak_4 + sd_peak_5)
+```
+
+
+# Plots of logFC values
+
+## Date
+```{r 20200515-map-peaks-to-genes-heatmap-21}
+dar_tmm_s <- dar_tmm[,grep(pattern = "Name|diff", x = colnames(dar_tmm))]
+colnames(dar_tmm_s) <- gsub(pattern = "diffAccessibility", replacement = "TMM", x = colnames(dar_tmm_s))
+
+dar_loess_s <- dar_loess[,grep(pattern = "Name|diff", x = colnames(dar_loess))]
+colnames(dar_loess_s) <- gsub(pattern = "diffAccessibility", replacement = "Loess", x = colnames(dar_loess_s))
+
+dar_tab <- merge(dar_tmm_s, dar_loess_s)
+rownames(dar_tab) <- dar_tab$`Peak-Name`
+```
+
+## Function to make plot
+```{r 20200515-map-peaks-to-genes-heatmap-22}
+logFC_plot <- function(res){
+  ggplot(data = res, aes(x = `TMM-logFC`, y = `Loess-logFC`)) +
+  geom_point(alpha = 0.2, size = 1) +
+  ggtitle("Log2 Fold Change") +
+  labs(subtitle="lm fit") +
+  xlab("TMM normalization") +
+  ylab("Loess normalization") +
+  theme(
+    plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
+    plot.subtitle=element_text(size=16, hjust=0.5, face="italic", color="blue"),
+    axis.title.x = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(face = "bold", size = 12),
+    axis.title.y = element_text(face = "bold", size = 15),
+    axis.text.y = element_text(face = "bold", size = 12),
+    legend.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 14)
+  ) +
+  stat_smooth(se = FALSE, method = "lm", color = "red", formula = y ~ x, size = 0.5)
+}
+```
+
+## Results {.tabset .tabset-pills}
+
+### All Peaks
+```{r 20200515-map-peaks-to-genes-heatmap-23}
+logFC_plot(res = dar_tab)
+```
+
+### TMM peaks
+```{r 20200515-map-peaks-to-genes-heatmap-24}
+logFC_plot(res = dar_tab[peaks_tmm,])
+```
+
+### Loess peaks
+```{r 20200515-map-peaks-to-genes-heatmap-25}
+logFC_plot(res = dar_tab[peaks_loess,])
+```
+
+### Common peaks
+```{r 20200515-map-peaks-to-genes-heatmap-26}
+logFC_plot(res = dar_tab[peaks_common,])
+```
+
+### Diff peaks
+```{r 20200515-map-peaks-to-genes-heatmap-27}
+logFC_plot(res = dar_tab[peaks_diff,])
+```
+
 
 # SessionInfo
-```{r 20191118-peaks-annotation-other-figs-19 }
+```{r 20200515-map-peaks-to-genes-heatmap-28 }
 devtools::session_info()
 ```
