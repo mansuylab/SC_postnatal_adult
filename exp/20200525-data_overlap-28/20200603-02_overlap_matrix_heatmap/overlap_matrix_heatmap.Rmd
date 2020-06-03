@@ -1,0 +1,79 @@
+---
+title: "Overlap matrix heatmap"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-06-03 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+Reproducing heatmap from [issues/28#issuecomment-636012185](https://github.com/mansuylab/SC_controls/issues/28#issuecomment-636012185)
+
+# Library
+```{r overlap-matrix-heatmap-1, warning = F, message = F}
+library(SEtools)
+library(pheatmap)
+library(dplyr)
+```
+
+# Data
+```{r overlap-matrix-heatmap-2 }
+mat <- readRDS("input/overlap_matrix.rds")
+
+mat$isProm <- (abs(mat$distanceToTSS) < 5000) / 2 + (abs(mat$distanceToTSS) < 2500) / 2
+
+fields <- c(
+  "isProm", "diffAccessibility-logFC", "RNA_PND8_vs_PND15_logFC",
+  "RNA_PND15_vs_Adult_logFC", "BS_PND7_meth", "BS_PND14_meth", "BS_PNW8_meth",
+  grep("ChIP", colnames(mat), value = TRUE)
+)
+mat2 <- mat[, fields]
+mat2 <- do.call(cbind, lapply(mat2, as.numeric))
+
+se <- getBreaks(mat2, split.prop = 0.96, 100)
+cols <- colorRampPalette(c("blue", "black", "yellow"))(101)
+mat2 <- sortRows(mat2, z = FALSE)
+
+
+prom <- mat2[mat2[, 1] > 0, ]
+distal <- mat2[mat2[, 1] == 0, ]
+
+pheatmap(prom,
+  color = cols, breaks = se, 
+  cluster_cols = FALSE, cluster_rows = FALSE
+)
+```
+
+```{r, echo=FALSE}
+pheatmap(prom,
+  color = cols, breaks = se, 
+  cluster_cols = FALSE, cluster_rows = FALSE,
+  filename = "output/heatmap_overlap_matrix.pdf"
+)
+```
+
+# SessionInfo
+```{r overlap-matrix-heatmap-3 }
+devtools::session_info() %>%
+  details::details()
+```
