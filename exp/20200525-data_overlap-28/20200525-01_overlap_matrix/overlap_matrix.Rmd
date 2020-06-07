@@ -36,10 +36,12 @@ library(plgINS)
 library(csaw)
 library(gUtils)
 library(edgeR)
+library(ChIPseeker)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
 ```
 
 # ATAC-Seq
-```{r overlap-matrix-2 }
+```{r overlap-matrix-2 , message=FALSE, warning=FALSE}
 # SE object
 load("input/atacseq/atac_diff_chromatin_accessibility.RData")
 
@@ -49,9 +51,30 @@ cpm_atac <- cpm(asDGEList(atac))
 colnames(cpm_atac) <- gsub(pattern = ".*/|\\.bam", replacement = "", x = colData(atac)[, 1])
 rownames(cpm_atac) <- rowData(atac)[, 6]
 
-# Subset besed on logFC and qvalue
-res <- data.frame(rowData(data), check.names = F, stringsAsFactors = FALSE)
+# ATAC peaks
+rd_atac <- rowData(atac)[, 1:6]
+colnames(rd_atac) <- gsub(pattern = "Peak-", replacement = "", x = colnames(rd_atac))
+rd_atac <- GRanges(rd_atac)
+
+# Re-annotation of peaks
+txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+peakAnno <- annotatePeak(peak = rd_atac, TxDb = txdb, tssRegion = c(-2500, 2500), annoDb = "org.Mm.eg.db")
+anno_rd <- data.frame(peakAnno@anno, stringsAsFactors = FALSE)
+colnames(anno_rd)[6] <- paste("Peak", colnames(anno_rd)[6], sep = "-")
+
+# Results of diff analysis
+r <- data.frame(rowData(data), check.names = F, stringsAsFactors = FALSE)
+
+# Merging results with new annotation
+res <- inner_join(x = r[, -c(12:23)], y = anno_rd[, -c(1:5)])
+res <- res[, c(
+  grep(pattern = "diffAccessibility", x = colnames(res), invert = TRUE),
+  grep(pattern = "diffAccessibility", x = colnames(res))
+)]
+
 colnames(res) <- gsub(pattern = "Peak-", replacement = "", x = colnames(res))
+
+# Subset significant results
 res_lp <- res[res$`diffAccessibility-qvalue` <= 0.05 & abs(res$`diffAccessibility-logFC`) > 1, -c(7:11)]
 rownames(res_lp) <- res_lp$Name
 
@@ -266,6 +289,6 @@ saveRDS(object = tab, file = "output/overlap_matrix.rds")
 
 # SessionInfo
 ```{r overlap-matrix-9 }
-devtools::session_info() %>% 
+devtools::session_info() %>%
   details::details()
 ```

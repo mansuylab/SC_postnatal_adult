@@ -2891,7 +2891,7 @@ $(document).ready(function () {
     
     <div id="postamble" data-toggle="wy-nav-shift" class="status">
               <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-                  <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-05-25 <br> <b>Updated on:</b> 2020-05-25</p>
+                  <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-05-25 <br> <b>Updated on:</b> 2020-06-04</p>
         </div>
 </div>
 
@@ -2903,7 +2903,9 @@ $(document).ready(function () {
 <span id="cb1-3"><a href="#cb1-3"></a><span class="kw">library</span>(plgINS)</span>
 <span id="cb1-4"><a href="#cb1-4"></a><span class="kw">library</span>(csaw)</span>
 <span id="cb1-5"><a href="#cb1-5"></a><span class="kw">library</span>(gUtils)</span>
-<span id="cb1-6"><a href="#cb1-6"></a><span class="kw">library</span>(edgeR)</span></code></pre></div>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="kw">library</span>(edgeR)</span>
+<span id="cb1-7"><a href="#cb1-7"></a><span class="kw">library</span>(ChIPseeker)</span>
+<span id="cb1-8"><a href="#cb1-8"></a><span class="kw">library</span>(TxDb.Mmusculus.UCSC.mm10.knownGene)</span></code></pre></div>
 </div>
 <div id="atac-seq" class="section level1">
 <h1>ATAC-Seq</h1>
@@ -2916,523 +2918,633 @@ $(document).ready(function () {
 <span id="cb2-7"><a href="#cb2-7"></a><span class="kw">colnames</span>(cpm_atac) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;.*/|</span><span class="ch">\\</span><span class="st">.bam&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">colData</span>(atac)[, <span class="dv">1</span>])</span>
 <span id="cb2-8"><a href="#cb2-8"></a><span class="kw">rownames</span>(cpm_atac) &lt;-<span class="st"> </span><span class="kw">rowData</span>(atac)[, <span class="dv">6</span>]</span>
 <span id="cb2-9"><a href="#cb2-9"></a></span>
-<span id="cb2-10"><a href="#cb2-10"></a><span class="co"># Subset besed on logFC and qvalue</span></span>
-<span id="cb2-11"><a href="#cb2-11"></a>res &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="kw">rowData</span>(data), <span class="dt">check.names =</span> F, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</span>
-<span id="cb2-12"><a href="#cb2-12"></a><span class="kw">colnames</span>(res) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;Peak-&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(res))</span>
-<span id="cb2-13"><a href="#cb2-13"></a>res_lp &lt;-<span class="st"> </span>res[res<span class="op">$</span><span class="st">`</span><span class="dt">diffAccessibility-qvalue</span><span class="st">`</span> <span class="op">&lt;=</span><span class="st"> </span><span class="fl">0.05</span> <span class="op">&amp;</span><span class="st"> </span><span class="kw">abs</span>(res<span class="op">$</span><span class="st">`</span><span class="dt">diffAccessibility-logFC</span><span class="st">`</span>) <span class="op">&gt;</span><span class="st"> </span><span class="dv">1</span>, <span class="op">-</span><span class="kw">c</span>(<span class="dv">7</span><span class="op">:</span><span class="dv">11</span>)]</span>
-<span id="cb2-14"><a href="#cb2-14"></a><span class="kw">rownames</span>(res_lp) &lt;-<span class="st"> </span>res_lp<span class="op">$</span>Name</span>
-<span id="cb2-15"><a href="#cb2-15"></a></span>
-<span id="cb2-16"><a href="#cb2-16"></a><span class="co"># Adding Enrichment value to table</span></span>
-<span id="cb2-17"><a href="#cb2-17"></a>res_lp<span class="op">$</span>ATAC_Adult &lt;-<span class="st"> </span><span class="kw">rowSums</span>(cpm_atac[res_lp<span class="op">$</span>Name, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;Adult&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm_atac))])</span>
-<span id="cb2-18"><a href="#cb2-18"></a>res_lp<span class="op">$</span>ATAC_PND15 &lt;-<span class="st"> </span><span class="kw">rowSums</span>(cpm_atac[res_lp<span class="op">$</span>Name, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;PND15&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm_atac))])</span>
-<span id="cb2-19"><a href="#cb2-19"></a></span>
-<span id="cb2-20"><a href="#cb2-20"></a><span class="co"># Coping data to variable</span></span>
-<span id="cb2-21"><a href="#cb2-21"></a>tab &lt;-<span class="st"> </span>res_lp</span>
-<span id="cb2-22"><a href="#cb2-22"></a></span>
-<span id="cb2-23"><a href="#cb2-23"></a><span class="co"># GRanges to overlap with</span></span>
-<span id="cb2-24"><a href="#cb2-24"></a>gr &lt;-<span class="st"> </span><span class="kw">GRanges</span>(res_lp[, <span class="dv">1</span><span class="op">:</span><span class="dv">6</span>])</span></code></pre></div>
+<span id="cb2-10"><a href="#cb2-10"></a><span class="co"># ATAC peaks</span></span>
+<span id="cb2-11"><a href="#cb2-11"></a>rd_atac &lt;-<span class="st"> </span><span class="kw">rowData</span>(atac)[, <span class="dv">1</span><span class="op">:</span><span class="dv">6</span>]</span>
+<span id="cb2-12"><a href="#cb2-12"></a><span class="kw">colnames</span>(rd_atac) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;Peak-&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(rd_atac))</span>
+<span id="cb2-13"><a href="#cb2-13"></a>rd_atac &lt;-<span class="st"> </span><span class="kw">GRanges</span>(rd_atac)</span>
+<span id="cb2-14"><a href="#cb2-14"></a></span>
+<span id="cb2-15"><a href="#cb2-15"></a><span class="co"># Re-annotation of peaks</span></span>
+<span id="cb2-16"><a href="#cb2-16"></a>txdb &lt;-<span class="st"> </span>TxDb.Mmusculus.UCSC.mm10.knownGene</span>
+<span id="cb2-17"><a href="#cb2-17"></a>peakAnno &lt;-<span class="st"> </span><span class="kw">annotatePeak</span>(<span class="dt">peak =</span> rd_atac, <span class="dt">TxDb =</span> txdb, <span class="dt">tssRegion =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">2500</span>, <span class="dv">2500</span>), <span class="dt">annoDb =</span> <span class="st">&quot;org.Mm.eg.db&quot;</span>)</span></code></pre></div>
+<pre><code>## &gt;&gt; preparing features information...      2020-06-04 11:24:55 AM 
+## &gt;&gt; identifying nearest features...        2020-06-04 11:24:56 AM 
+## &gt;&gt; calculating distance from peak to TSS...   2020-06-04 11:24:59 AM 
+## &gt;&gt; assigning genomic annotation...        2020-06-04 11:24:59 AM 
+## &gt;&gt; adding gene annotation...          2020-06-04 11:25:16 AM 
+## &gt;&gt; assigning chromosome lengths           2020-06-04 11:25:16 AM 
+## &gt;&gt; done...                    2020-06-04 11:25:16 AM</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>anno_rd &lt;-<span class="st"> </span><span class="kw">data.frame</span>(peakAnno<span class="op">@</span>anno, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="kw">colnames</span>(anno_rd)[<span class="dv">6</span>] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;Peak&quot;</span>, <span class="kw">colnames</span>(anno_rd)[<span class="dv">6</span>], <span class="dt">sep =</span> <span class="st">&quot;-&quot;</span>)</span>
+<span id="cb4-3"><a href="#cb4-3"></a></span>
+<span id="cb4-4"><a href="#cb4-4"></a><span class="co"># Results of diff analysis</span></span>
+<span id="cb4-5"><a href="#cb4-5"></a>r &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="kw">rowData</span>(data), <span class="dt">check.names =</span> F, <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>)</span>
+<span id="cb4-6"><a href="#cb4-6"></a></span>
+<span id="cb4-7"><a href="#cb4-7"></a><span class="co"># Merging results with new annotation</span></span>
+<span id="cb4-8"><a href="#cb4-8"></a>res &lt;-<span class="st"> </span><span class="kw">inner_join</span>(<span class="dt">x =</span> r[, <span class="op">-</span><span class="kw">c</span>(<span class="dv">12</span><span class="op">:</span><span class="dv">23</span>)], <span class="dt">y =</span> anno_rd[, <span class="op">-</span><span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>)])</span>
+<span id="cb4-9"><a href="#cb4-9"></a>res &lt;-<span class="st"> </span>res[, <span class="kw">c</span>(</span>
+<span id="cb4-10"><a href="#cb4-10"></a>  <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;diffAccessibility&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(res), <span class="dt">invert =</span> <span class="ot">TRUE</span>),</span>
+<span id="cb4-11"><a href="#cb4-11"></a>  <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;diffAccessibility&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(res))</span>
+<span id="cb4-12"><a href="#cb4-12"></a>)]</span>
+<span id="cb4-13"><a href="#cb4-13"></a></span>
+<span id="cb4-14"><a href="#cb4-14"></a><span class="kw">colnames</span>(res) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;Peak-&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(res))</span>
+<span id="cb4-15"><a href="#cb4-15"></a></span>
+<span id="cb4-16"><a href="#cb4-16"></a><span class="co"># Subset significant results</span></span>
+<span id="cb4-17"><a href="#cb4-17"></a>res_lp &lt;-<span class="st"> </span>res[res<span class="op">$</span><span class="st">`</span><span class="dt">diffAccessibility-qvalue</span><span class="st">`</span> <span class="op">&lt;=</span><span class="st"> </span><span class="fl">0.05</span> <span class="op">&amp;</span><span class="st"> </span><span class="kw">abs</span>(res<span class="op">$</span><span class="st">`</span><span class="dt">diffAccessibility-logFC</span><span class="st">`</span>) <span class="op">&gt;</span><span class="st"> </span><span class="dv">1</span>, <span class="op">-</span><span class="kw">c</span>(<span class="dv">7</span><span class="op">:</span><span class="dv">11</span>)]</span>
+<span id="cb4-18"><a href="#cb4-18"></a><span class="kw">rownames</span>(res_lp) &lt;-<span class="st"> </span>res_lp<span class="op">$</span>Name</span>
+<span id="cb4-19"><a href="#cb4-19"></a></span>
+<span id="cb4-20"><a href="#cb4-20"></a><span class="co"># Adding Enrichment value to table</span></span>
+<span id="cb4-21"><a href="#cb4-21"></a>res_lp<span class="op">$</span>ATAC_Adult &lt;-<span class="st"> </span><span class="kw">rowSums</span>(cpm_atac[res_lp<span class="op">$</span>Name, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;Adult&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm_atac))])</span>
+<span id="cb4-22"><a href="#cb4-22"></a>res_lp<span class="op">$</span>ATAC_PND15 &lt;-<span class="st"> </span><span class="kw">rowSums</span>(cpm_atac[res_lp<span class="op">$</span>Name, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;PND15&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm_atac))])</span>
+<span id="cb4-23"><a href="#cb4-23"></a></span>
+<span id="cb4-24"><a href="#cb4-24"></a><span class="co"># Coping data to variable</span></span>
+<span id="cb4-25"><a href="#cb4-25"></a>tab &lt;-<span class="st"> </span>res_lp</span>
+<span id="cb4-26"><a href="#cb4-26"></a></span>
+<span id="cb4-27"><a href="#cb4-27"></a><span class="co"># GRanges to overlap with</span></span>
+<span id="cb4-28"><a href="#cb4-28"></a>gr &lt;-<span class="st"> </span><span class="kw">GRanges</span>(res_lp[, <span class="dv">1</span><span class="op">:</span><span class="dv">6</span>])</span></code></pre></div>
 </div>
 <div id="chip-seq" class="section level1">
 <h1>ChIP-Seq</h1>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="co"># Reading ChIP data</span></span>
-<span id="cb3-2"><a href="#cb3-2"></a>chip_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;input/chipseq&quot;</span>, <span class="dt">full.names =</span> <span class="ot">TRUE</span>)</span>
-<span id="cb3-3"><a href="#cb3-3"></a><span class="kw">names</span>(chip_files) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;_SRX.*&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">basename</span>(chip_files))</span>
-<span id="cb3-4"><a href="#cb3-4"></a>chip_peaks &lt;-<span class="st"> </span><span class="kw">lapply</span>(chip_files, <span class="cf">function</span>(x) {</span>
-<span id="cb3-5"><a href="#cb3-5"></a>  <span class="kw">read.table</span>(x,</span>
-<span id="cb3-6"><a href="#cb3-6"></a>    <span class="dt">header =</span> F,</span>
-<span id="cb3-7"><a href="#cb3-7"></a>    <span class="dt">col.names =</span> <span class="kw">c</span>(</span>
-<span id="cb3-8"><a href="#cb3-8"></a>      <span class="st">&quot;Chr&quot;</span>, <span class="st">&quot;Start&quot;</span>, <span class="st">&quot;End&quot;</span>, <span class="st">&quot;Name&quot;</span>, <span class="st">&quot;Score&quot;</span>, <span class="st">&quot;Strand&quot;</span>,</span>
-<span id="cb3-9"><a href="#cb3-9"></a>      <span class="st">&quot;FoldChange&quot;</span>, <span class="st">&quot;negLog10pvalue&quot;</span>, <span class="st">&quot;negLog10qvalue&quot;</span>,</span>
-<span id="cb3-10"><a href="#cb3-10"></a>      <span class="st">&quot;Summit&quot;</span></span>
-<span id="cb3-11"><a href="#cb3-11"></a>    ),</span>
-<span id="cb3-12"><a href="#cb3-12"></a>    <span class="dt">stringsAsFactors =</span> F</span>
-<span id="cb3-13"><a href="#cb3-13"></a>  )</span>
-<span id="cb3-14"><a href="#cb3-14"></a>})</span>
-<span id="cb3-15"><a href="#cb3-15"></a></span>
-<span id="cb3-16"><a href="#cb3-16"></a></span>
-<span id="cb3-17"><a href="#cb3-17"></a><span class="co"># Overlap ChIP peaks with ATAC differential accessible peaks</span></span>
-<span id="cb3-18"><a href="#cb3-18"></a>overlap_chip &lt;-<span class="st"> </span><span class="kw">lapply</span>(chip_peaks, <span class="cf">function</span>(x) <span class="kw">names</span>(<span class="kw">metaGR</span>(<span class="dt">gr1 =</span> gr, <span class="dt">gr2 =</span> <span class="kw">GRanges</span>(x), <span class="dt">minOverlap =</span> <span class="dv">10</span>)))</span>
-<span id="cb3-19"><a href="#cb3-19"></a></span>
-<span id="cb3-20"><a href="#cb3-20"></a><span class="co"># Adding logical values based on overlap to the main table</span></span>
-<span id="cb3-21"><a href="#cb3-21"></a>tab<span class="op">$</span>ChIP_PNW8_H3K4me3 &lt;-<span class="st"> </span>tab<span class="op">$</span>ChIP_PNW8_H3K27me3 &lt;-<span class="st"> </span>tab<span class="op">$</span>ChIP_PNW8_H3K27ac &lt;-<span class="st"> </span><span class="ot">FALSE</span></span>
-<span id="cb3-22"><a href="#cb3-22"></a>tab[overlap_chip<span class="op">$</span>PNW8_H3K4me3, <span class="st">&quot;ChIP_PNW8_H3K4me3&quot;</span>] &lt;-<span class="st"> </span><span class="ot">TRUE</span></span>
-<span id="cb3-23"><a href="#cb3-23"></a>tab[overlap_chip<span class="op">$</span>PNW8_H3K27me3, <span class="st">&quot;ChIP_PNW8_H3K27me3&quot;</span>] &lt;-<span class="st"> </span><span class="ot">TRUE</span></span>
-<span id="cb3-24"><a href="#cb3-24"></a>tab[overlap_chip<span class="op">$</span>PNW8_H3K27ac, <span class="st">&quot;ChIP_PNW8_H3K27ac&quot;</span>] &lt;-<span class="st"> </span><span class="ot">TRUE</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># Reading ChIP data</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a>chip_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;input/chipseq&quot;</span>, <span class="dt">full.names =</span> <span class="ot">TRUE</span>)</span>
+<span id="cb5-3"><a href="#cb5-3"></a><span class="kw">names</span>(chip_files) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;_SRX.*&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">basename</span>(chip_files))</span>
+<span id="cb5-4"><a href="#cb5-4"></a>chip_peaks &lt;-<span class="st"> </span><span class="kw">lapply</span>(chip_files, <span class="cf">function</span>(x) {</span>
+<span id="cb5-5"><a href="#cb5-5"></a>  <span class="kw">read.table</span>(x,</span>
+<span id="cb5-6"><a href="#cb5-6"></a>    <span class="dt">header =</span> F,</span>
+<span id="cb5-7"><a href="#cb5-7"></a>    <span class="dt">col.names =</span> <span class="kw">c</span>(</span>
+<span id="cb5-8"><a href="#cb5-8"></a>      <span class="st">&quot;Chr&quot;</span>, <span class="st">&quot;Start&quot;</span>, <span class="st">&quot;End&quot;</span>, <span class="st">&quot;Name&quot;</span>, <span class="st">&quot;Score&quot;</span>, <span class="st">&quot;Strand&quot;</span>,</span>
+<span id="cb5-9"><a href="#cb5-9"></a>      <span class="st">&quot;FoldChange&quot;</span>, <span class="st">&quot;negLog10pvalue&quot;</span>, <span class="st">&quot;negLog10qvalue&quot;</span>,</span>
+<span id="cb5-10"><a href="#cb5-10"></a>      <span class="st">&quot;Summit&quot;</span></span>
+<span id="cb5-11"><a href="#cb5-11"></a>    ),</span>
+<span id="cb5-12"><a href="#cb5-12"></a>    <span class="dt">stringsAsFactors =</span> F</span>
+<span id="cb5-13"><a href="#cb5-13"></a>  )</span>
+<span id="cb5-14"><a href="#cb5-14"></a>})</span>
+<span id="cb5-15"><a href="#cb5-15"></a></span>
+<span id="cb5-16"><a href="#cb5-16"></a></span>
+<span id="cb5-17"><a href="#cb5-17"></a><span class="co"># Overlap ChIP peaks with ATAC differential accessible peaks</span></span>
+<span id="cb5-18"><a href="#cb5-18"></a>overlap_chip &lt;-<span class="st"> </span><span class="kw">lapply</span>(chip_peaks, <span class="cf">function</span>(x) <span class="kw">names</span>(<span class="kw">metaGR</span>(<span class="dt">gr1 =</span> gr, <span class="dt">gr2 =</span> <span class="kw">GRanges</span>(x), <span class="dt">minOverlap =</span> <span class="dv">10</span>)))</span>
+<span id="cb5-19"><a href="#cb5-19"></a></span>
+<span id="cb5-20"><a href="#cb5-20"></a><span class="co"># Adding logical values based on overlap to the main table</span></span>
+<span id="cb5-21"><a href="#cb5-21"></a>tab<span class="op">$</span>ChIP_PNW8_H3K4me3 &lt;-<span class="st"> </span>tab<span class="op">$</span>ChIP_PNW8_H3K27me3 &lt;-<span class="st"> </span>tab<span class="op">$</span>ChIP_PNW8_H3K27ac &lt;-<span class="st"> </span><span class="ot">FALSE</span></span>
+<span id="cb5-22"><a href="#cb5-22"></a>tab[overlap_chip<span class="op">$</span>PNW8_H3K4me3, <span class="st">&quot;ChIP_PNW8_H3K4me3&quot;</span>] &lt;-<span class="st"> </span><span class="ot">TRUE</span></span>
+<span id="cb5-23"><a href="#cb5-23"></a>tab[overlap_chip<span class="op">$</span>PNW8_H3K27me3, <span class="st">&quot;ChIP_PNW8_H3K27me3&quot;</span>] &lt;-<span class="st"> </span><span class="ot">TRUE</span></span>
+<span id="cb5-24"><a href="#cb5-24"></a>tab[overlap_chip<span class="op">$</span>PNW8_H3K27ac, <span class="st">&quot;ChIP_PNW8_H3K27ac&quot;</span>] &lt;-<span class="st"> </span><span class="ot">TRUE</span></span></code></pre></div>
 </div>
 <div id="bisulphite-seq" class="section level1">
 <h1>Bisulphite-Seq</h1>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="co"># Reading BS coverage files generated by bismark</span></span>
-<span id="cb4-2"><a href="#cb4-2"></a>nm_bs &lt;-<span class="st"> &quot;./output/bs_cov.RData&quot;</span></span>
-<span id="cb4-3"><a href="#cb4-3"></a></span>
-<span id="cb4-4"><a href="#cb4-4"></a><span class="cf">if</span> (<span class="op">!</span><span class="kw">file.exists</span>(nm_bs)) {</span>
-<span id="cb4-5"><a href="#cb4-5"></a>  bs_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;input/bsseq&quot;</span>, <span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.gz$&quot;</span>, <span class="dt">full.names =</span> <span class="ot">TRUE</span>)</span>
-<span id="cb4-6"><a href="#cb4-6"></a>  <span class="kw">names</span>(bs_files) &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
-<span id="cb4-7"><a href="#cb4-7"></a>    <span class="dt">pattern =</span> <span class="st">&quot;_SRX.*|_1_val_1_bismark_bt2_pe.bismark.cov.gz&quot;</span>,</span>
-<span id="cb4-8"><a href="#cb4-8"></a>    <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">basename</span>(bs_files)</span>
-<span id="cb4-9"><a href="#cb4-9"></a>  )</span>
-<span id="cb4-10"><a href="#cb4-10"></a></span>
-<span id="cb4-11"><a href="#cb4-11"></a>  bs_cov &lt;-<span class="st"> </span><span class="kw">lapply</span>(bs_files, <span class="cf">function</span>(x) {</span>
-<span id="cb4-12"><a href="#cb4-12"></a>    <span class="kw">fread</span>(</span>
-<span id="cb4-13"><a href="#cb4-13"></a>      <span class="dt">input =</span> x,</span>
-<span id="cb4-14"><a href="#cb4-14"></a>      <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote =</span> F, <span class="dt">stringsAsFactors =</span> F,</span>
-<span id="cb4-15"><a href="#cb4-15"></a>      <span class="dt">data.table =</span> <span class="ot">FALSE</span>, <span class="dt">nThread =</span> <span class="kw">detectCores</span>(), <span class="dt">showProgress =</span> F,</span>
-<span id="cb4-16"><a href="#cb4-16"></a>      <span class="dt">col.names =</span> <span class="kw">c</span>(<span class="st">&quot;seqnames&quot;</span>, <span class="st">&quot;start&quot;</span>, <span class="st">&quot;end&quot;</span>, <span class="st">&quot;percent&quot;</span>, <span class="st">&quot;Me&quot;</span>, <span class="st">&quot;Un&quot;</span>)</span>
-<span id="cb4-17"><a href="#cb4-17"></a>    )</span>
-<span id="cb4-18"><a href="#cb4-18"></a>  })</span>
-<span id="cb4-19"><a href="#cb4-19"></a></span>
-<span id="cb4-20"><a href="#cb4-20"></a>  <span class="kw">save</span>(bs_cov, <span class="dt">file =</span> nm_bs)</span>
-<span id="cb4-21"><a href="#cb4-21"></a>} <span class="cf">else</span> {</span>
-<span id="cb4-22"><a href="#cb4-22"></a>  <span class="kw">load</span>(nm_bs)</span>
-<span id="cb4-23"><a href="#cb4-23"></a>}</span>
-<span id="cb4-24"><a href="#cb4-24"></a></span>
-<span id="cb4-25"><a href="#cb4-25"></a><span class="co"># Overlap BSseq files with differential accessible peaks</span></span>
-<span id="cb4-26"><a href="#cb4-26"></a>overlap_bs &lt;-<span class="st"> </span><span class="kw">lapply</span>(bs_cov, <span class="cf">function</span>(x) {</span>
-<span id="cb4-27"><a href="#cb4-27"></a>  a &lt;-<span class="st"> </span><span class="kw">metaGR</span>(<span class="dt">gr1 =</span> gr, <span class="dt">gr2 =</span> <span class="kw">GRanges</span>(x), <span class="dt">minOverlap =</span> <span class="dv">1</span>) <span class="co"># overlap</span></span>
-<span id="cb4-28"><a href="#cb4-28"></a>  b &lt;-<span class="st"> </span><span class="kw">data.frame</span>(a, <span class="dt">check.names =</span> F, <span class="dt">stringsAsFactors =</span> F) <span class="co"># converting to data frame</span></span>
-<span id="cb4-29"><a href="#cb4-29"></a>  c &lt;-<span class="st"> </span>b[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;GRanges&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(b), <span class="dt">invert =</span> <span class="ot">TRUE</span>)] <span class="co"># Removing GRanges of methylation data</span></span>
-<span id="cb4-30"><a href="#cb4-30"></a>  d &lt;-<span class="st"> </span><span class="kw">split</span>(<span class="dt">x =</span> c, <span class="dt">f =</span> c<span class="op">$</span>Name) <span class="co"># Split on the basis of peak names</span></span>
-<span id="cb4-31"><a href="#cb4-31"></a>  e &lt;-<span class="st"> </span><span class="kw">lapply</span>(d, <span class="cf">function</span>(y) { <span class="co"># For each peak region</span></span>
-<span id="cb4-32"><a href="#cb4-32"></a>    f &lt;-<span class="st"> </span>y[<span class="dv">1</span>, ]</span>
-<span id="cb4-33"><a href="#cb4-33"></a>    f<span class="op">$</span>percent &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>percent <span class="op">/</span><span class="st"> </span><span class="dv">100</span>, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>) <span class="co"># percent to 0-1 range</span></span>
-<span id="cb4-34"><a href="#cb4-34"></a>    f<span class="op">$</span>Me &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Me, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>) <span class="co"># keeping all values</span></span>
-<span id="cb4-35"><a href="#cb4-35"></a>    f<span class="op">$</span>Un &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Un, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>) <span class="co"># keeping all values</span></span>
-<span id="cb4-36"><a href="#cb4-36"></a>    f<span class="op">$</span>bp &lt;-<span class="st"> </span><span class="kw">nrow</span>(y) <span class="co"># Number of CpGs</span></span>
-<span id="cb4-37"><a href="#cb4-37"></a>    f<span class="op">$</span>Me_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Me) <span class="co"># Mean</span></span>
-<span id="cb4-38"><a href="#cb4-38"></a>    f<span class="op">$</span>Un_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Un) <span class="co"># Mean</span></span>
-<span id="cb4-39"><a href="#cb4-39"></a>    f<span class="op">$</span>meth &lt;-<span class="st"> </span>f<span class="op">$</span>Me_mean <span class="op">/</span><span class="st"> </span>(f<span class="op">$</span>Me_mean <span class="op">+</span><span class="st"> </span>f<span class="op">$</span>Un_mean) <span class="co"># methylation value calculation</span></span>
-<span id="cb4-40"><a href="#cb4-40"></a>    <span class="kw">return</span>(f)</span>
-<span id="cb4-41"><a href="#cb4-41"></a>  })</span>
-<span id="cb4-42"><a href="#cb4-42"></a>  g &lt;-<span class="st"> </span>plyr<span class="op">::</span><span class="kw">ldply</span>(e, data.frame)[, <span class="dv">-1</span>] <span class="co"># list of DF to DF</span></span>
-<span id="cb4-43"><a href="#cb4-43"></a>  <span class="kw">return</span>(g)</span>
-<span id="cb4-44"><a href="#cb4-44"></a>})</span>
-<span id="cb4-45"><a href="#cb4-45"></a></span>
-<span id="cb4-46"><a href="#cb4-46"></a><span class="co"># Changing column names of data</span></span>
-<span id="cb4-47"><a href="#cb4-47"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(overlap_bs)) {</span>
-<span id="cb4-48"><a href="#cb4-48"></a>  n &lt;-<span class="st"> </span><span class="kw">names</span>(overlap_bs)[i]</span>
-<span id="cb4-49"><a href="#cb4-49"></a>  <span class="kw">colnames</span>(overlap_bs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_bs[[i]])] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;BS&quot;</span>, n,</span>
-<span id="cb4-50"><a href="#cb4-50"></a>    <span class="kw">colnames</span>(overlap_bs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_bs[[i]])],</span>
-<span id="cb4-51"><a href="#cb4-51"></a>    <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span></span>
-<span id="cb4-52"><a href="#cb4-52"></a>  )</span>
-<span id="cb4-53"><a href="#cb4-53"></a>}</span>
-<span id="cb4-54"><a href="#cb4-54"></a></span>
-<span id="cb4-55"><a href="#cb4-55"></a><span class="co"># Adding BS data to the main table</span></span>
-<span id="cb4-56"><a href="#cb4-56"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_bs<span class="op">$</span>PND7)</span>
-<span id="cb4-57"><a href="#cb4-57"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_bs<span class="op">$</span>PND14)</span>
-<span id="cb4-58"><a href="#cb4-58"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_bs<span class="op">$</span>PNW8)</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># Reading BS coverage files generated by bismark</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>nm_bs &lt;-<span class="st"> &quot;./output/bs_cov.RData&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a></span>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="cf">if</span> (<span class="op">!</span><span class="kw">file.exists</span>(nm_bs)) {</span>
+<span id="cb6-5"><a href="#cb6-5"></a>  bs_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="st">&quot;input/bsseq&quot;</span>, <span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.gz$&quot;</span>, <span class="dt">full.names =</span> <span class="ot">TRUE</span>)</span>
+<span id="cb6-6"><a href="#cb6-6"></a>  <span class="kw">names</span>(bs_files) &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb6-7"><a href="#cb6-7"></a>    <span class="dt">pattern =</span> <span class="st">&quot;_SRX.*|_1_val_1_bismark_bt2_pe.bismark.cov.gz&quot;</span>,</span>
+<span id="cb6-8"><a href="#cb6-8"></a>    <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">basename</span>(bs_files)</span>
+<span id="cb6-9"><a href="#cb6-9"></a>  )</span>
+<span id="cb6-10"><a href="#cb6-10"></a></span>
+<span id="cb6-11"><a href="#cb6-11"></a>  bs_cov &lt;-<span class="st"> </span><span class="kw">lapply</span>(bs_files, <span class="cf">function</span>(x) {</span>
+<span id="cb6-12"><a href="#cb6-12"></a>    <span class="kw">fread</span>(</span>
+<span id="cb6-13"><a href="#cb6-13"></a>      <span class="dt">input =</span> x,</span>
+<span id="cb6-14"><a href="#cb6-14"></a>      <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote =</span> F, <span class="dt">stringsAsFactors =</span> F,</span>
+<span id="cb6-15"><a href="#cb6-15"></a>      <span class="dt">data.table =</span> <span class="ot">FALSE</span>, <span class="dt">nThread =</span> <span class="kw">detectCores</span>(), <span class="dt">showProgress =</span> F,</span>
+<span id="cb6-16"><a href="#cb6-16"></a>      <span class="dt">col.names =</span> <span class="kw">c</span>(<span class="st">&quot;seqnames&quot;</span>, <span class="st">&quot;start&quot;</span>, <span class="st">&quot;end&quot;</span>, <span class="st">&quot;percent&quot;</span>, <span class="st">&quot;Me&quot;</span>, <span class="st">&quot;Un&quot;</span>)</span>
+<span id="cb6-17"><a href="#cb6-17"></a>    )</span>
+<span id="cb6-18"><a href="#cb6-18"></a>  })</span>
+<span id="cb6-19"><a href="#cb6-19"></a></span>
+<span id="cb6-20"><a href="#cb6-20"></a>  <span class="kw">save</span>(bs_cov, <span class="dt">file =</span> nm_bs)</span>
+<span id="cb6-21"><a href="#cb6-21"></a>} <span class="cf">else</span> {</span>
+<span id="cb6-22"><a href="#cb6-22"></a>  <span class="kw">load</span>(nm_bs)</span>
+<span id="cb6-23"><a href="#cb6-23"></a>}</span>
+<span id="cb6-24"><a href="#cb6-24"></a></span>
+<span id="cb6-25"><a href="#cb6-25"></a><span class="co"># Overlap BSseq files with differential accessible peaks</span></span>
+<span id="cb6-26"><a href="#cb6-26"></a>overlap_bs &lt;-<span class="st"> </span><span class="kw">lapply</span>(bs_cov, <span class="cf">function</span>(x) {</span>
+<span id="cb6-27"><a href="#cb6-27"></a>  a &lt;-<span class="st"> </span><span class="kw">metaGR</span>(<span class="dt">gr1 =</span> gr, <span class="dt">gr2 =</span> <span class="kw">GRanges</span>(x), <span class="dt">minOverlap =</span> <span class="dv">1</span>) <span class="co"># overlap</span></span>
+<span id="cb6-28"><a href="#cb6-28"></a>  b &lt;-<span class="st"> </span><span class="kw">data.frame</span>(a, <span class="dt">check.names =</span> F, <span class="dt">stringsAsFactors =</span> F) <span class="co"># converting to data frame</span></span>
+<span id="cb6-29"><a href="#cb6-29"></a>  c &lt;-<span class="st"> </span>b[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;GRanges&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(b), <span class="dt">invert =</span> <span class="ot">TRUE</span>)] <span class="co"># Removing GRanges of methylation data</span></span>
+<span id="cb6-30"><a href="#cb6-30"></a>  d &lt;-<span class="st"> </span><span class="kw">split</span>(<span class="dt">x =</span> c, <span class="dt">f =</span> c<span class="op">$</span>Name) <span class="co"># Split on the basis of peak names</span></span>
+<span id="cb6-31"><a href="#cb6-31"></a>  e &lt;-<span class="st"> </span><span class="kw">lapply</span>(d, <span class="cf">function</span>(y) { <span class="co"># For each peak region</span></span>
+<span id="cb6-32"><a href="#cb6-32"></a>    f &lt;-<span class="st"> </span>y[<span class="dv">1</span>, ]</span>
+<span id="cb6-33"><a href="#cb6-33"></a>    f<span class="op">$</span>percent &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>percent <span class="op">/</span><span class="st"> </span><span class="dv">100</span>, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>) <span class="co"># percent to 0-1 range</span></span>
+<span id="cb6-34"><a href="#cb6-34"></a>    f<span class="op">$</span>Me &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Me, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>) <span class="co"># keeping all values</span></span>
+<span id="cb6-35"><a href="#cb6-35"></a>    f<span class="op">$</span>Un &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Un, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>) <span class="co"># keeping all values</span></span>
+<span id="cb6-36"><a href="#cb6-36"></a>    f<span class="op">$</span>bp &lt;-<span class="st"> </span><span class="kw">nrow</span>(y) <span class="co"># Number of CpGs</span></span>
+<span id="cb6-37"><a href="#cb6-37"></a>    f<span class="op">$</span>Me_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Me) <span class="co"># Mean</span></span>
+<span id="cb6-38"><a href="#cb6-38"></a>    f<span class="op">$</span>Un_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Un) <span class="co"># Mean</span></span>
+<span id="cb6-39"><a href="#cb6-39"></a>    f<span class="op">$</span>meth &lt;-<span class="st"> </span>f<span class="op">$</span>Me_mean <span class="op">/</span><span class="st"> </span>(f<span class="op">$</span>Me_mean <span class="op">+</span><span class="st"> </span>f<span class="op">$</span>Un_mean) <span class="co"># methylation value calculation</span></span>
+<span id="cb6-40"><a href="#cb6-40"></a>    <span class="kw">return</span>(f)</span>
+<span id="cb6-41"><a href="#cb6-41"></a>  })</span>
+<span id="cb6-42"><a href="#cb6-42"></a>  g &lt;-<span class="st"> </span>plyr<span class="op">::</span><span class="kw">ldply</span>(e, data.frame)[, <span class="dv">-1</span>] <span class="co"># list of DF to DF</span></span>
+<span id="cb6-43"><a href="#cb6-43"></a>  <span class="kw">return</span>(g)</span>
+<span id="cb6-44"><a href="#cb6-44"></a>})</span>
+<span id="cb6-45"><a href="#cb6-45"></a></span>
+<span id="cb6-46"><a href="#cb6-46"></a><span class="co"># Changing column names of data</span></span>
+<span id="cb6-47"><a href="#cb6-47"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(overlap_bs)) {</span>
+<span id="cb6-48"><a href="#cb6-48"></a>  n &lt;-<span class="st"> </span><span class="kw">names</span>(overlap_bs)[i]</span>
+<span id="cb6-49"><a href="#cb6-49"></a>  <span class="kw">colnames</span>(overlap_bs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_bs[[i]])] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;BS&quot;</span>, n,</span>
+<span id="cb6-50"><a href="#cb6-50"></a>    <span class="kw">colnames</span>(overlap_bs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_bs[[i]])],</span>
+<span id="cb6-51"><a href="#cb6-51"></a>    <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span></span>
+<span id="cb6-52"><a href="#cb6-52"></a>  )</span>
+<span id="cb6-53"><a href="#cb6-53"></a>}</span>
+<span id="cb6-54"><a href="#cb6-54"></a></span>
+<span id="cb6-55"><a href="#cb6-55"></a><span class="co"># Adding BS data to the main table</span></span>
+<span id="cb6-56"><a href="#cb6-56"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_bs<span class="op">$</span>PND7)</span>
+<span id="cb6-57"><a href="#cb6-57"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_bs<span class="op">$</span>PND14)</span>
+<span id="cb6-58"><a href="#cb6-58"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_bs<span class="op">$</span>PNW8)</span></code></pre></div>
 <div id="rrbs" class="section level2">
 <h2>RRBS</h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># Read RRBs file</span></span>
-<span id="cb5-2"><a href="#cb5-2"></a>rrbs_file &lt;-<span class="st"> &quot;input/rrbs/PND8_trimmed_bismark_bt2.bismark.cov.gz&quot;</span></span>
-<span id="cb5-3"><a href="#cb5-3"></a><span class="kw">names</span>(rrbs_file) &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
-<span id="cb5-4"><a href="#cb5-4"></a>  <span class="dt">pattern =</span> <span class="st">&quot;_trimmed_bismark_bt2.bismark.cov.gz&quot;</span>,</span>
-<span id="cb5-5"><a href="#cb5-5"></a>  <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">basename</span>(rrbs_file)</span>
-<span id="cb5-6"><a href="#cb5-6"></a>)</span>
-<span id="cb5-7"><a href="#cb5-7"></a></span>
-<span id="cb5-8"><a href="#cb5-8"></a>rrbs_file &lt;-<span class="st"> </span><span class="kw">as.list</span>(rrbs_file)</span>
-<span id="cb5-9"><a href="#cb5-9"></a></span>
-<span id="cb5-10"><a href="#cb5-10"></a>rrbs_cov &lt;-<span class="st"> </span><span class="kw">lapply</span>(rrbs_file, <span class="cf">function</span>(x) {</span>
-<span id="cb5-11"><a href="#cb5-11"></a>  <span class="kw">fread</span>(</span>
-<span id="cb5-12"><a href="#cb5-12"></a>    <span class="dt">input =</span> x,</span>
-<span id="cb5-13"><a href="#cb5-13"></a>    <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote =</span> F, <span class="dt">stringsAsFactors =</span> F,</span>
-<span id="cb5-14"><a href="#cb5-14"></a>    <span class="dt">data.table =</span> <span class="ot">FALSE</span>, <span class="dt">nThread =</span> <span class="kw">detectCores</span>(), <span class="dt">showProgress =</span> F,</span>
-<span id="cb5-15"><a href="#cb5-15"></a>    <span class="dt">col.names =</span> <span class="kw">c</span>(<span class="st">&quot;seqnames&quot;</span>, <span class="st">&quot;start&quot;</span>, <span class="st">&quot;end&quot;</span>, <span class="st">&quot;percent&quot;</span>, <span class="st">&quot;Me&quot;</span>, <span class="st">&quot;Un&quot;</span>)</span>
-<span id="cb5-16"><a href="#cb5-16"></a>  )</span>
-<span id="cb5-17"><a href="#cb5-17"></a>})</span>
-<span id="cb5-18"><a href="#cb5-18"></a></span>
-<span id="cb5-19"><a href="#cb5-19"></a><span class="co"># Overlap similar to BS data</span></span>
-<span id="cb5-20"><a href="#cb5-20"></a>overlap_rrbs &lt;-<span class="st"> </span><span class="kw">lapply</span>(rrbs_cov, <span class="cf">function</span>(x) {</span>
-<span id="cb5-21"><a href="#cb5-21"></a>  a &lt;-<span class="st"> </span><span class="kw">metaGR</span>(<span class="dt">gr1 =</span> gr, <span class="dt">gr2 =</span> <span class="kw">GRanges</span>(x), <span class="dt">minOverlap =</span> <span class="dv">1</span>)</span>
-<span id="cb5-22"><a href="#cb5-22"></a>  b &lt;-<span class="st"> </span><span class="kw">data.frame</span>(a, <span class="dt">check.names =</span> F, <span class="dt">stringsAsFactors =</span> F)</span>
-<span id="cb5-23"><a href="#cb5-23"></a>  c &lt;-<span class="st"> </span>b[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;GRanges&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(b), <span class="dt">invert =</span> <span class="ot">TRUE</span>)]</span>
-<span id="cb5-24"><a href="#cb5-24"></a>  d &lt;-<span class="st"> </span><span class="kw">split</span>(<span class="dt">x =</span> c, <span class="dt">f =</span> c<span class="op">$</span>Name)</span>
-<span id="cb5-25"><a href="#cb5-25"></a>  e &lt;-<span class="st"> </span><span class="kw">lapply</span>(d, <span class="cf">function</span>(y) {</span>
-<span id="cb5-26"><a href="#cb5-26"></a>    f &lt;-<span class="st"> </span>y[<span class="dv">1</span>, ]</span>
-<span id="cb5-27"><a href="#cb5-27"></a>    f<span class="op">$</span>percent &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>percent <span class="op">/</span><span class="st"> </span><span class="dv">100</span>, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>)</span>
-<span id="cb5-28"><a href="#cb5-28"></a>    f<span class="op">$</span>Me &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Me, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>)</span>
-<span id="cb5-29"><a href="#cb5-29"></a>    f<span class="op">$</span>Un &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Un, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>)</span>
-<span id="cb5-30"><a href="#cb5-30"></a>    f<span class="op">$</span>bp &lt;-<span class="st"> </span><span class="kw">nrow</span>(y)</span>
-<span id="cb5-31"><a href="#cb5-31"></a>    f<span class="op">$</span>Me_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Me)</span>
-<span id="cb5-32"><a href="#cb5-32"></a>    f<span class="op">$</span>Un_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Un)</span>
-<span id="cb5-33"><a href="#cb5-33"></a>    f<span class="op">$</span>meth &lt;-<span class="st"> </span>f<span class="op">$</span>Me_mean <span class="op">/</span><span class="st"> </span>(f<span class="op">$</span>Me_mean <span class="op">+</span><span class="st"> </span>f<span class="op">$</span>Un_mean)</span>
-<span id="cb5-34"><a href="#cb5-34"></a>    <span class="kw">return</span>(f)</span>
-<span id="cb5-35"><a href="#cb5-35"></a>  })</span>
-<span id="cb5-36"><a href="#cb5-36"></a>  g &lt;-<span class="st"> </span>plyr<span class="op">::</span><span class="kw">ldply</span>(e, data.frame)[, <span class="dv">-1</span>]</span>
-<span id="cb5-37"><a href="#cb5-37"></a>  <span class="kw">return</span>(g)</span>
-<span id="cb5-38"><a href="#cb5-38"></a>})</span>
-<span id="cb5-39"><a href="#cb5-39"></a></span>
-<span id="cb5-40"><a href="#cb5-40"></a><span class="co"># Changeing column names</span></span>
-<span id="cb5-41"><a href="#cb5-41"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(overlap_rrbs)) {</span>
-<span id="cb5-42"><a href="#cb5-42"></a>  n &lt;-<span class="st"> </span><span class="kw">names</span>(overlap_rrbs)[i]</span>
-<span id="cb5-43"><a href="#cb5-43"></a>  <span class="kw">colnames</span>(overlap_rrbs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_rrbs[[i]])] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;RRBS&quot;</span>, n, <span class="kw">colnames</span>(overlap_rrbs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_rrbs[[i]])], <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
-<span id="cb5-44"><a href="#cb5-44"></a>}</span>
-<span id="cb5-45"><a href="#cb5-45"></a></span>
-<span id="cb5-46"><a href="#cb5-46"></a><span class="co"># Adding RRBS data to the main table</span></span>
-<span id="cb5-47"><a href="#cb5-47"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_rrbs<span class="op">$</span>PND8)</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># Read RRBs file</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a>rrbs_file &lt;-<span class="st"> &quot;input/rrbs/PND8_trimmed_bismark_bt2.bismark.cov.gz&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="kw">names</span>(rrbs_file) &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb7-4"><a href="#cb7-4"></a>  <span class="dt">pattern =</span> <span class="st">&quot;_trimmed_bismark_bt2.bismark.cov.gz&quot;</span>,</span>
+<span id="cb7-5"><a href="#cb7-5"></a>  <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">basename</span>(rrbs_file)</span>
+<span id="cb7-6"><a href="#cb7-6"></a>)</span>
+<span id="cb7-7"><a href="#cb7-7"></a></span>
+<span id="cb7-8"><a href="#cb7-8"></a>rrbs_file &lt;-<span class="st"> </span><span class="kw">as.list</span>(rrbs_file)</span>
+<span id="cb7-9"><a href="#cb7-9"></a></span>
+<span id="cb7-10"><a href="#cb7-10"></a>rrbs_cov &lt;-<span class="st"> </span><span class="kw">lapply</span>(rrbs_file, <span class="cf">function</span>(x) {</span>
+<span id="cb7-11"><a href="#cb7-11"></a>  <span class="kw">fread</span>(</span>
+<span id="cb7-12"><a href="#cb7-12"></a>    <span class="dt">input =</span> x,</span>
+<span id="cb7-13"><a href="#cb7-13"></a>    <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">quote =</span> F, <span class="dt">stringsAsFactors =</span> F,</span>
+<span id="cb7-14"><a href="#cb7-14"></a>    <span class="dt">data.table =</span> <span class="ot">FALSE</span>, <span class="dt">nThread =</span> <span class="kw">detectCores</span>(), <span class="dt">showProgress =</span> F,</span>
+<span id="cb7-15"><a href="#cb7-15"></a>    <span class="dt">col.names =</span> <span class="kw">c</span>(<span class="st">&quot;seqnames&quot;</span>, <span class="st">&quot;start&quot;</span>, <span class="st">&quot;end&quot;</span>, <span class="st">&quot;percent&quot;</span>, <span class="st">&quot;Me&quot;</span>, <span class="st">&quot;Un&quot;</span>)</span>
+<span id="cb7-16"><a href="#cb7-16"></a>  )</span>
+<span id="cb7-17"><a href="#cb7-17"></a>})</span>
+<span id="cb7-18"><a href="#cb7-18"></a></span>
+<span id="cb7-19"><a href="#cb7-19"></a><span class="co"># Overlap similar to BS data</span></span>
+<span id="cb7-20"><a href="#cb7-20"></a>overlap_rrbs &lt;-<span class="st"> </span><span class="kw">lapply</span>(rrbs_cov, <span class="cf">function</span>(x) {</span>
+<span id="cb7-21"><a href="#cb7-21"></a>  a &lt;-<span class="st"> </span><span class="kw">metaGR</span>(<span class="dt">gr1 =</span> gr, <span class="dt">gr2 =</span> <span class="kw">GRanges</span>(x), <span class="dt">minOverlap =</span> <span class="dv">1</span>)</span>
+<span id="cb7-22"><a href="#cb7-22"></a>  b &lt;-<span class="st"> </span><span class="kw">data.frame</span>(a, <span class="dt">check.names =</span> F, <span class="dt">stringsAsFactors =</span> F)</span>
+<span id="cb7-23"><a href="#cb7-23"></a>  c &lt;-<span class="st"> </span>b[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;GRanges&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(b), <span class="dt">invert =</span> <span class="ot">TRUE</span>)]</span>
+<span id="cb7-24"><a href="#cb7-24"></a>  d &lt;-<span class="st"> </span><span class="kw">split</span>(<span class="dt">x =</span> c, <span class="dt">f =</span> c<span class="op">$</span>Name)</span>
+<span id="cb7-25"><a href="#cb7-25"></a>  e &lt;-<span class="st"> </span><span class="kw">lapply</span>(d, <span class="cf">function</span>(y) {</span>
+<span id="cb7-26"><a href="#cb7-26"></a>    f &lt;-<span class="st"> </span>y[<span class="dv">1</span>, ]</span>
+<span id="cb7-27"><a href="#cb7-27"></a>    f<span class="op">$</span>percent &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>percent <span class="op">/</span><span class="st"> </span><span class="dv">100</span>, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>)</span>
+<span id="cb7-28"><a href="#cb7-28"></a>    f<span class="op">$</span>Me &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Me, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>)</span>
+<span id="cb7-29"><a href="#cb7-29"></a>    f<span class="op">$</span>Un &lt;-<span class="st"> </span><span class="kw">paste</span>(y<span class="op">$</span>Un, <span class="dt">collapse =</span> <span class="st">&quot;,&quot;</span>)</span>
+<span id="cb7-30"><a href="#cb7-30"></a>    f<span class="op">$</span>bp &lt;-<span class="st"> </span><span class="kw">nrow</span>(y)</span>
+<span id="cb7-31"><a href="#cb7-31"></a>    f<span class="op">$</span>Me_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Me)</span>
+<span id="cb7-32"><a href="#cb7-32"></a>    f<span class="op">$</span>Un_mean &lt;-<span class="st"> </span><span class="kw">mean</span>(y<span class="op">$</span>Un)</span>
+<span id="cb7-33"><a href="#cb7-33"></a>    f<span class="op">$</span>meth &lt;-<span class="st"> </span>f<span class="op">$</span>Me_mean <span class="op">/</span><span class="st"> </span>(f<span class="op">$</span>Me_mean <span class="op">+</span><span class="st"> </span>f<span class="op">$</span>Un_mean)</span>
+<span id="cb7-34"><a href="#cb7-34"></a>    <span class="kw">return</span>(f)</span>
+<span id="cb7-35"><a href="#cb7-35"></a>  })</span>
+<span id="cb7-36"><a href="#cb7-36"></a>  g &lt;-<span class="st"> </span>plyr<span class="op">::</span><span class="kw">ldply</span>(e, data.frame)[, <span class="dv">-1</span>]</span>
+<span id="cb7-37"><a href="#cb7-37"></a>  <span class="kw">return</span>(g)</span>
+<span id="cb7-38"><a href="#cb7-38"></a>})</span>
+<span id="cb7-39"><a href="#cb7-39"></a></span>
+<span id="cb7-40"><a href="#cb7-40"></a><span class="co"># Changeing column names</span></span>
+<span id="cb7-41"><a href="#cb7-41"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(overlap_rrbs)) {</span>
+<span id="cb7-42"><a href="#cb7-42"></a>  n &lt;-<span class="st"> </span><span class="kw">names</span>(overlap_rrbs)[i]</span>
+<span id="cb7-43"><a href="#cb7-43"></a>  <span class="kw">colnames</span>(overlap_rrbs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_rrbs[[i]])] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;RRBS&quot;</span>, n, <span class="kw">colnames</span>(overlap_rrbs[[i]])[<span class="dv">7</span><span class="op">:</span><span class="kw">ncol</span>(overlap_rrbs[[i]])], <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
+<span id="cb7-44"><a href="#cb7-44"></a>}</span>
+<span id="cb7-45"><a href="#cb7-45"></a></span>
+<span id="cb7-46"><a href="#cb7-46"></a><span class="co"># Adding RRBS data to the main table</span></span>
+<span id="cb7-47"><a href="#cb7-47"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> overlap_rrbs<span class="op">$</span>PND8)</span></code></pre></div>
 </div>
 </div>
 <div id="rna-seq" class="section level1">
 <h1>RNA-Seq</h1>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># CPM</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="kw">load</span>(<span class="st">&quot;input/rnaseq/data_pData.RData&quot;</span>)</span>
-<span id="cb6-3"><a href="#cb6-3"></a></span>
-<span id="cb6-4"><a href="#cb6-4"></a><span class="co"># limma analysis results</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="kw">load</span>(<span class="st">&quot;input/rnaseq/limma_SC_Controls.RData&quot;</span>)</span>
-<span id="cb6-6"><a href="#cb6-6"></a></span>
-<span id="cb6-7"><a href="#cb6-7"></a><span class="co"># Mean of CPM values</span></span>
-<span id="cb6-8"><a href="#cb6-8"></a>cpm &lt;-<span class="st"> </span>data<span class="op">$</span>cpm</span>
-<span id="cb6-9"><a href="#cb6-9"></a>mat_RNA_counts_merged &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</span>
-<span id="cb6-10"><a href="#cb6-10"></a>  <span class="dt">Genes =</span> <span class="kw">rownames</span>(cpm),</span>
-<span id="cb6-11"><a href="#cb6-11"></a>  <span class="dt">Adult =</span> <span class="kw">rowMeans</span>(cpm[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;Adult&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm))]),</span>
-<span id="cb6-12"><a href="#cb6-12"></a>  <span class="dt">PND15 =</span> <span class="kw">rowMeans</span>(cpm[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;PND15&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm))]),</span>
-<span id="cb6-13"><a href="#cb6-13"></a>  <span class="dt">PND8 =</span> <span class="kw">rowMeans</span>(cpm[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm))])</span>
-<span id="cb6-14"><a href="#cb6-14"></a>)</span>
-<span id="cb6-15"><a href="#cb6-15"></a></span>
-<span id="cb6-16"><a href="#cb6-16"></a><span class="co"># Changing column names</span></span>
-<span id="cb6-17"><a href="#cb6-17"></a><span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;PND8_vs_PND15&quot;</span>,</span>
-<span id="cb6-18"><a href="#cb6-18"></a>  <span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)],</span>
-<span id="cb6-19"><a href="#cb6-19"></a>  <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span></span>
-<span id="cb6-20"><a href="#cb6-20"></a>)</span>
-<span id="cb6-21"><a href="#cb6-21"></a><span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;PND15_vs_Adult&quot;</span>,</span>
-<span id="cb6-22"><a href="#cb6-22"></a>  <span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)],</span>
-<span id="cb6-23"><a href="#cb6-23"></a>  <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span></span>
-<span id="cb6-24"><a href="#cb6-24"></a>)</span>
-<span id="cb6-25"><a href="#cb6-25"></a></span>
-<span id="cb6-26"><a href="#cb6-26"></a><span class="co"># Adding differential analysis results to expression table</span></span>
-<span id="cb6-27"><a href="#cb6-27"></a>mat_RNA &lt;-<span class="st"> </span><span class="kw">inner_join</span>(mat_RNA_counts_merged, dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)</span>
-<span id="cb6-28"><a href="#cb6-28"></a>mat_RNA &lt;-<span class="st"> </span><span class="kw">inner_join</span>(mat_RNA, dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)</span>
-<span id="cb6-29"><a href="#cb6-29"></a></span>
-<span id="cb6-30"><a href="#cb6-30"></a><span class="co"># Changing column names</span></span>
-<span id="cb6-31"><a href="#cb6-31"></a><span class="kw">colnames</span>(mat_RNA)[<span class="dv">1</span>] &lt;-<span class="st"> &quot;SYMBOL&quot;</span></span>
-<span id="cb6-32"><a href="#cb6-32"></a><span class="kw">colnames</span>(mat_RNA)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(mat_RNA)] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;RNA&quot;</span>, <span class="kw">colnames</span>(mat_RNA)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(mat_RNA)], <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
-<span id="cb6-33"><a href="#cb6-33"></a></span>
-<span id="cb6-34"><a href="#cb6-34"></a><span class="co"># Adding RNA-Seq data to the main table</span></span>
-<span id="cb6-35"><a href="#cb6-35"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> mat_RNA)</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a><span class="co"># CPM</span></span>
+<span id="cb8-2"><a href="#cb8-2"></a><span class="kw">load</span>(<span class="st">&quot;input/rnaseq/data_pData.RData&quot;</span>)</span>
+<span id="cb8-3"><a href="#cb8-3"></a></span>
+<span id="cb8-4"><a href="#cb8-4"></a><span class="co"># limma analysis results</span></span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="kw">load</span>(<span class="st">&quot;input/rnaseq/limma_SC_Controls.RData&quot;</span>)</span>
+<span id="cb8-6"><a href="#cb8-6"></a></span>
+<span id="cb8-7"><a href="#cb8-7"></a><span class="co"># Mean of CPM values</span></span>
+<span id="cb8-8"><a href="#cb8-8"></a>cpm &lt;-<span class="st"> </span>data<span class="op">$</span>cpm</span>
+<span id="cb8-9"><a href="#cb8-9"></a>mat_RNA_counts_merged &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</span>
+<span id="cb8-10"><a href="#cb8-10"></a>  <span class="dt">Genes =</span> <span class="kw">rownames</span>(cpm),</span>
+<span id="cb8-11"><a href="#cb8-11"></a>  <span class="dt">Adult =</span> <span class="kw">rowMeans</span>(cpm[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;Adult&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm))]),</span>
+<span id="cb8-12"><a href="#cb8-12"></a>  <span class="dt">PND15 =</span> <span class="kw">rowMeans</span>(cpm[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;PND15&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm))]),</span>
+<span id="cb8-13"><a href="#cb8-13"></a>  <span class="dt">PND8 =</span> <span class="kw">rowMeans</span>(cpm[, <span class="kw">grep</span>(<span class="dt">pattern =</span> <span class="st">&quot;PND8&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(cpm))])</span>
+<span id="cb8-14"><a href="#cb8-14"></a>)</span>
+<span id="cb8-15"><a href="#cb8-15"></a></span>
+<span id="cb8-16"><a href="#cb8-16"></a><span class="co"># Changing column names</span></span>
+<span id="cb8-17"><a href="#cb8-17"></a><span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;PND8_vs_PND15&quot;</span>,</span>
+<span id="cb8-18"><a href="#cb8-18"></a>  <span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)],</span>
+<span id="cb8-19"><a href="#cb8-19"></a>  <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span></span>
+<span id="cb8-20"><a href="#cb8-20"></a>)</span>
+<span id="cb8-21"><a href="#cb8-21"></a><span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;PND15_vs_Adult&quot;</span>,</span>
+<span id="cb8-22"><a href="#cb8-22"></a>  <span class="kw">colnames</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)],</span>
+<span id="cb8-23"><a href="#cb8-23"></a>  <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span></span>
+<span id="cb8-24"><a href="#cb8-24"></a>)</span>
+<span id="cb8-25"><a href="#cb8-25"></a></span>
+<span id="cb8-26"><a href="#cb8-26"></a><span class="co"># Adding differential analysis results to expression table</span></span>
+<span id="cb8-27"><a href="#cb8-27"></a>mat_RNA &lt;-<span class="st"> </span><span class="kw">inner_join</span>(mat_RNA_counts_merged, dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span>)</span>
+<span id="cb8-28"><a href="#cb8-28"></a>mat_RNA &lt;-<span class="st"> </span><span class="kw">inner_join</span>(mat_RNA, dea.limma<span class="op">$</span><span class="st">`</span><span class="dt">PND15 vs Adult</span><span class="st">`</span>)</span>
+<span id="cb8-29"><a href="#cb8-29"></a></span>
+<span id="cb8-30"><a href="#cb8-30"></a><span class="co"># Changing column names</span></span>
+<span id="cb8-31"><a href="#cb8-31"></a><span class="kw">colnames</span>(mat_RNA)[<span class="dv">1</span>] &lt;-<span class="st"> &quot;SYMBOL&quot;</span></span>
+<span id="cb8-32"><a href="#cb8-32"></a><span class="kw">colnames</span>(mat_RNA)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(mat_RNA)] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;RNA&quot;</span>, <span class="kw">colnames</span>(mat_RNA)[<span class="dv">2</span><span class="op">:</span><span class="kw">ncol</span>(mat_RNA)], <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
+<span id="cb8-33"><a href="#cb8-33"></a></span>
+<span id="cb8-34"><a href="#cb8-34"></a><span class="co"># Adding RNA-Seq data to the main table</span></span>
+<span id="cb8-35"><a href="#cb8-35"></a>tab &lt;-<span class="st"> </span><span class="kw">left_join</span>(<span class="dt">x =</span> tab, <span class="dt">y =</span> mat_RNA)</span></code></pre></div>
 </div>
 <div id="genes-with-distancetss-5kb" class="section level1">
 <h1>Genes with distanceTSS <code>&lt;=</code> 5kb</h1>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># Adding new column &quot;Genes&quot; to the main table with Gene symbols with distance TSS &lt;- 5kb</span></span>
-<span id="cb7-2"><a href="#cb7-2"></a>tab<span class="op">$</span>Genes &lt;-<span class="st"> </span>tab<span class="op">$</span>SYMBOL</span>
-<span id="cb7-3"><a href="#cb7-3"></a>tab<span class="op">$</span>Genes[<span class="kw">abs</span>(tab<span class="op">$</span>distanceToTSS) <span class="op">&gt;</span><span class="st"> </span><span class="dv">5000</span>] &lt;-<span class="st"> </span><span class="ot">NA</span></span>
-<span id="cb7-4"><a href="#cb7-4"></a>tab &lt;-<span class="st"> </span>tab[, <span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>, <span class="kw">ncol</span>(tab), <span class="dv">7</span><span class="op">:</span>(<span class="kw">ncol</span>(tab) <span class="op">-</span><span class="st"> </span><span class="dv">1</span>))]</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a><span class="co"># Adding new column &quot;Genes&quot; to the main table with Gene symbols with distance TSS &lt;- 5kb</span></span>
+<span id="cb9-2"><a href="#cb9-2"></a>tab<span class="op">$</span>Genes &lt;-<span class="st"> </span>tab<span class="op">$</span>SYMBOL</span>
+<span id="cb9-3"><a href="#cb9-3"></a>tab<span class="op">$</span>Genes[<span class="kw">abs</span>(tab<span class="op">$</span>distanceToTSS) <span class="op">&gt;</span><span class="st"> </span><span class="dv">5000</span>] &lt;-<span class="st"> </span><span class="ot">NA</span></span>
+<span id="cb9-4"><a href="#cb9-4"></a>tab &lt;-<span class="st"> </span>tab[, <span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">6</span>, <span class="kw">ncol</span>(tab), <span class="dv">7</span><span class="op">:</span>(<span class="kw">ncol</span>(tab) <span class="op">-</span><span class="st"> </span><span class="dv">1</span>))]</span></code></pre></div>
 </div>
 <div id="save-data" class="section level1">
 <h1>Save data</h1>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>writexl<span class="op">::</span><span class="kw">write_xlsx</span>(<span class="dt">x =</span> tab, <span class="dt">path =</span> <span class="st">&quot;output/overlap_matrix.xlsx&quot;</span>)</span>
-<span id="cb8-2"><a href="#cb8-2"></a><span class="kw">write.table</span>(<span class="dt">x =</span> tab, <span class="dt">file =</span> <span class="kw">gzfile</span>(<span class="st">&quot;output/overlap_matrix.txt.gz&quot;</span>), <span class="dt">quote =</span> F, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names =</span> F)</span>
-<span id="cb8-3"><a href="#cb8-3"></a><span class="kw">saveRDS</span>(<span class="dt">object =</span> tab, <span class="dt">file =</span> <span class="st">&quot;output/overlap_matrix.rds&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>writexl<span class="op">::</span><span class="kw">write_xlsx</span>(<span class="dt">x =</span> tab, <span class="dt">path =</span> <span class="st">&quot;output/overlap_matrix.xlsx&quot;</span>)</span>
+<span id="cb10-2"><a href="#cb10-2"></a><span class="kw">write.table</span>(<span class="dt">x =</span> tab, <span class="dt">file =</span> <span class="kw">gzfile</span>(<span class="st">&quot;output/overlap_matrix.txt.gz&quot;</span>), <span class="dt">quote =</span> F, <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, <span class="dt">row.names =</span> F)</span>
+<span id="cb10-3"><a href="#cb10-3"></a><span class="kw">saveRDS</span>(<span class="dt">object =</span> tab, <span class="dt">file =</span> <span class="st">&quot;output/overlap_matrix.rds&quot;</span>)</span></code></pre></div>
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>() <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb9-2"><a href="#cb9-2"></a><span class="st">  </span>details<span class="op">::</span><span class="kw">details</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>() <span class="op">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="st">  </span>details<span class="op">::</span><span class="kw">details</span>()</span></code></pre></div>
 <details closed>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a></span>
-<span id="cb10-2"><a href="#cb10-2"></a>─ Session info ───────────────────────────────────────────────────────────────</span>
-<span id="cb10-3"><a href="#cb10-3"></a> setting  value                       </span>
-<span id="cb10-4"><a href="#cb10-4"></a> version  R version <span class="dv">3</span>.<span class="fl">6.2</span> (<span class="dv">2019-12-12</span>)</span>
-<span id="cb10-5"><a href="#cb10-5"></a> os       Ubuntu <span class="dv">16</span>.<span class="fl">04.6</span> LTS          </span>
-<span id="cb10-6"><a href="#cb10-6"></a> system   x86_<span class="dv">64</span>, linux<span class="op">-</span>gnu           </span>
-<span id="cb10-7"><a href="#cb10-7"></a> ui       X11                         </span>
-<span id="cb10-8"><a href="#cb10-8"></a> <span class="kw">language</span> (EN)                        </span>
-<span id="cb10-9"><a href="#cb10-9"></a> collate  en_US.UTF<span class="dv">-8</span>                 </span>
-<span id="cb10-10"><a href="#cb10-10"></a> ctype    en_US.UTF<span class="dv">-8</span>                 </span>
-<span id="cb10-11"><a href="#cb10-11"></a> tz       Europe<span class="op">/</span>Zurich               </span>
-<span id="cb10-12"><a href="#cb10-12"></a> date     <span class="dv">2020-05-25</span>                  </span>
-<span id="cb10-13"><a href="#cb10-13"></a></span>
-<span id="cb10-14"><a href="#cb10-14"></a>─ Packages ───────────────────────────────────────────────────────────────────</span>
-<span id="cb10-15"><a href="#cb10-15"></a> package              <span class="op">*</span><span class="st"> </span>version    date       lib</span>
-<span id="cb10-16"><a href="#cb10-16"></a> acepack                <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2016-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-17"><a href="#cb10-17"></a> annotate               <span class="dv">1</span>.<span class="fl">64.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-18"><a href="#cb10-18"></a> AnnotationDbi          <span class="dv">1</span>.<span class="fl">48.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-19"><a href="#cb10-19"></a> askpass                <span class="fl">1.1</span>        <span class="dv">2019-01-13</span> [<span class="dv">1</span>]</span>
-<span id="cb10-20"><a href="#cb10-20"></a> assertthat             <span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2019-03-21</span> [<span class="dv">1</span>]</span>
-<span id="cb10-21"><a href="#cb10-21"></a> backports              <span class="dv">1</span>.<span class="fl">1.6</span>      <span class="dv">2020-04-05</span> [<span class="dv">1</span>]</span>
-<span id="cb10-22"><a href="#cb10-22"></a> base64enc              <span class="fl">0.1</span><span class="dv">-3</span>      <span class="dv">2015-07-28</span> [<span class="dv">1</span>]</span>
-<span id="cb10-23"><a href="#cb10-23"></a> Biobase              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-24"><a href="#cb10-24"></a> BiocFileCache          <span class="dv">1</span>.<span class="fl">10.2</span>     <span class="dv">2019-11-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-25"><a href="#cb10-25"></a> BiocGenerics         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-26"><a href="#cb10-26"></a> BiocParallel         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.1</span>     <span class="dv">2019-12-21</span> [<span class="dv">1</span>]</span>
-<span id="cb10-27"><a href="#cb10-27"></a> biomaRt                <span class="dv">2</span>.<span class="fl">42.1</span>     <span class="dv">2020-03-26</span> [<span class="dv">1</span>]</span>
-<span id="cb10-28"><a href="#cb10-28"></a> Biostrings             <span class="dv">2</span>.<span class="fl">54.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-29"><a href="#cb10-29"></a> bit                    <span class="fl">1.1-15.2</span>   <span class="dv">2020-02-10</span> [<span class="dv">1</span>]</span>
-<span id="cb10-30"><a href="#cb10-30"></a> bit64                  <span class="fl">0.9</span><span class="dv">-7</span>      <span class="dv">2017-05-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-31"><a href="#cb10-31"></a> bitops                 <span class="fl">1.0</span><span class="dv">-6</span>      <span class="dv">2013-08-17</span> [<span class="dv">1</span>]</span>
-<span id="cb10-32"><a href="#cb10-32"></a> blob                   <span class="dv">1</span>.<span class="fl">2.1</span>      <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
-<span id="cb10-33"><a href="#cb10-33"></a> bookdown               <span class="fl">0.18</span>       <span class="dv">2020-03-05</span> [<span class="dv">1</span>]</span>
-<span id="cb10-34"><a href="#cb10-34"></a> broom                  <span class="dv">0</span>.<span class="fl">5.6</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb10-35"><a href="#cb10-35"></a> callr                  <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-03-28</span> [<span class="dv">1</span>]</span>
-<span id="cb10-36"><a href="#cb10-36"></a> cellranger             <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2016-07-27</span> [<span class="dv">1</span>]</span>
-<span id="cb10-37"><a href="#cb10-37"></a> checkmate              <span class="dv">2</span>.<span class="fl">0.0</span>      <span class="dv">2020-02-06</span> [<span class="dv">1</span>]</span>
-<span id="cb10-38"><a href="#cb10-38"></a> cli                    <span class="dv">2</span>.<span class="fl">0.2</span>      <span class="dv">2020-02-28</span> [<span class="dv">1</span>]</span>
-<span id="cb10-39"><a href="#cb10-39"></a> cluster                <span class="dv">2</span>.<span class="fl">1.0</span>      <span class="dv">2019-06-19</span> [<span class="dv">1</span>]</span>
-<span id="cb10-40"><a href="#cb10-40"></a> colorspace             <span class="fl">1.4</span><span class="dv">-1</span>      <span class="dv">2019-03-18</span> [<span class="dv">1</span>]</span>
-<span id="cb10-41"><a href="#cb10-41"></a> crayon                 <span class="dv">1</span>.<span class="fl">3.4</span>      <span class="dv">2017-09-16</span> [<span class="dv">1</span>]</span>
-<span id="cb10-42"><a href="#cb10-42"></a> csaw                 <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-43"><a href="#cb10-43"></a> curl                   <span class="fl">4.3</span>        <span class="dv">2019-12-02</span> [<span class="dv">1</span>]</span>
-<span id="cb10-44"><a href="#cb10-44"></a> data.table           <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">12.8</span>     <span class="dv">2019-12-09</span> [<span class="dv">1</span>]</span>
-<span id="cb10-45"><a href="#cb10-45"></a> DBI                    <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2019-12-15</span> [<span class="dv">1</span>]</span>
-<span id="cb10-46"><a href="#cb10-46"></a> dbplyr                 <span class="dv">1</span>.<span class="fl">4.3</span>      <span class="dv">2020-04-19</span> [<span class="dv">1</span>]</span>
-<span id="cb10-47"><a href="#cb10-47"></a> DelayedArray         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">12.3</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb10-48"><a href="#cb10-48"></a> desc                   <span class="dv">1</span>.<span class="fl">2.0</span>      <span class="dv">2018-05-01</span> [<span class="dv">1</span>]</span>
-<span id="cb10-49"><a href="#cb10-49"></a> DESeq2                 <span class="dv">1</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-50"><a href="#cb10-50"></a> devtools               <span class="dv">2</span>.<span class="fl">3.0</span>      <span class="dv">2020-04-10</span> [<span class="dv">1</span>]</span>
-<span id="cb10-51"><a href="#cb10-51"></a> digest                 <span class="dv">0</span>.<span class="fl">6.25</span>     <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
-<span id="cb10-52"><a href="#cb10-52"></a> dplyr                <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">8.5</span>      <span class="dv">2020-03-07</span> [<span class="dv">1</span>]</span>
-<span id="cb10-53"><a href="#cb10-53"></a> edgeR                <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">28.1</span>     <span class="dv">2020-02-26</span> [<span class="dv">1</span>]</span>
-<span id="cb10-54"><a href="#cb10-54"></a> ellipsis               <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2019-09-20</span> [<span class="dv">1</span>]</span>
-<span id="cb10-55"><a href="#cb10-55"></a> evaluate               <span class="fl">0.14</span>       <span class="dv">2019-05-28</span> [<span class="dv">1</span>]</span>
-<span id="cb10-56"><a href="#cb10-56"></a> fansi                  <span class="dv">0</span>.<span class="fl">4.1</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-57"><a href="#cb10-57"></a> forcats              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">5.0</span>      <span class="dv">2020-03-01</span> [<span class="dv">1</span>]</span>
-<span id="cb10-58"><a href="#cb10-58"></a> foreign                <span class="fl">0.8</span><span class="dv">-76</span>     <span class="dv">2020-03-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-59"><a href="#cb10-59"></a> Formula                <span class="fl">1.2</span><span class="dv">-3</span>      <span class="dv">2018-05-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-60"><a href="#cb10-60"></a> fs                     <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-04-04</span> [<span class="dv">1</span>]</span>
-<span id="cb10-61"><a href="#cb10-61"></a> genefilter             <span class="dv">1</span>.<span class="fl">68.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-62"><a href="#cb10-62"></a> geneplotter            <span class="dv">1</span>.<span class="fl">64.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-63"><a href="#cb10-63"></a> generics               <span class="dv">0</span>.<span class="fl">0.2</span>      <span class="dv">2018-11-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-64"><a href="#cb10-64"></a> GenomeInfoDb         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2020-03-27</span> [<span class="dv">1</span>]</span>
-<span id="cb10-65"><a href="#cb10-65"></a> GenomeInfoDbData       <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
-<span id="cb10-66"><a href="#cb10-66"></a> GenomicAlignments      <span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
-<span id="cb10-67"><a href="#cb10-67"></a> GenomicFeatures        <span class="dv">1</span>.<span class="fl">38.2</span>     <span class="dv">2020-02-15</span> [<span class="dv">1</span>]</span>
-<span id="cb10-68"><a href="#cb10-68"></a> GenomicRanges        <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">38.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-69"><a href="#cb10-69"></a> GEOquery               <span class="dv">2</span>.<span class="fl">54.1</span>     <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
-<span id="cb10-70"><a href="#cb10-70"></a> ggplot2              <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">3.0</span>      <span class="dv">2020-03-05</span> [<span class="dv">1</span>]</span>
-<span id="cb10-71"><a href="#cb10-71"></a> glue                   <span class="dv">1</span>.<span class="fl">4.0</span>      <span class="dv">2020-04-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-72"><a href="#cb10-72"></a> gridExtra              <span class="fl">2.3</span>        <span class="dv">2017-09-09</span> [<span class="dv">1</span>]</span>
-<span id="cb10-73"><a href="#cb10-73"></a> gtable                 <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2019-03-25</span> [<span class="dv">1</span>]</span>
-<span id="cb10-74"><a href="#cb10-74"></a> gUtils               <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-24</span> [<span class="dv">1</span>]</span>
-<span id="cb10-75"><a href="#cb10-75"></a> haven                  <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2019-11-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-76"><a href="#cb10-76"></a> Hmisc                  <span class="fl">4.4</span><span class="dv">-0</span>      <span class="dv">2020-03-23</span> [<span class="dv">1</span>]</span>
-<span id="cb10-77"><a href="#cb10-77"></a> hms                    <span class="dv">0</span>.<span class="fl">5.3</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-78"><a href="#cb10-78"></a> htmlTable              <span class="dv">1</span>.<span class="fl">13.3</span>     <span class="dv">2019-12-04</span> [<span class="dv">1</span>]</span>
-<span id="cb10-79"><a href="#cb10-79"></a> htmltools              <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2019-10-04</span> [<span class="dv">1</span>]</span>
-<span id="cb10-80"><a href="#cb10-80"></a> htmlwidgets            <span class="dv">1</span>.<span class="fl">5.1</span>      <span class="dv">2019-10-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-81"><a href="#cb10-81"></a> httr                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2019-08-05</span> [<span class="dv">1</span>]</span>
-<span id="cb10-82"><a href="#cb10-82"></a> IRanges              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">20.2</span>     <span class="dv">2020-01-13</span> [<span class="dv">1</span>]</span>
-<span id="cb10-83"><a href="#cb10-83"></a> jpeg                   <span class="fl">0.1-8.1</span>    <span class="dv">2019-10-24</span> [<span class="dv">1</span>]</span>
-<span id="cb10-84"><a href="#cb10-84"></a> jsonlite               <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-02-02</span> [<span class="dv">1</span>]</span>
-<span id="cb10-85"><a href="#cb10-85"></a> knitr                  <span class="fl">1.28</span>       <span class="dv">2020-02-06</span> [<span class="dv">1</span>]</span>
-<span id="cb10-86"><a href="#cb10-86"></a> lattice                <span class="fl">0.20</span><span class="dv">-41</span>    <span class="dv">2020-04-02</span> [<span class="dv">1</span>]</span>
-<span id="cb10-87"><a href="#cb10-87"></a> latticeExtra           <span class="fl">0.6</span><span class="dv">-29</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
-<span id="cb10-88"><a href="#cb10-88"></a> lifecycle              <span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-03-06</span> [<span class="dv">1</span>]</span>
-<span id="cb10-89"><a href="#cb10-89"></a> limma                <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">42.2</span>     <span class="dv">2020-02-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-90"><a href="#cb10-90"></a> locfit                 <span class="fl">1.5-9.4</span>    <span class="dv">2020-03-25</span> [<span class="dv">1</span>]</span>
-<span id="cb10-91"><a href="#cb10-91"></a> lubridate              <span class="dv">1</span>.<span class="fl">7.8</span>      <span class="dv">2020-04-06</span> [<span class="dv">1</span>]</span>
-<span id="cb10-92"><a href="#cb10-92"></a> magrittr               <span class="fl">1.5</span>        <span class="dv">2014-11-22</span> [<span class="dv">1</span>]</span>
-<span id="cb10-93"><a href="#cb10-93"></a> Matrix                 <span class="fl">1.2</span><span class="dv">-18</span>     <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
-<span id="cb10-94"><a href="#cb10-94"></a> matrixStats          <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">56.0</span>     <span class="dv">2020-03-13</span> [<span class="dv">1</span>]</span>
-<span id="cb10-95"><a href="#cb10-95"></a> memoise                <span class="dv">1</span>.<span class="dv">1</span>.<span class="fl">0.9000</span> <span class="dv">2020-05-06</span> [<span class="dv">1</span>]</span>
-<span id="cb10-96"><a href="#cb10-96"></a> modelr                 <span class="dv">0</span>.<span class="fl">1.6</span>      <span class="dv">2020-02-22</span> [<span class="dv">1</span>]</span>
-<span id="cb10-97"><a href="#cb10-97"></a> munsell                <span class="dv">0</span>.<span class="fl">5.0</span>      <span class="dv">2018-06-12</span> [<span class="dv">1</span>]</span>
-<span id="cb10-98"><a href="#cb10-98"></a> nlme                   <span class="fl">3.1</span><span class="dv">-147</span>    <span class="dv">2020-04-13</span> [<span class="dv">1</span>]</span>
-<span id="cb10-99"><a href="#cb10-99"></a> nnet                   <span class="fl">7.3</span><span class="dv">-13</span>     <span class="dv">2020-02-25</span> [<span class="dv">1</span>]</span>
-<span id="cb10-100"><a href="#cb10-100"></a> openssl                <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2019-07-18</span> [<span class="dv">1</span>]</span>
-<span id="cb10-101"><a href="#cb10-101"></a> pillar                 <span class="dv">1</span>.<span class="fl">4.4</span>      <span class="dv">2020-05-05</span> [<span class="dv">1</span>]</span>
-<span id="cb10-102"><a href="#cb10-102"></a> pkgbuild               <span class="dv">1</span>.<span class="fl">0.7</span>      <span class="dv">2020-04-25</span> [<span class="dv">1</span>]</span>
-<span id="cb10-103"><a href="#cb10-103"></a> pkgconfig              <span class="dv">2</span>.<span class="fl">0.3</span>      <span class="dv">2019-09-22</span> [<span class="dv">1</span>]</span>
-<span id="cb10-104"><a href="#cb10-104"></a> pkgload                <span class="dv">1</span>.<span class="fl">0.2</span>      <span class="dv">2018-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-105"><a href="#cb10-105"></a> plgINS               <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">1.5</span>      <span class="dv">2020-04-30</span> [<span class="dv">1</span>]</span>
-<span id="cb10-106"><a href="#cb10-106"></a> plyr                   <span class="dv">1</span>.<span class="fl">8.6</span>      <span class="dv">2020-03-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-107"><a href="#cb10-107"></a> png                    <span class="fl">0.1</span><span class="dv">-7</span>      <span class="dv">2013-12-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-108"><a href="#cb10-108"></a> prettyunits            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
-<span id="cb10-109"><a href="#cb10-109"></a> processx               <span class="dv">3</span>.<span class="fl">4.2</span>      <span class="dv">2020-02-09</span> [<span class="dv">1</span>]</span>
-<span id="cb10-110"><a href="#cb10-110"></a> progress               <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-05-16</span> [<span class="dv">1</span>]</span>
-<span id="cb10-111"><a href="#cb10-111"></a> ps                     <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-02-13</span> [<span class="dv">1</span>]</span>
-<span id="cb10-112"><a href="#cb10-112"></a> purrr                <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">3.4</span>      <span class="dv">2020-04-17</span> [<span class="dv">1</span>]</span>
-<span id="cb10-113"><a href="#cb10-113"></a> R.methodsS3            <span class="dv">1</span>.<span class="fl">8.0</span>      <span class="dv">2020-02-14</span> [<span class="dv">1</span>]</span>
-<span id="cb10-114"><a href="#cb10-114"></a> R.oo                   <span class="dv">1</span>.<span class="fl">23.0</span>     <span class="dv">2019-11-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-115"><a href="#cb10-115"></a> R.utils                <span class="dv">2</span>.<span class="fl">9.2</span>      <span class="dv">2019-12-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-116"><a href="#cb10-116"></a> R6                     <span class="dv">2</span>.<span class="fl">4.1</span>      <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
-<span id="cb10-117"><a href="#cb10-117"></a> rappdirs               <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2016-03-28</span> [<span class="dv">1</span>]</span>
-<span id="cb10-118"><a href="#cb10-118"></a> RColorBrewer           <span class="fl">1.1</span><span class="dv">-2</span>      <span class="dv">2014-12-07</span> [<span class="dv">1</span>]</span>
-<span id="cb10-119"><a href="#cb10-119"></a> Rcpp                   <span class="dv">1</span>.<span class="dv">0</span>.<span class="fl">4.6</span>    <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb10-120"><a href="#cb10-120"></a> RCurl                  <span class="fl">1.98-1.2</span>   <span class="dv">2020-04-18</span> [<span class="dv">1</span>]</span>
-<span id="cb10-121"><a href="#cb10-121"></a> readr                <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">3.1</span>      <span class="dv">2018-12-21</span> [<span class="dv">1</span>]</span>
-<span id="cb10-122"><a href="#cb10-122"></a> readxl                 <span class="dv">1</span>.<span class="fl">3.1</span>      <span class="dv">2019-03-13</span> [<span class="dv">1</span>]</span>
-<span id="cb10-123"><a href="#cb10-123"></a> remotes                <span class="dv">2</span>.<span class="fl">1.1</span>      <span class="dv">2020-02-15</span> [<span class="dv">1</span>]</span>
-<span id="cb10-124"><a href="#cb10-124"></a> reprex                 <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2019-05-16</span> [<span class="dv">1</span>]</span>
-<span id="cb10-125"><a href="#cb10-125"></a> rlang                  <span class="dv">0</span>.<span class="fl">4.6</span>      <span class="dv">2020-05-02</span> [<span class="dv">1</span>]</span>
-<span id="cb10-126"><a href="#cb10-126"></a> rmarkdown              <span class="fl">2.1</span>        <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
-<span id="cb10-127"><a href="#cb10-127"></a> rmdformats             <span class="dv">0</span>.<span class="fl">3.7</span>      <span class="dv">2020-03-11</span> [<span class="dv">1</span>]</span>
-<span id="cb10-128"><a href="#cb10-128"></a> rpart                  <span class="fl">4.1</span><span class="dv">-15</span>     <span class="dv">2019-04-12</span> [<span class="dv">1</span>]</span>
-<span id="cb10-129"><a href="#cb10-129"></a> rprojroot              <span class="fl">1.3</span><span class="dv">-2</span>      <span class="dv">2018-01-03</span> [<span class="dv">1</span>]</span>
-<span id="cb10-130"><a href="#cb10-130"></a> Rsamtools              <span class="dv">2</span>.<span class="fl">2.3</span>      <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
-<span id="cb10-131"><a href="#cb10-131"></a> RSQLite                <span class="dv">2</span>.<span class="fl">1.4</span>      <span class="dv">2019-12-04</span> [<span class="dv">1</span>]</span>
-<span id="cb10-132"><a href="#cb10-132"></a> rstudioapi             <span class="fl">0.11</span>       <span class="dv">2020-02-07</span> [<span class="dv">1</span>]</span>
-<span id="cb10-133"><a href="#cb10-133"></a> rtracklayer            <span class="dv">1</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-134"><a href="#cb10-134"></a> rvest                  <span class="dv">0</span>.<span class="fl">3.5</span>      <span class="dv">2019-11-08</span> [<span class="dv">1</span>]</span>
-<span id="cb10-135"><a href="#cb10-135"></a> S4Vectors            <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">24.4</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb10-136"><a href="#cb10-136"></a> scales                 <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
-<span id="cb10-137"><a href="#cb10-137"></a> sessioninfo            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2018-11-05</span> [<span class="dv">1</span>]</span>
-<span id="cb10-138"><a href="#cb10-138"></a> SRAdb                  <span class="dv">1</span>.<span class="fl">48.2</span>     <span class="dv">2019-12-24</span> [<span class="dv">1</span>]</span>
-<span id="cb10-139"><a href="#cb10-139"></a> stringi                <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-02-17</span> [<span class="dv">1</span>]</span>
-<span id="cb10-140"><a href="#cb10-140"></a> stringr              <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">4.0</span>      <span class="dv">2019-02-10</span> [<span class="dv">1</span>]</span>
-<span id="cb10-141"><a href="#cb10-141"></a> SummarizedExperiment <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">16.1</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
-<span id="cb10-142"><a href="#cb10-142"></a> survival               <span class="fl">3.1</span><span class="dv">-12</span>     <span class="dv">2020-04-10</span> [<span class="dv">1</span>]</span>
-<span id="cb10-143"><a href="#cb10-143"></a> testthat               <span class="dv">2</span>.<span class="fl">3.2</span>      <span class="dv">2020-03-02</span> [<span class="dv">1</span>]</span>
-<span id="cb10-144"><a href="#cb10-144"></a> tibble               <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">0.1</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb10-145"><a href="#cb10-145"></a> tidyr                <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.2</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
-<span id="cb10-146"><a href="#cb10-146"></a> tidyselect             <span class="dv">1</span>.<span class="fl">0.0</span>      <span class="dv">2020-01-27</span> [<span class="dv">1</span>]</span>
-<span id="cb10-147"><a href="#cb10-147"></a> tidyverse            <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">3.0</span>      <span class="dv">2019-11-21</span> [<span class="dv">1</span>]</span>
-<span id="cb10-148"><a href="#cb10-148"></a> usethis                <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-04-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-149"><a href="#cb10-149"></a> vctrs                  <span class="dv">0</span>.<span class="fl">2.4</span>      <span class="dv">2020-03-10</span> [<span class="dv">1</span>]</span>
-<span id="cb10-150"><a href="#cb10-150"></a> withr                  <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb10-151"><a href="#cb10-151"></a> writexl                <span class="fl">1.2</span>        <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
-<span id="cb10-152"><a href="#cb10-152"></a> xfun                   <span class="fl">0.13</span>       <span class="dv">2020-04-13</span> [<span class="dv">1</span>]</span>
-<span id="cb10-153"><a href="#cb10-153"></a> XML                    <span class="fl">3.99-0.3</span>   <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
-<span id="cb10-154"><a href="#cb10-154"></a> xml2                   <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
-<span id="cb10-155"><a href="#cb10-155"></a> xtable                 <span class="fl">1.8</span><span class="dv">-4</span>      <span class="dv">2019-04-21</span> [<span class="dv">1</span>]</span>
-<span id="cb10-156"><a href="#cb10-156"></a> XVector                <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-157"><a href="#cb10-157"></a> yaml                   <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
-<span id="cb10-158"><a href="#cb10-158"></a> zlibbioc               <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb10-159"><a href="#cb10-159"></a> source                         </span>
-<span id="cb10-160"><a href="#cb10-160"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-161"><a href="#cb10-161"></a> Bioconductor                   </span>
-<span id="cb10-162"><a href="#cb10-162"></a> Bioconductor                   </span>
-<span id="cb10-163"><a href="#cb10-163"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-164"><a href="#cb10-164"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-165"><a href="#cb10-165"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-166"><a href="#cb10-166"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-167"><a href="#cb10-167"></a> Bioconductor                   </span>
-<span id="cb10-168"><a href="#cb10-168"></a> Bioconductor                   </span>
-<span id="cb10-169"><a href="#cb10-169"></a> Bioconductor                   </span>
-<span id="cb10-170"><a href="#cb10-170"></a> Bioconductor                   </span>
-<span id="cb10-171"><a href="#cb10-171"></a> Bioconductor                   </span>
-<span id="cb10-172"><a href="#cb10-172"></a> Bioconductor                   </span>
-<span id="cb10-173"><a href="#cb10-173"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-174"><a href="#cb10-174"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-175"><a href="#cb10-175"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-176"><a href="#cb10-176"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-177"><a href="#cb10-177"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-178"><a href="#cb10-178"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-179"><a href="#cb10-179"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-180"><a href="#cb10-180"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-181"><a href="#cb10-181"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-182"><a href="#cb10-182"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-183"><a href="#cb10-183"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-184"><a href="#cb10-184"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-185"><a href="#cb10-185"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-186"><a href="#cb10-186"></a> Bioconductor                   </span>
-<span id="cb10-187"><a href="#cb10-187"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-188"><a href="#cb10-188"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-189"><a href="#cb10-189"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-190"><a href="#cb10-190"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-191"><a href="#cb10-191"></a> Bioconductor                   </span>
-<span id="cb10-192"><a href="#cb10-192"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-193"><a href="#cb10-193"></a> Bioconductor                   </span>
-<span id="cb10-194"><a href="#cb10-194"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-195"><a href="#cb10-195"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-196"><a href="#cb10-196"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-197"><a href="#cb10-197"></a> Bioconductor                   </span>
-<span id="cb10-198"><a href="#cb10-198"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-199"><a href="#cb10-199"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-200"><a href="#cb10-200"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-201"><a href="#cb10-201"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-202"><a href="#cb10-202"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-203"><a href="#cb10-203"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-204"><a href="#cb10-204"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-205"><a href="#cb10-205"></a> Bioconductor                   </span>
-<span id="cb10-206"><a href="#cb10-206"></a> Bioconductor                   </span>
-<span id="cb10-207"><a href="#cb10-207"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-208"><a href="#cb10-208"></a> Bioconductor                   </span>
-<span id="cb10-209"><a href="#cb10-209"></a> Bioconductor                   </span>
-<span id="cb10-210"><a href="#cb10-210"></a> Bioconductor                   </span>
-<span id="cb10-211"><a href="#cb10-211"></a> Bioconductor                   </span>
-<span id="cb10-212"><a href="#cb10-212"></a> Bioconductor                   </span>
-<span id="cb10-213"><a href="#cb10-213"></a> Bioconductor                   </span>
-<span id="cb10-214"><a href="#cb10-214"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-215"><a href="#cb10-215"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-216"><a href="#cb10-216"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-217"><a href="#cb10-217"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-218"><a href="#cb10-218"></a> <span class="kw">Github</span> (mskilab<span class="op">/</span>gUtils<span class="op">@</span>3d5a3a9)</span>
-<span id="cb10-219"><a href="#cb10-219"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-220"><a href="#cb10-220"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-221"><a href="#cb10-221"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-222"><a href="#cb10-222"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-223"><a href="#cb10-223"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-224"><a href="#cb10-224"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-225"><a href="#cb10-225"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-226"><a href="#cb10-226"></a> Bioconductor                   </span>
-<span id="cb10-227"><a href="#cb10-227"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-228"><a href="#cb10-228"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-229"><a href="#cb10-229"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-230"><a href="#cb10-230"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-231"><a href="#cb10-231"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-232"><a href="#cb10-232"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-233"><a href="#cb10-233"></a> Bioconductor                   </span>
-<span id="cb10-234"><a href="#cb10-234"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-235"><a href="#cb10-235"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-236"><a href="#cb10-236"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-237"><a href="#cb10-237"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-238"><a href="#cb10-238"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-239"><a href="#cb10-239"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f) </span>
-<span id="cb10-240"><a href="#cb10-240"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-241"><a href="#cb10-241"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-242"><a href="#cb10-242"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-243"><a href="#cb10-243"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-244"><a href="#cb10-244"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-245"><a href="#cb10-245"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-246"><a href="#cb10-246"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-247"><a href="#cb10-247"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-248"><a href="#cb10-248"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-249"><a href="#cb10-249"></a> local                          </span>
-<span id="cb10-250"><a href="#cb10-250"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-251"><a href="#cb10-251"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-252"><a href="#cb10-252"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-253"><a href="#cb10-253"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-254"><a href="#cb10-254"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-255"><a href="#cb10-255"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-256"><a href="#cb10-256"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-257"><a href="#cb10-257"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-258"><a href="#cb10-258"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-259"><a href="#cb10-259"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-260"><a href="#cb10-260"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-261"><a href="#cb10-261"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-262"><a href="#cb10-262"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-263"><a href="#cb10-263"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-264"><a href="#cb10-264"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-265"><a href="#cb10-265"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-266"><a href="#cb10-266"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-267"><a href="#cb10-267"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-268"><a href="#cb10-268"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-269"><a href="#cb10-269"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-270"><a href="#cb10-270"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-271"><a href="#cb10-271"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-272"><a href="#cb10-272"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-273"><a href="#cb10-273"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-274"><a href="#cb10-274"></a> Bioconductor                   </span>
-<span id="cb10-275"><a href="#cb10-275"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-276"><a href="#cb10-276"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-277"><a href="#cb10-277"></a> Bioconductor                   </span>
-<span id="cb10-278"><a href="#cb10-278"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-279"><a href="#cb10-279"></a> Bioconductor                   </span>
-<span id="cb10-280"><a href="#cb10-280"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-281"><a href="#cb10-281"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-282"><a href="#cb10-282"></a> Bioconductor                   </span>
-<span id="cb10-283"><a href="#cb10-283"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-284"><a href="#cb10-284"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-285"><a href="#cb10-285"></a> Bioconductor                   </span>
-<span id="cb10-286"><a href="#cb10-286"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-287"><a href="#cb10-287"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-288"><a href="#cb10-288"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-289"><a href="#cb10-289"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-290"><a href="#cb10-290"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-291"><a href="#cb10-291"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-292"><a href="#cb10-292"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-293"><a href="#cb10-293"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-294"><a href="#cb10-294"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-295"><a href="#cb10-295"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-296"><a href="#cb10-296"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-297"><a href="#cb10-297"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-298"><a href="#cb10-298"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-299"><a href="#cb10-299"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
-<span id="cb10-300"><a href="#cb10-300"></a> Bioconductor                   </span>
-<span id="cb10-301"><a href="#cb10-301"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
-<span id="cb10-302"><a href="#cb10-302"></a> Bioconductor                   </span>
-<span id="cb10-303"><a href="#cb10-303"></a></span>
-<span id="cb10-304"><a href="#cb10-304"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
-<span id="cb10-305"><a href="#cb10-305"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb10-306"><a href="#cb10-306"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb10-307"><a href="#cb10-307"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2"></a>─ Session info ───────────────────────────────────────────────────────────────</span>
+<span id="cb12-3"><a href="#cb12-3"></a> setting  value                       </span>
+<span id="cb12-4"><a href="#cb12-4"></a> version  R version <span class="dv">3</span>.<span class="fl">6.2</span> (<span class="dv">2019-12-12</span>)</span>
+<span id="cb12-5"><a href="#cb12-5"></a> os       Ubuntu <span class="dv">16</span>.<span class="fl">04.6</span> LTS          </span>
+<span id="cb12-6"><a href="#cb12-6"></a> system   x86_<span class="dv">64</span>, linux<span class="op">-</span>gnu           </span>
+<span id="cb12-7"><a href="#cb12-7"></a> ui       X11                         </span>
+<span id="cb12-8"><a href="#cb12-8"></a> <span class="kw">language</span> (EN)                        </span>
+<span id="cb12-9"><a href="#cb12-9"></a> collate  en_US.UTF<span class="dv">-8</span>                 </span>
+<span id="cb12-10"><a href="#cb12-10"></a> ctype    en_US.UTF<span class="dv">-8</span>                 </span>
+<span id="cb12-11"><a href="#cb12-11"></a> tz       Europe<span class="op">/</span>Zurich               </span>
+<span id="cb12-12"><a href="#cb12-12"></a> date     <span class="dv">2020-06-04</span>                  </span>
+<span id="cb12-13"><a href="#cb12-13"></a></span>
+<span id="cb12-14"><a href="#cb12-14"></a>─ Packages ───────────────────────────────────────────────────────────────────</span>
+<span id="cb12-15"><a href="#cb12-15"></a> package                            <span class="op">*</span><span class="st"> </span>version    date       lib</span>
+<span id="cb12-16"><a href="#cb12-16"></a> acepack                              <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2016-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-17"><a href="#cb12-17"></a> annotate                             <span class="dv">1</span>.<span class="fl">64.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-18"><a href="#cb12-18"></a> AnnotationDbi                      <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">48.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-19"><a href="#cb12-19"></a> askpass                              <span class="fl">1.1</span>        <span class="dv">2019-01-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-20"><a href="#cb12-20"></a> assertthat                           <span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2019-03-21</span> [<span class="dv">1</span>]</span>
+<span id="cb12-21"><a href="#cb12-21"></a> backports                            <span class="dv">1</span>.<span class="fl">1.7</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-22"><a href="#cb12-22"></a> base64enc                            <span class="fl">0.1</span><span class="dv">-3</span>      <span class="dv">2015-07-28</span> [<span class="dv">1</span>]</span>
+<span id="cb12-23"><a href="#cb12-23"></a> Biobase                            <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-24"><a href="#cb12-24"></a> BiocFileCache                        <span class="dv">1</span>.<span class="fl">10.2</span>     <span class="dv">2019-11-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-25"><a href="#cb12-25"></a> BiocGenerics                       <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-26"><a href="#cb12-26"></a> BiocManager                          <span class="dv">1</span>.<span class="fl">30.10</span>    <span class="dv">2019-11-16</span> [<span class="dv">1</span>]</span>
+<span id="cb12-27"><a href="#cb12-27"></a> BiocParallel                       <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.1</span>     <span class="dv">2019-12-21</span> [<span class="dv">1</span>]</span>
+<span id="cb12-28"><a href="#cb12-28"></a> biomaRt                              <span class="dv">2</span>.<span class="fl">42.1</span>     <span class="dv">2020-03-26</span> [<span class="dv">1</span>]</span>
+<span id="cb12-29"><a href="#cb12-29"></a> Biostrings                           <span class="dv">2</span>.<span class="fl">54.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-30"><a href="#cb12-30"></a> bit                                  <span class="fl">1.1-15.2</span>   <span class="dv">2020-02-10</span> [<span class="dv">1</span>]</span>
+<span id="cb12-31"><a href="#cb12-31"></a> bit64                                <span class="fl">0.9</span><span class="dv">-7</span>      <span class="dv">2017-05-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-32"><a href="#cb12-32"></a> bitops                               <span class="fl">1.0</span><span class="dv">-6</span>      <span class="dv">2013-08-17</span> [<span class="dv">1</span>]</span>
+<span id="cb12-33"><a href="#cb12-33"></a> blob                                 <span class="dv">1</span>.<span class="fl">2.1</span>      <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-34"><a href="#cb12-34"></a> bookdown                             <span class="fl">0.18</span>       <span class="dv">2020-03-05</span> [<span class="dv">1</span>]</span>
+<span id="cb12-35"><a href="#cb12-35"></a> boot                                 <span class="fl">1.3</span><span class="dv">-24</span>     <span class="dv">2019-12-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-36"><a href="#cb12-36"></a> broom                                <span class="dv">0</span>.<span class="fl">5.6</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-37"><a href="#cb12-37"></a> callr                                <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-03-28</span> [<span class="dv">1</span>]</span>
+<span id="cb12-38"><a href="#cb12-38"></a> caTools                              <span class="dv">1</span>.<span class="fl">18.0</span>     <span class="dv">2020-01-17</span> [<span class="dv">1</span>]</span>
+<span id="cb12-39"><a href="#cb12-39"></a> cellranger                           <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2016-07-27</span> [<span class="dv">1</span>]</span>
+<span id="cb12-40"><a href="#cb12-40"></a> checkmate                            <span class="dv">2</span>.<span class="fl">0.0</span>      <span class="dv">2020-02-06</span> [<span class="dv">1</span>]</span>
+<span id="cb12-41"><a href="#cb12-41"></a> ChIPseeker                         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2019-12-23</span> [<span class="dv">1</span>]</span>
+<span id="cb12-42"><a href="#cb12-42"></a> cli                                  <span class="dv">2</span>.<span class="fl">0.2</span>      <span class="dv">2020-02-28</span> [<span class="dv">1</span>]</span>
+<span id="cb12-43"><a href="#cb12-43"></a> cluster                              <span class="dv">2</span>.<span class="fl">1.0</span>      <span class="dv">2019-06-19</span> [<span class="dv">1</span>]</span>
+<span id="cb12-44"><a href="#cb12-44"></a> colorspace                           <span class="fl">1.4</span><span class="dv">-1</span>      <span class="dv">2019-03-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-45"><a href="#cb12-45"></a> cowplot                              <span class="dv">1</span>.<span class="fl">0.0</span>      <span class="dv">2019-07-11</span> [<span class="dv">1</span>]</span>
+<span id="cb12-46"><a href="#cb12-46"></a> crayon                               <span class="dv">1</span>.<span class="fl">3.4</span>      <span class="dv">2017-09-16</span> [<span class="dv">1</span>]</span>
+<span id="cb12-47"><a href="#cb12-47"></a> csaw                               <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-48"><a href="#cb12-48"></a> curl                                 <span class="fl">4.3</span>        <span class="dv">2019-12-02</span> [<span class="dv">1</span>]</span>
+<span id="cb12-49"><a href="#cb12-49"></a> data.table                         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">12.8</span>     <span class="dv">2019-12-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-50"><a href="#cb12-50"></a> DBI                                  <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2019-12-15</span> [<span class="dv">1</span>]</span>
+<span id="cb12-51"><a href="#cb12-51"></a> dbplyr                               <span class="dv">1</span>.<span class="fl">4.3</span>      <span class="dv">2020-04-19</span> [<span class="dv">1</span>]</span>
+<span id="cb12-52"><a href="#cb12-52"></a> DelayedArray                       <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">12.3</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-53"><a href="#cb12-53"></a> desc                                 <span class="dv">1</span>.<span class="fl">2.0</span>      <span class="dv">2018-05-01</span> [<span class="dv">1</span>]</span>
+<span id="cb12-54"><a href="#cb12-54"></a> DESeq2                               <span class="dv">1</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-55"><a href="#cb12-55"></a> devtools                             <span class="dv">2</span>.<span class="fl">3.0</span>      <span class="dv">2020-04-10</span> [<span class="dv">1</span>]</span>
+<span id="cb12-56"><a href="#cb12-56"></a> digest                               <span class="dv">0</span>.<span class="fl">6.25</span>     <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
+<span id="cb12-57"><a href="#cb12-57"></a> DO.db                                <span class="fl">2.9</span>        <span class="dv">2019-07-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-58"><a href="#cb12-58"></a> DOSE                                 <span class="dv">3</span>.<span class="fl">12.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-59"><a href="#cb12-59"></a> dplyr                              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">8.5</span>      <span class="dv">2020-03-07</span> [<span class="dv">1</span>]</span>
+<span id="cb12-60"><a href="#cb12-60"></a> edgeR                              <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">28.1</span>     <span class="dv">2020-02-26</span> [<span class="dv">1</span>]</span>
+<span id="cb12-61"><a href="#cb12-61"></a> ellipsis                             <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2020-05-15</span> [<span class="dv">1</span>]</span>
+<span id="cb12-62"><a href="#cb12-62"></a> enrichplot                           <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2019-12-16</span> [<span class="dv">1</span>]</span>
+<span id="cb12-63"><a href="#cb12-63"></a> europepmc                            <span class="fl">0.3</span>        <span class="dv">2018-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-64"><a href="#cb12-64"></a> evaluate                             <span class="fl">0.14</span>       <span class="dv">2019-05-28</span> [<span class="dv">1</span>]</span>
+<span id="cb12-65"><a href="#cb12-65"></a> fansi                                <span class="dv">0</span>.<span class="fl">4.1</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-66"><a href="#cb12-66"></a> farver                               <span class="dv">2</span>.<span class="fl">0.3</span>      <span class="dv">2020-01-16</span> [<span class="dv">1</span>]</span>
+<span id="cb12-67"><a href="#cb12-67"></a> fastmatch                            <span class="fl">1.1</span><span class="dv">-0</span>      <span class="dv">2017-01-28</span> [<span class="dv">1</span>]</span>
+<span id="cb12-68"><a href="#cb12-68"></a> fgsea                                <span class="dv">1</span>.<span class="fl">12.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-69"><a href="#cb12-69"></a> forcats                            <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">5.0</span>      <span class="dv">2020-03-01</span> [<span class="dv">1</span>]</span>
+<span id="cb12-70"><a href="#cb12-70"></a> foreign                              <span class="fl">0.8</span><span class="dv">-76</span>     <span class="dv">2020-03-03</span> [<span class="dv">1</span>]</span>
+<span id="cb12-71"><a href="#cb12-71"></a> Formula                              <span class="fl">1.2</span><span class="dv">-3</span>      <span class="dv">2018-05-03</span> [<span class="dv">1</span>]</span>
+<span id="cb12-72"><a href="#cb12-72"></a> fs                                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-04-04</span> [<span class="dv">1</span>]</span>
+<span id="cb12-73"><a href="#cb12-73"></a> gdata                                <span class="dv">2</span>.<span class="fl">18.0</span>     <span class="dv">2017-06-06</span> [<span class="dv">1</span>]</span>
+<span id="cb12-74"><a href="#cb12-74"></a> genefilter                           <span class="dv">1</span>.<span class="fl">68.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-75"><a href="#cb12-75"></a> geneplotter                          <span class="dv">1</span>.<span class="fl">64.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-76"><a href="#cb12-76"></a> generics                             <span class="dv">0</span>.<span class="fl">0.2</span>      <span class="dv">2018-11-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-77"><a href="#cb12-77"></a> GenomeInfoDb                       <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2020-03-27</span> [<span class="dv">1</span>]</span>
+<span id="cb12-78"><a href="#cb12-78"></a> GenomeInfoDbData                     <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-79"><a href="#cb12-79"></a> GenomicAlignments                    <span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
+<span id="cb12-80"><a href="#cb12-80"></a> GenomicFeatures                    <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">38.2</span>     <span class="dv">2020-02-15</span> [<span class="dv">1</span>]</span>
+<span id="cb12-81"><a href="#cb12-81"></a> GenomicRanges                      <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">38.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-82"><a href="#cb12-82"></a> GEOquery                             <span class="dv">2</span>.<span class="fl">54.1</span>     <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-83"><a href="#cb12-83"></a> ggforce                              <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2019-08-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-84"><a href="#cb12-84"></a> ggplot2                            <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">3.0</span>      <span class="dv">2020-03-05</span> [<span class="dv">1</span>]</span>
+<span id="cb12-85"><a href="#cb12-85"></a> ggplotify                            <span class="dv">0</span>.<span class="fl">0.5</span>      <span class="dv">2020-03-12</span> [<span class="dv">1</span>]</span>
+<span id="cb12-86"><a href="#cb12-86"></a> ggraph                               <span class="dv">2</span>.<span class="fl">0.2</span>      <span class="dv">2020-03-17</span> [<span class="dv">1</span>]</span>
+<span id="cb12-87"><a href="#cb12-87"></a> ggrepel                              <span class="dv">0</span>.<span class="fl">8.2</span>      <span class="dv">2020-03-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-88"><a href="#cb12-88"></a> ggridges                             <span class="dv">0</span>.<span class="fl">5.2</span>      <span class="dv">2020-01-12</span> [<span class="dv">1</span>]</span>
+<span id="cb12-89"><a href="#cb12-89"></a> glue                                 <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-90"><a href="#cb12-90"></a> GO.db                                <span class="dv">3</span>.<span class="fl">10.0</span>     <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-91"><a href="#cb12-91"></a> GOSemSim                             <span class="dv">2</span>.<span class="fl">12.1</span>     <span class="dv">2020-03-19</span> [<span class="dv">1</span>]</span>
+<span id="cb12-92"><a href="#cb12-92"></a> gplots                               <span class="dv">3</span>.<span class="fl">0.3</span>      <span class="dv">2020-02-25</span> [<span class="dv">1</span>]</span>
+<span id="cb12-93"><a href="#cb12-93"></a> graphlayouts                         <span class="dv">0</span>.<span class="fl">6.0</span>      <span class="dv">2020-03-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-94"><a href="#cb12-94"></a> gridExtra                            <span class="fl">2.3</span>        <span class="dv">2017-09-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-95"><a href="#cb12-95"></a> gridGraphics                         <span class="fl">0.5</span><span class="dv">-0</span>      <span class="dv">2020-02-25</span> [<span class="dv">1</span>]</span>
+<span id="cb12-96"><a href="#cb12-96"></a> gtable                               <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2019-03-25</span> [<span class="dv">1</span>]</span>
+<span id="cb12-97"><a href="#cb12-97"></a> gtools                               <span class="dv">3</span>.<span class="fl">8.2</span>      <span class="dv">2020-03-31</span> [<span class="dv">1</span>]</span>
+<span id="cb12-98"><a href="#cb12-98"></a> gUtils                             <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-99"><a href="#cb12-99"></a> haven                                <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2019-11-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-100"><a href="#cb12-100"></a> Hmisc                                <span class="fl">4.4</span><span class="dv">-0</span>      <span class="dv">2020-03-23</span> [<span class="dv">1</span>]</span>
+<span id="cb12-101"><a href="#cb12-101"></a> hms                                  <span class="dv">0</span>.<span class="fl">5.3</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-102"><a href="#cb12-102"></a> htmlTable                            <span class="dv">1</span>.<span class="fl">13.3</span>     <span class="dv">2019-12-04</span> [<span class="dv">1</span>]</span>
+<span id="cb12-103"><a href="#cb12-103"></a> htmltools                            <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2019-10-04</span> [<span class="dv">1</span>]</span>
+<span id="cb12-104"><a href="#cb12-104"></a> htmlwidgets                          <span class="dv">1</span>.<span class="fl">5.1</span>      <span class="dv">2019-10-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-105"><a href="#cb12-105"></a> httr                                 <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2019-08-05</span> [<span class="dv">1</span>]</span>
+<span id="cb12-106"><a href="#cb12-106"></a> igraph                               <span class="dv">1</span>.<span class="dv">2</span>.<span class="fl">4.2</span>    <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
+<span id="cb12-107"><a href="#cb12-107"></a> IRanges                            <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">20.2</span>     <span class="dv">2020-01-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-108"><a href="#cb12-108"></a> jpeg                                 <span class="fl">0.1-8.1</span>    <span class="dv">2019-10-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-109"><a href="#cb12-109"></a> jsonlite                             <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-02-02</span> [<span class="dv">1</span>]</span>
+<span id="cb12-110"><a href="#cb12-110"></a> KernSmooth                           <span class="fl">2.23</span><span class="dv">-16</span>    <span class="dv">2019-10-15</span> [<span class="dv">1</span>]</span>
+<span id="cb12-111"><a href="#cb12-111"></a> knitr                                <span class="fl">1.28</span>       <span class="dv">2020-02-06</span> [<span class="dv">1</span>]</span>
+<span id="cb12-112"><a href="#cb12-112"></a> lattice                              <span class="fl">0.20</span><span class="dv">-41</span>    <span class="dv">2020-04-02</span> [<span class="dv">1</span>]</span>
+<span id="cb12-113"><a href="#cb12-113"></a> latticeExtra                         <span class="fl">0.6</span><span class="dv">-29</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
+<span id="cb12-114"><a href="#cb12-114"></a> lifecycle                            <span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-03-06</span> [<span class="dv">1</span>]</span>
+<span id="cb12-115"><a href="#cb12-115"></a> limma                              <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">42.2</span>     <span class="dv">2020-02-03</span> [<span class="dv">1</span>]</span>
+<span id="cb12-116"><a href="#cb12-116"></a> locfit                               <span class="fl">1.5-9.4</span>    <span class="dv">2020-03-25</span> [<span class="dv">1</span>]</span>
+<span id="cb12-117"><a href="#cb12-117"></a> lubridate                            <span class="dv">1</span>.<span class="fl">7.8</span>      <span class="dv">2020-04-06</span> [<span class="dv">1</span>]</span>
+<span id="cb12-118"><a href="#cb12-118"></a> magrittr                             <span class="fl">1.5</span>        <span class="dv">2014-11-22</span> [<span class="dv">1</span>]</span>
+<span id="cb12-119"><a href="#cb12-119"></a> MASS                                 <span class="fl">7.3-51.5</span>   <span class="dv">2019-12-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-120"><a href="#cb12-120"></a> Matrix                               <span class="fl">1.2</span><span class="dv">-18</span>     <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
+<span id="cb12-121"><a href="#cb12-121"></a> matrixStats                        <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">56.0</span>     <span class="dv">2020-03-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-122"><a href="#cb12-122"></a> memoise                              <span class="dv">1</span>.<span class="dv">1</span>.<span class="fl">0.9000</span> <span class="dv">2020-05-06</span> [<span class="dv">1</span>]</span>
+<span id="cb12-123"><a href="#cb12-123"></a> modelr                               <span class="dv">0</span>.<span class="fl">1.6</span>      <span class="dv">2020-02-22</span> [<span class="dv">1</span>]</span>
+<span id="cb12-124"><a href="#cb12-124"></a> munsell                              <span class="dv">0</span>.<span class="fl">5.0</span>      <span class="dv">2018-06-12</span> [<span class="dv">1</span>]</span>
+<span id="cb12-125"><a href="#cb12-125"></a> nlme                                 <span class="fl">3.1</span><span class="dv">-147</span>    <span class="dv">2020-04-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-126"><a href="#cb12-126"></a> nnet                                 <span class="fl">7.3</span><span class="dv">-13</span>     <span class="dv">2020-02-25</span> [<span class="dv">1</span>]</span>
+<span id="cb12-127"><a href="#cb12-127"></a> openssl                              <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2019-07-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-128"><a href="#cb12-128"></a> org.Mm.eg.db                       <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">10.0</span>     <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-129"><a href="#cb12-129"></a> pillar                               <span class="dv">1</span>.<span class="fl">4.4</span>      <span class="dv">2020-05-05</span> [<span class="dv">1</span>]</span>
+<span id="cb12-130"><a href="#cb12-130"></a> pkgbuild                             <span class="dv">1</span>.<span class="fl">0.8</span>      <span class="dv">2020-05-07</span> [<span class="dv">1</span>]</span>
+<span id="cb12-131"><a href="#cb12-131"></a> pkgconfig                            <span class="dv">2</span>.<span class="fl">0.3</span>      <span class="dv">2019-09-22</span> [<span class="dv">1</span>]</span>
+<span id="cb12-132"><a href="#cb12-132"></a> pkgload                              <span class="dv">1</span>.<span class="fl">0.2</span>      <span class="dv">2018-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-133"><a href="#cb12-133"></a> plgINS                             <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">1.5</span>      <span class="dv">2020-04-30</span> [<span class="dv">1</span>]</span>
+<span id="cb12-134"><a href="#cb12-134"></a> plotrix                              <span class="fl">3.7</span><span class="dv">-8</span>      <span class="dv">2020-04-16</span> [<span class="dv">1</span>]</span>
+<span id="cb12-135"><a href="#cb12-135"></a> plyr                                 <span class="dv">1</span>.<span class="fl">8.6</span>      <span class="dv">2020-03-03</span> [<span class="dv">1</span>]</span>
+<span id="cb12-136"><a href="#cb12-136"></a> png                                  <span class="fl">0.1</span><span class="dv">-7</span>      <span class="dv">2013-12-03</span> [<span class="dv">1</span>]</span>
+<span id="cb12-137"><a href="#cb12-137"></a> polyclip                             <span class="fl">1.10</span><span class="dv">-0</span>     <span class="dv">2019-04-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-138"><a href="#cb12-138"></a> prettyunits                          <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-139"><a href="#cb12-139"></a> processx                             <span class="dv">3</span>.<span class="fl">4.2</span>      <span class="dv">2020-02-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-140"><a href="#cb12-140"></a> progress                             <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-05-16</span> [<span class="dv">1</span>]</span>
+<span id="cb12-141"><a href="#cb12-141"></a> ps                                   <span class="dv">1</span>.<span class="fl">3.3</span>      <span class="dv">2020-05-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-142"><a href="#cb12-142"></a> purrr                              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">3.4</span>      <span class="dv">2020-04-17</span> [<span class="dv">1</span>]</span>
+<span id="cb12-143"><a href="#cb12-143"></a> qvalue                               <span class="dv">2</span>.<span class="fl">18.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-144"><a href="#cb12-144"></a> R.methodsS3                          <span class="dv">1</span>.<span class="fl">8.0</span>      <span class="dv">2020-02-14</span> [<span class="dv">1</span>]</span>
+<span id="cb12-145"><a href="#cb12-145"></a> R.oo                                 <span class="dv">1</span>.<span class="fl">23.0</span>     <span class="dv">2019-11-03</span> [<span class="dv">1</span>]</span>
+<span id="cb12-146"><a href="#cb12-146"></a> R.utils                              <span class="dv">2</span>.<span class="fl">9.2</span>      <span class="dv">2019-12-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-147"><a href="#cb12-147"></a> R6                                   <span class="dv">2</span>.<span class="fl">4.1</span>      <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
+<span id="cb12-148"><a href="#cb12-148"></a> rappdirs                             <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2016-03-28</span> [<span class="dv">1</span>]</span>
+<span id="cb12-149"><a href="#cb12-149"></a> RColorBrewer                         <span class="fl">1.1</span><span class="dv">-2</span>      <span class="dv">2014-12-07</span> [<span class="dv">1</span>]</span>
+<span id="cb12-150"><a href="#cb12-150"></a> Rcpp                                 <span class="dv">1</span>.<span class="dv">0</span>.<span class="fl">4.6</span>    <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-151"><a href="#cb12-151"></a> RCurl                                <span class="fl">1.98-1.2</span>   <span class="dv">2020-04-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-152"><a href="#cb12-152"></a> readr                              <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">3.1</span>      <span class="dv">2018-12-21</span> [<span class="dv">1</span>]</span>
+<span id="cb12-153"><a href="#cb12-153"></a> readxl                               <span class="dv">1</span>.<span class="fl">3.1</span>      <span class="dv">2019-03-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-154"><a href="#cb12-154"></a> remotes                              <span class="dv">2</span>.<span class="fl">1.1</span>      <span class="dv">2020-02-15</span> [<span class="dv">1</span>]</span>
+<span id="cb12-155"><a href="#cb12-155"></a> reprex                               <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2019-05-16</span> [<span class="dv">1</span>]</span>
+<span id="cb12-156"><a href="#cb12-156"></a> reshape2                             <span class="dv">1</span>.<span class="fl">4.4</span>      <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-157"><a href="#cb12-157"></a> rlang                                <span class="dv">0</span>.<span class="fl">4.6</span>      <span class="dv">2020-05-02</span> [<span class="dv">1</span>]</span>
+<span id="cb12-158"><a href="#cb12-158"></a> rmarkdown                            <span class="fl">2.1</span>        <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-159"><a href="#cb12-159"></a> rmdformats                           <span class="dv">0</span>.<span class="fl">3.7</span>      <span class="dv">2020-03-11</span> [<span class="dv">1</span>]</span>
+<span id="cb12-160"><a href="#cb12-160"></a> rpart                                <span class="fl">4.1</span><span class="dv">-15</span>     <span class="dv">2019-04-12</span> [<span class="dv">1</span>]</span>
+<span id="cb12-161"><a href="#cb12-161"></a> rprojroot                            <span class="fl">1.3</span><span class="dv">-2</span>      <span class="dv">2018-01-03</span> [<span class="dv">1</span>]</span>
+<span id="cb12-162"><a href="#cb12-162"></a> Rsamtools                            <span class="dv">2</span>.<span class="fl">2.3</span>      <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
+<span id="cb12-163"><a href="#cb12-163"></a> RSQLite                              <span class="dv">2</span>.<span class="fl">1.4</span>      <span class="dv">2019-12-04</span> [<span class="dv">1</span>]</span>
+<span id="cb12-164"><a href="#cb12-164"></a> rstudioapi                           <span class="fl">0.11</span>       <span class="dv">2020-02-07</span> [<span class="dv">1</span>]</span>
+<span id="cb12-165"><a href="#cb12-165"></a> rtracklayer                          <span class="dv">1</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-166"><a href="#cb12-166"></a> rvcheck                              <span class="dv">0</span>.<span class="fl">1.8</span>      <span class="dv">2020-03-01</span> [<span class="dv">1</span>]</span>
+<span id="cb12-167"><a href="#cb12-167"></a> rvest                                <span class="dv">0</span>.<span class="fl">3.5</span>      <span class="dv">2019-11-08</span> [<span class="dv">1</span>]</span>
+<span id="cb12-168"><a href="#cb12-168"></a> S4Vectors                          <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">24.4</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb12-169"><a href="#cb12-169"></a> scales                               <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2020-05-11</span> [<span class="dv">1</span>]</span>
+<span id="cb12-170"><a href="#cb12-170"></a> sessioninfo                          <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2018-11-05</span> [<span class="dv">1</span>]</span>
+<span id="cb12-171"><a href="#cb12-171"></a> SRAdb                                <span class="dv">1</span>.<span class="fl">48.2</span>     <span class="dv">2019-12-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-172"><a href="#cb12-172"></a> stringi                              <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-02-17</span> [<span class="dv">1</span>]</span>
+<span id="cb12-173"><a href="#cb12-173"></a> stringr                            <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">4.0</span>      <span class="dv">2019-02-10</span> [<span class="dv">1</span>]</span>
+<span id="cb12-174"><a href="#cb12-174"></a> SummarizedExperiment               <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">16.1</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
+<span id="cb12-175"><a href="#cb12-175"></a> survival                             <span class="fl">3.1</span><span class="dv">-12</span>     <span class="dv">2020-04-10</span> [<span class="dv">1</span>]</span>
+<span id="cb12-176"><a href="#cb12-176"></a> testthat                             <span class="dv">2</span>.<span class="fl">3.2</span>      <span class="dv">2020-03-02</span> [<span class="dv">1</span>]</span>
+<span id="cb12-177"><a href="#cb12-177"></a> tibble                             <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">0.1</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-178"><a href="#cb12-178"></a> tidygraph                            <span class="dv">1</span>.<span class="fl">1.2</span>      <span class="dv">2019-02-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-179"><a href="#cb12-179"></a> tidyr                              <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.2</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-180"><a href="#cb12-180"></a> tidyselect                           <span class="dv">1</span>.<span class="fl">0.0</span>      <span class="dv">2020-01-27</span> [<span class="dv">1</span>]</span>
+<span id="cb12-181"><a href="#cb12-181"></a> tidyverse                          <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">3.0</span>      <span class="dv">2019-11-21</span> [<span class="dv">1</span>]</span>
+<span id="cb12-182"><a href="#cb12-182"></a> triebeard                            <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2016-08-04</span> [<span class="dv">1</span>]</span>
+<span id="cb12-183"><a href="#cb12-183"></a> tweenr                               <span class="dv">1</span>.<span class="fl">0.1</span>      <span class="dv">2018-12-14</span> [<span class="dv">1</span>]</span>
+<span id="cb12-184"><a href="#cb12-184"></a> TxDb.Hsapiens.UCSC.hg19.knownGene    <span class="dv">3</span>.<span class="fl">2.2</span>      <span class="dv">2019-07-24</span> [<span class="dv">1</span>]</span>
+<span id="cb12-185"><a href="#cb12-185"></a> TxDb.Mmusculus.UCSC.mm10.knownGene <span class="op">*</span><span class="st"> </span><span class="dv">3</span>.<span class="fl">10.0</span>     <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
+<span id="cb12-186"><a href="#cb12-186"></a> urltools                             <span class="dv">1</span>.<span class="fl">7.3</span>      <span class="dv">2019-04-14</span> [<span class="dv">1</span>]</span>
+<span id="cb12-187"><a href="#cb12-187"></a> usethis                              <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-04-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-188"><a href="#cb12-188"></a> vctrs                                <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2020-05-11</span> [<span class="dv">1</span>]</span>
+<span id="cb12-189"><a href="#cb12-189"></a> viridis                              <span class="dv">0</span>.<span class="fl">5.1</span>      <span class="dv">2018-03-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-190"><a href="#cb12-190"></a> viridisLite                          <span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2018-02-01</span> [<span class="dv">1</span>]</span>
+<span id="cb12-191"><a href="#cb12-191"></a> withr                                <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-192"><a href="#cb12-192"></a> writexl                              <span class="fl">1.2</span>        <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
+<span id="cb12-193"><a href="#cb12-193"></a> xfun                                 <span class="fl">0.13</span>       <span class="dv">2020-04-13</span> [<span class="dv">1</span>]</span>
+<span id="cb12-194"><a href="#cb12-194"></a> XML                                  <span class="fl">3.99-0.3</span>   <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
+<span id="cb12-195"><a href="#cb12-195"></a> xml2                                 <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
+<span id="cb12-196"><a href="#cb12-196"></a> xtable                               <span class="fl">1.8</span><span class="dv">-4</span>      <span class="dv">2019-04-21</span> [<span class="dv">1</span>]</span>
+<span id="cb12-197"><a href="#cb12-197"></a> XVector                              <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-198"><a href="#cb12-198"></a> yaml                                 <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
+<span id="cb12-199"><a href="#cb12-199"></a> zlibbioc                             <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb12-200"><a href="#cb12-200"></a> source                         </span>
+<span id="cb12-201"><a href="#cb12-201"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-202"><a href="#cb12-202"></a> Bioconductor                   </span>
+<span id="cb12-203"><a href="#cb12-203"></a> Bioconductor                   </span>
+<span id="cb12-204"><a href="#cb12-204"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-205"><a href="#cb12-205"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-206"><a href="#cb12-206"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-207"><a href="#cb12-207"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-208"><a href="#cb12-208"></a> Bioconductor                   </span>
+<span id="cb12-209"><a href="#cb12-209"></a> Bioconductor                   </span>
+<span id="cb12-210"><a href="#cb12-210"></a> Bioconductor                   </span>
+<span id="cb12-211"><a href="#cb12-211"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-212"><a href="#cb12-212"></a> Bioconductor                   </span>
+<span id="cb12-213"><a href="#cb12-213"></a> Bioconductor                   </span>
+<span id="cb12-214"><a href="#cb12-214"></a> Bioconductor                   </span>
+<span id="cb12-215"><a href="#cb12-215"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-216"><a href="#cb12-216"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-217"><a href="#cb12-217"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-218"><a href="#cb12-218"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-219"><a href="#cb12-219"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-220"><a href="#cb12-220"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-221"><a href="#cb12-221"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-222"><a href="#cb12-222"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-223"><a href="#cb12-223"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-224"><a href="#cb12-224"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-225"><a href="#cb12-225"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-226"><a href="#cb12-226"></a> Bioconductor                   </span>
+<span id="cb12-227"><a href="#cb12-227"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-228"><a href="#cb12-228"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-229"><a href="#cb12-229"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-230"><a href="#cb12-230"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-231"><a href="#cb12-231"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-232"><a href="#cb12-232"></a> Bioconductor                   </span>
+<span id="cb12-233"><a href="#cb12-233"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-234"><a href="#cb12-234"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-235"><a href="#cb12-235"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-236"><a href="#cb12-236"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-237"><a href="#cb12-237"></a> Bioconductor                   </span>
+<span id="cb12-238"><a href="#cb12-238"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-239"><a href="#cb12-239"></a> Bioconductor                   </span>
+<span id="cb12-240"><a href="#cb12-240"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-241"><a href="#cb12-241"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-242"><a href="#cb12-242"></a> Bioconductor                   </span>
+<span id="cb12-243"><a href="#cb12-243"></a> Bioconductor                   </span>
+<span id="cb12-244"><a href="#cb12-244"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-245"><a href="#cb12-245"></a> Bioconductor                   </span>
+<span id="cb12-246"><a href="#cb12-246"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-247"><a href="#cb12-247"></a> Bioconductor                   </span>
+<span id="cb12-248"><a href="#cb12-248"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-249"><a href="#cb12-249"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-250"><a href="#cb12-250"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-251"><a href="#cb12-251"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-252"><a href="#cb12-252"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-253"><a href="#cb12-253"></a> Bioconductor                   </span>
+<span id="cb12-254"><a href="#cb12-254"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-255"><a href="#cb12-255"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-256"><a href="#cb12-256"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-257"><a href="#cb12-257"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-258"><a href="#cb12-258"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-259"><a href="#cb12-259"></a> Bioconductor                   </span>
+<span id="cb12-260"><a href="#cb12-260"></a> Bioconductor                   </span>
+<span id="cb12-261"><a href="#cb12-261"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-262"><a href="#cb12-262"></a> Bioconductor                   </span>
+<span id="cb12-263"><a href="#cb12-263"></a> Bioconductor                   </span>
+<span id="cb12-264"><a href="#cb12-264"></a> Bioconductor                   </span>
+<span id="cb12-265"><a href="#cb12-265"></a> Bioconductor                   </span>
+<span id="cb12-266"><a href="#cb12-266"></a> Bioconductor                   </span>
+<span id="cb12-267"><a href="#cb12-267"></a> Bioconductor                   </span>
+<span id="cb12-268"><a href="#cb12-268"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-269"><a href="#cb12-269"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-270"><a href="#cb12-270"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-271"><a href="#cb12-271"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-272"><a href="#cb12-272"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-273"><a href="#cb12-273"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-274"><a href="#cb12-274"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-275"><a href="#cb12-275"></a> Bioconductor                   </span>
+<span id="cb12-276"><a href="#cb12-276"></a> Bioconductor                   </span>
+<span id="cb12-277"><a href="#cb12-277"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-278"><a href="#cb12-278"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-279"><a href="#cb12-279"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-280"><a href="#cb12-280"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-281"><a href="#cb12-281"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-282"><a href="#cb12-282"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-283"><a href="#cb12-283"></a> <span class="kw">Github</span> (mskilab<span class="op">/</span>gUtils<span class="op">@</span>3d5a3a9)</span>
+<span id="cb12-284"><a href="#cb12-284"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-285"><a href="#cb12-285"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-286"><a href="#cb12-286"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-287"><a href="#cb12-287"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-288"><a href="#cb12-288"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-289"><a href="#cb12-289"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-290"><a href="#cb12-290"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-291"><a href="#cb12-291"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-292"><a href="#cb12-292"></a> Bioconductor                   </span>
+<span id="cb12-293"><a href="#cb12-293"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-294"><a href="#cb12-294"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-295"><a href="#cb12-295"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-296"><a href="#cb12-296"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-297"><a href="#cb12-297"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-298"><a href="#cb12-298"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-299"><a href="#cb12-299"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-300"><a href="#cb12-300"></a> Bioconductor                   </span>
+<span id="cb12-301"><a href="#cb12-301"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-302"><a href="#cb12-302"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-303"><a href="#cb12-303"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-304"><a href="#cb12-304"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-305"><a href="#cb12-305"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-306"><a href="#cb12-306"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-307"><a href="#cb12-307"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f) </span>
+<span id="cb12-308"><a href="#cb12-308"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-309"><a href="#cb12-309"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-310"><a href="#cb12-310"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-311"><a href="#cb12-311"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-312"><a href="#cb12-312"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-313"><a href="#cb12-313"></a> Bioconductor                   </span>
+<span id="cb12-314"><a href="#cb12-314"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-315"><a href="#cb12-315"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-316"><a href="#cb12-316"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-317"><a href="#cb12-317"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-318"><a href="#cb12-318"></a> local                          </span>
+<span id="cb12-319"><a href="#cb12-319"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-320"><a href="#cb12-320"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-321"><a href="#cb12-321"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-322"><a href="#cb12-322"></a> local                          </span>
+<span id="cb12-323"><a href="#cb12-323"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-324"><a href="#cb12-324"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-325"><a href="#cb12-325"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-326"><a href="#cb12-326"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-327"><a href="#cb12-327"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-328"><a href="#cb12-328"></a> Bioconductor                   </span>
+<span id="cb12-329"><a href="#cb12-329"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-330"><a href="#cb12-330"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-331"><a href="#cb12-331"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-332"><a href="#cb12-332"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-333"><a href="#cb12-333"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-334"><a href="#cb12-334"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-335"><a href="#cb12-335"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-336"><a href="#cb12-336"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-337"><a href="#cb12-337"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-338"><a href="#cb12-338"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-339"><a href="#cb12-339"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-340"><a href="#cb12-340"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-341"><a href="#cb12-341"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-342"><a href="#cb12-342"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-343"><a href="#cb12-343"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-344"><a href="#cb12-344"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-345"><a href="#cb12-345"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-346"><a href="#cb12-346"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-347"><a href="#cb12-347"></a> Bioconductor                   </span>
+<span id="cb12-348"><a href="#cb12-348"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-349"><a href="#cb12-349"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-350"><a href="#cb12-350"></a> Bioconductor                   </span>
+<span id="cb12-351"><a href="#cb12-351"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-352"><a href="#cb12-352"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-353"><a href="#cb12-353"></a> Bioconductor                   </span>
+<span id="cb12-354"><a href="#cb12-354"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-355"><a href="#cb12-355"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-356"><a href="#cb12-356"></a> Bioconductor                   </span>
+<span id="cb12-357"><a href="#cb12-357"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-358"><a href="#cb12-358"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-359"><a href="#cb12-359"></a> Bioconductor                   </span>
+<span id="cb12-360"><a href="#cb12-360"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-361"><a href="#cb12-361"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-362"><a href="#cb12-362"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-363"><a href="#cb12-363"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-364"><a href="#cb12-364"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-365"><a href="#cb12-365"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-366"><a href="#cb12-366"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-367"><a href="#cb12-367"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-368"><a href="#cb12-368"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-369"><a href="#cb12-369"></a> Bioconductor                   </span>
+<span id="cb12-370"><a href="#cb12-370"></a> Bioconductor                   </span>
+<span id="cb12-371"><a href="#cb12-371"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-372"><a href="#cb12-372"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-373"><a href="#cb12-373"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-374"><a href="#cb12-374"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-375"><a href="#cb12-375"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-376"><a href="#cb12-376"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-377"><a href="#cb12-377"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-378"><a href="#cb12-378"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-379"><a href="#cb12-379"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-380"><a href="#cb12-380"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-381"><a href="#cb12-381"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                 </span>
+<span id="cb12-382"><a href="#cb12-382"></a> Bioconductor                   </span>
+<span id="cb12-383"><a href="#cb12-383"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                 </span>
+<span id="cb12-384"><a href="#cb12-384"></a> Bioconductor                   </span>
+<span id="cb12-385"><a href="#cb12-385"></a></span>
+<span id="cb12-386"><a href="#cb12-386"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
+<span id="cb12-387"><a href="#cb12-387"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb12-388"><a href="#cb12-388"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb12-389"><a href="#cb12-389"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
 </details>
 <p><br></p>
 </div>
