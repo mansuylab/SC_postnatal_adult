@@ -232,7 +232,7 @@ for (i in 1:length(sp_df)) {
 
   draw(
     Heatmap(
-      matrix = data.matrix(sp_df[[i]][, -1]),
+      matrix = data.matrix(sp_df[[i]][, -c(1:2)]),
       col = col, name = "Values",
       cluster_rows = FALSE, cluster_columns = FALSE,
       column_title = n,
@@ -247,7 +247,7 @@ for (i in 1:length(sp_df)) {
   pdf(file = paste0("./output/plots/", n, ".pdf"), width = 11, height = 8.5)
   draw(
     Heatmap(
-      matrix = data.matrix(sp_df[[i]][, -1]),
+      matrix = data.matrix(sp_df[[i]][, -c(1:2)]),
       col = col, name = "Values",
       cluster_rows = FALSE, cluster_columns = FALSE,
       column_title = n,
@@ -273,9 +273,13 @@ for (i in 1:length(sp_df)) {
 }
 ```
 
+# Save objects
+```{r overlap-matrix-heatmap-14 }
+save(df, sp_df, file = "output/overlap_tables.RData")
+```
 
 # SessionInfo
-```{r overlap-matrix-heatmap-14 }
+```{r overlap-matrix-heatmap-15 }
 devtools::session_info() %>%
   details::details()
 ```
