@@ -275,7 +275,7 @@ for (i in 1:length(sp_df)) {
 
 # Save objects
 ```{r overlap-matrix-heatmap-14 }
-save(df, sp_df, file = "output/overlap_tables.RData")
+save(mat, df, sp_df, file = "output/overlap_tables.RData")
 ```
 
 # SessionInfo
