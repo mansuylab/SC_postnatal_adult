@@ -1,6 +1,6 @@
 ---
 title: "Overlap matrix heatmap"
-author: "Deepak Tanwar"
+author: "Deepak Tanwar, Pierre-Luc Germain"
 date: "<b>Created on:</b> 2020-06-03 <br> <b>Updated on:</b> `r Sys.Date()`"
 output:
   rmdformats::readthedown:
@@ -24,7 +24,7 @@ link-citations: yes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = TRUE)
 ```
 
 Reproducing heatmap from [issues/28#issuecomment-636012185](https://github.com/mansuylab/SC_controls/issues/28#issuecomment-636012185)
@@ -81,7 +81,7 @@ pheatmap(prom,
 # Subset data
 
 ## Level 1
-```{r overlap-matrix-heatmap-5}
+```{r overlap-matrix-heatmap-5 }
 # Distal
 mat$isDistal <- abs(mat$distanceToTSS) > 2500
 
@@ -93,19 +93,19 @@ mat$isProximalActive <- !is.na(mat$RNA_PND15_vs_Adult_AveExpr)
 ```
 
 ## Level 2
-```{r overlap-matrix-heatmap-6}
+```{r overlap-matrix-heatmap-6 }
 mat$accUp <- mat$`diffAccessibility-logFC` > 0
 # mat$accDown <- mat$`diffAccessibility-logFC` < 0
 ```
 
 ## Level 3
-```{r overlap-matrix-heatmap-7}
+```{r overlap-matrix-heatmap-7 }
 mat$expUp <- mat$RNA_PND15_vs_Adult_logFC > 0
 # mat$expDown <- mat$RNA_PND15_vs_Adult_logFC < 0
 ```
 
 ## Level 4
-```{r overlap-matrix-heatmap-8}
+```{r overlap-matrix-heatmap-8 }
 # H3K4me3
 mat$H3K4me3 <- mat$ChIP_PNW8_H3K4me3
 
@@ -120,7 +120,7 @@ rownames(mat) <- mat$Name
 
 
 # Split matrix
-```{r overlap-matrix-heatmap-9}
+```{r overlap-matrix-heatmap-9 }
 # select the columns according to which we want to split
 mat2 <- mat[, 74:80]
 # for distal sites, we don't want to look at RNA:
@@ -163,6 +163,8 @@ s3 <- lapply(s2, function(x) data.frame(Name = rownames(x), x))
 df <- plyr::ldply(s3, data.frame)
 colnames(df)[1] <- "anno"
 rownames(df) <- df$Name
+
+sp_df <- split(x = df, f = df$anno)
 ```
 
 # Heatmap
@@ -194,7 +196,7 @@ draw(
 
 ## Individual plots {.tabset .tabset-dropdown}
 
-```{r overlap-matrix-heatmap-11}
+```{r overlap-matrix-heatmap-11 }
 make_DT <- function(df) {
   df <- data.frame(df, stringsAsFactors = F, check.names = F)
   DT::datatable(
@@ -215,69 +217,59 @@ make_DT <- function(df) {
 }
 ```
 
-
 ```{r overlap-matrix-heatmap-12, echo=FALSE,include = FALSE}
 make_DT(matrix())
 ```
 
 ```{r overlap-matrix-heatmap-13, results='asis', fig.align='center', fig.height=8.5, fig.width=11, warning=FALSE}
-
-for (i in 1:length(s3)) {
-  n <- names(s3)[i]
-  col <- c(brewer.pal(n = 3, name = "Set1")[1:2], "grey")
-
-  lgd <- Legend(
-    labels = c("TRUE", "FALSE", "NA"), legend_gp = gpar(fill = col[c(2, 1, 3)]), title = "Status",
-    title_gp = gpar(col = "Blue", fontsize = 14)
-  )
+for (i in 1:length(sp_df)) {
+# for (i in 1:24) {
+  n <- names(sp_df)[i]
 
   cat("### ", n, "{.tabset .tabset-pills} \n\n\n")
 
   cat("#### Heatmap \n\n\n")
 
-  try(
-    draw(
-      Heatmap(
-        matrix = data.matrix(s3[[i]][, -1]),
-        col = col, name = "Values",
-        cluster_rows = FALSE, cluster_columns = FALSE,
-        column_title = n,
-        show_row_names = FALSE,
-        show_heatmap_legend = FALSE
-      ),
-      heatmap_legend_list = lgd
-    )
+  draw(
+    Heatmap(
+      matrix = data.matrix(sp_df[[i]][, -1]),
+      col = col, name = "Values",
+      cluster_rows = FALSE, cluster_columns = FALSE,
+      column_title = n,
+      show_row_names = FALSE,
+      show_heatmap_legend = FALSE
+    ),
+    heatmap_legend_list = lgd
   )
 
-
+  cat("\n\n\n")
+  
   pdf(file = paste0("./output/plots/", n, ".pdf"), width = 11, height = 8.5)
-  try(
-    draw(
-      Heatmap(
-        matrix = data.matrix(s3[[i]][, -1]),
-        col = col, name = "Values",
-        cluster_rows = FALSE, cluster_columns = FALSE,
-        column_title = n,
-        show_row_names = FALSE,
-        show_heatmap_legend = FALSE
-      ),
-      heatmap_legend_list = lgd
-    )
+  draw(
+    Heatmap(
+      matrix = data.matrix(sp_df[[i]][, -1]),
+      col = col, name = "Values",
+      cluster_rows = FALSE, cluster_columns = FALSE,
+      column_title = n,
+      show_row_names = FALSE,
+      show_heatmap_legend = FALSE
+    ),
+    heatmap_legend_list = lgd
   )
- 
-   dev.off()
+  dev.off()
 
   cat("\n\n\n")
 
   cat("#### Table \n\n\n")
 
-  tab <- inner_join(mat[, 1:73], s3[[i]])
-
-  writexl::write_xlsx(x = tab, path = paste0("./output/tables/", n, ".xlsx"), col_names = T, format_headers = T)
+  tab <- inner_join(mat[, 1:73], sp_df[[i]])
 
   print(htmltools::tagList(make_DT(tab)))
 
   cat("\n\n\n")
+  
+  writexl::write_xlsx(x = tab, path = paste0("./output/tables/", n, ".xlsx"), col_names = T, format_headers = T)
+
 }
 ```
 

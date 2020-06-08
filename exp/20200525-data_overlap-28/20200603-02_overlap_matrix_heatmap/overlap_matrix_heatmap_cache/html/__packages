@@ -1,0 +1,7 @@
+base
+SEtools
+pheatmap
+dplyr
+ComplexHeatmap
+RColorBrewer
+DT
