@@ -158,21 +158,25 @@ s1 <- splitAndName(mat2[, 1:4])
 s2 <- splitAndName(mat2)
 # sapply(s2, nrow)
 
-s3 <- lapply(s2, function(x) data.frame(Name = rownames(x), x))
+s1_1 <- lapply(s1, function(x) data.frame(Name = rownames(x), x))
+s2_1 <- lapply(s2, function(x) data.frame(Name = rownames(x), x))
 
-df <- plyr::ldply(s3, data.frame)
-colnames(df)[1] <- "anno"
-rownames(df) <- df$Name
+df_s1 <- plyr::ldply(s1_1, data.frame)
+colnames(df_s1)[1] <- "anno"
+rownames(df_s1) <- df_s1$Name
+sp_df_s1 <- split(x = df_s1, f = df_s1$anno)
 
-sp_df <- split(x = df, f = df$anno)
+df_s2 <- plyr::ldply(s2_1, data.frame)
+colnames(df_s2)[1] <- "anno"
+rownames(df_s2) <- df_s2$Name
+sp_df_s2 <- split(x = df_s2, f = df_s2$anno)
 ```
 
-# Heatmap
+# Heatmap {.tabset .tabset-pills}
 
-## All regions
+## Regions without ChIP data
 ```{r overlap-matrix-heatmap-10, fig.align='center', fig.height=8.5, fig.width=11}
-tab <- sortRows(df[, -c(1:2)], z = FALSE)
-
+tab_s1 <- sortRows(df_s1[, -c(1:2)], z = FALSE)
 
 col <- c(brewer.pal(n = 3, name = "Set1")[1:2], "grey")
 
@@ -183,20 +187,36 @@ lgd <- Legend(
 
 draw(
   Heatmap(
-    matrix = data.matrix(df[, -c(1:2)]),
+    matrix = data.matrix(df_s1[, -c(1:2)]),
     col = col,
     cluster_rows = FALSE, cluster_columns = FALSE,
-    show_row_names = FALSE, row_order = rownames(tab),
-    row_split = df$anno, name = "All regions", show_heatmap_legend = FALSE
+    show_row_names = FALSE, row_order = rownames(tab_s1),
+    row_split = df_s1$anno, name = "Regions without ChIP data", show_heatmap_legend = FALSE
+  ),
+  heatmap_legend_list = lgd
+)
+```
+
+## Regions with ChIP data
+```{r overlap-matrix-heatmap-11, fig.align='center', fig.height=8.5, fig.width=11}
+tab_s2 <- sortRows(df_s2[, -c(1:2)], z = FALSE)
+
+draw(
+  Heatmap(
+    matrix = data.matrix(df_s2[, -c(1:2)]),
+    col = col,
+    cluster_rows = FALSE, cluster_columns = FALSE,
+    show_row_names = FALSE, row_order = rownames(tab_s2),
+    row_split = df_s2$anno, name = "Regions with ChIP data", show_heatmap_legend = FALSE
   ),
   heatmap_legend_list = lgd
 )
 ```
 
 
-## Individual plots {.tabset .tabset-dropdown}
+# Individual heatmaps
 
-```{r overlap-matrix-heatmap-11 }
+```{r overlap-matrix-heatmap-12 }
 make_DT <- function(df) {
   df <- data.frame(df, stringsAsFactors = F, check.names = F)
   DT::datatable(
@@ -217,22 +237,144 @@ make_DT <- function(df) {
 }
 ```
 
-```{r overlap-matrix-heatmap-12, echo=FALSE,include = FALSE}
+```{r overlap-matrix-heatmap-13, echo=FALSE,include = FALSE}
 make_DT(matrix())
 ```
 
-```{r overlap-matrix-heatmap-13, results='asis', fig.align='center', fig.height=8.5, fig.width=11, warning=FALSE}
-for (i in 1:length(sp_df)) {
-# for (i in 1:24) {
-  n <- names(sp_df)[i]
+## Regions without ChIP data {.tabset .tabset-dropdown}
+
+```{r overlap-matrix-heatmap-14}
+get_col <- function(mat){
+  col <- c(brewer.pal(n = 3, name = "Set1")[1:2], "grey")
+  # col <- c("blue", "red", "grey")
+  v <- unique(as.vector(mat))
+  colors <- sapply(v, function(x){
+    c <- NULL
+    if(x %in% 1){
+      c <- c(true = col[2])
+    } else if(x %in% 0){
+      c <- c(false = col[1])
+    } else{
+      c <- c(na = col[3])
+    }
+    return(c)
+  })
+  return(colors)
+}
+```
+
+```{r overlap-matrix-heatmap-15, results='asis', fig.align='center', fig.height=8.5, fig.width=11, warning=FALSE}
+for (i in 1:length(sp_df_s1)) {
+  
+  n <- names(sp_df_s1)[i]
 
   cat("### ", n, "{.tabset .tabset-pills} \n\n\n")
 
   cat("#### Heatmap \n\n\n")
-
+  
+  m <- data.matrix(sp_df_s1[[i]][, -c(1:2)])
+    
+  col <- sort(get_col(m))
+  
+  lgd <- Legend(
+  labels = toupper(names(col)), legend_gp = gpar(fill = as.character(col)), title = "Status",
+  title_gp = gpar(col = "Blue", fontsize = 14)
+)
+  
+  try(
   draw(
     Heatmap(
-      matrix = data.matrix(sp_df[[i]][, -c(1:2)]),
+      matrix = m,
+      col = as.character(col)[c(2,1,3)], name = "Values",
+      cluster_rows = FALSE, cluster_columns = FALSE,
+      column_title = n,
+      show_row_names = FALSE,
+      show_heatmap_legend = FALSE
+    ),
+    heatmap_legend_list = lgd
+  )
+  )
+  
+  cat("\n\n\n")
+  
+  system("mkdir -p ./output/plots/without_ChIP")
+  
+  pdf(file = paste0("./output/plots/without_ChIP/", n, ".pdf"), width = 11, height = 8.5)
+  try(
+  draw(
+    Heatmap(
+      matrix = m,
+      col = as.character(col)[c(2,1,3)], name = "Values",
+      cluster_rows = FALSE, cluster_columns = FALSE,
+      column_title = n,
+      show_row_names = FALSE,
+      show_heatmap_legend = FALSE
+    ),
+    heatmap_legend_list = lgd
+  )
+  )
+  dev.off()
+
+  
+  cat("\n\n\n")
+
+  
+  cat("#### Table \n\n\n")
+
+  tab <- inner_join(mat[, 1:73], sp_df_s1[[i]])
+
+  print(htmltools::tagList(make_DT(tab)))
+
+  cat("\n\n\n")
+  
+  system("mkdir -p ./output/tables/without_ChIP")
+  
+  writexl::write_xlsx(x = tab, path = paste0("./output/tables/without_ChIP/", n, ".xlsx"), col_names = T, format_headers = T)
+
+}
+```
+
+## Regions with ChIP data {.tabset .tabset-dropdown}
+
+```{r overlap-matrix-heatmap-16, results='asis', fig.align='center', fig.height=8.5, fig.width=11, warning=FALSE}
+for (i in 1:length(sp_df_s2)) {
+  
+  n <- names(sp_df_s2)[i]
+
+  cat("### ", n, "{.tabset .tabset-pills} \n\n\n")
+
+  cat("#### Heatmap \n\n\n")
+  
+  m <- data.matrix(sp_df_s2[[i]][, -c(1:2)])
+    
+  col <- get_col(m)
+  
+  lgd <- Legend(
+  labels = toupper(names(col)), legend_gp = gpar(fill = as.character(col)), title = "Status",
+  title_gp = gpar(col = "Blue", fontsize = 14)
+)
+  try(
+  draw(
+    Heatmap(
+      matrix = m,
+      col = as.character(col), name = "Values",
+      cluster_rows = FALSE, cluster_columns = FALSE,
+      column_title = n,
+      show_row_names = FALSE,
+      show_heatmap_legend = FALSE
+    ),
+    heatmap_legend_list = lgd
+  )
+  )
+  cat("\n\n\n")
+  
+  system("mkdir -p ./output/plots/with_ChIP")
+  
+  pdf(file = paste0("./output/plots/with_ChIP/", n, ".pdf"), width = 11, height = 8.5)
+  try(
+  draw(
+    Heatmap(
+      matrix = m,
       col = col, name = "Values",
       cluster_rows = FALSE, cluster_columns = FALSE,
       column_title = n,
@@ -241,20 +383,6 @@ for (i in 1:length(sp_df)) {
     ),
     heatmap_legend_list = lgd
   )
-
-  cat("\n\n\n")
-  
-  pdf(file = paste0("./output/plots/", n, ".pdf"), width = 11, height = 8.5)
-  draw(
-    Heatmap(
-      matrix = data.matrix(sp_df[[i]][, -c(1:2)]),
-      col = col, name = "Values",
-      cluster_rows = FALSE, cluster_columns = FALSE,
-      column_title = n,
-      show_row_names = FALSE,
-      show_heatmap_legend = FALSE
-    ),
-    heatmap_legend_list = lgd
   )
   dev.off()
 
@@ -262,24 +390,28 @@ for (i in 1:length(sp_df)) {
 
   cat("#### Table \n\n\n")
 
-  tab <- inner_join(mat[, 1:73], sp_df[[i]])
+  tab <- inner_join(mat[, 1:73], sp_df_s2[[i]])
 
   print(htmltools::tagList(make_DT(tab)))
 
   cat("\n\n\n")
   
-  writexl::write_xlsx(x = tab, path = paste0("./output/tables/", n, ".xlsx"), col_names = T, format_headers = T)
+  system("mkdir -p ./output/tables/with_ChIP")
+  
+  writexl::write_xlsx(x = tab, path = paste0("./output/tables/with_ChIP/", n, ".xlsx"), col_names = T, format_headers = T)
 
 }
 ```
 
+
+
 # Save objects
-```{r overlap-matrix-heatmap-14 }
-save(mat, df, sp_df, file = "output/overlap_tables.RData")
+```{r overlap-matrix-heatmap-17 }
+save(mat, df_s1, df_s2, sp_df_s1, sp_df_s2, file = "output/overlap_tables.RData")
 ```
 
 # SessionInfo
-```{r overlap-matrix-heatmap-15 }
+```{r overlap-matrix-heatmap-18 }
 devtools::session_info() %>%
   details::details()
 ```
