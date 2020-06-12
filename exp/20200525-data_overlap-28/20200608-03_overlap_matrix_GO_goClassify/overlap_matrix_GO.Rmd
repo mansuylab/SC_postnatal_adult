@@ -1,0 +1,182 @@
+---
+title: "Overlap matrix GO classify"
+author: "Deepak Tanwar, Pierre-Luc Germain"
+date: "<b>Created on:</b> 2020-06-03 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = FALSE)
+```
+
+# Library
+```{r overlap-matrix-GO-1, warning = F, message = F}
+library(dplyr)
+library(plgINS)
+library(ComplexHeatmap)
+```
+
+# Data
+```{r overlap-matrix-GO-2 }
+load("input/overlap_tables.RData")
+
+list_s1 <- lapply(sp_df_s1, function(x) inner_join(mat[, 1:73], x)$SYMBOL)
+list_s2 <- lapply(sp_df_s2, function(x) inner_join(mat[, 1:73], x)$SYMBOL)
+```
+
+# GO analysis
+```{r overlap-matrix-GO-3, message=FALSE, warning=FALSE}
+go <- msigdbr::msigdbr("Mus musculus", "C5")
+go <- go[which(go$gs_subcat == "BP"), ]
+go <- split(go$gene_symbol, go$gs_name)
+go <- lapply(go, function(x) {
+  if (length(x) > 10 & length(x) < 1000) {
+    return(x)
+  }
+})
+
+go <- purrr::compact(go)
+```
+
+## Without ChIP data
+```{r overlap-matrix-GO-4}
+goc_s1 <- goclassify(list_s1, go)
+```
+
+## With ChIP data
+```{r overlap-matrix-GO-5}
+goc_s2 <- goclassify(list_s2, go)
+```
+
+
+
+# Heatmap
+
+## Without ChIP data
+```{r overlap-matrix-GO-6, fig.align='center', fig.width=22, fig.height=17}
+draw(
+  plot.goclassify(goc_s1,
+    row_names_gp = gpar(fontsize = 10),
+    column_names_gp = gpar(fontsize = 10),
+    cluster_columns = FALSE,
+    cluster_rows = TRUE,
+    what = "proportion"
+    # heatmap_legend_param = list(direction = "horizontal"),
+    # annotation_legend_param = list(direction = "horizontal")
+  ) +
+    plot.goclassify(goc_s1,
+      row_names_gp = gpar(fontsize = 10),
+      column_names_gp = gpar(fontsize = 10),
+      cluster_columns = FALSE,
+      cluster_rows = TRUE,
+      what = "log2enr"
+      # heatmap_legend_param = list(direction = "horizontal"),
+      # annotation_legend_param = list(direction = "horizontal")
+    ) +
+    plot.goclassify(goc_s1,
+      row_names_gp = gpar(fontsize = 10),
+      column_names_gp = gpar(fontsize = 10),
+      cluster_columns = FALSE,
+      cluster_rows = TRUE,
+      what = "enrichment"
+      # heatmap_legend_param = list(direction = "horizontal"),
+      # annotation_legend_param = list(direction = "horizontal")
+    ) +
+    plot.goclassify(goc_s1,
+      row_names_gp = gpar(fontsize = 10),
+      column_names_gp = gpar(fontsize = 10),
+      cluster_columns = FALSE,
+      cluster_rows = TRUE,
+      what = "jaccard"
+      # heatmap_legend_param = list(direction = "horizontal"),
+      # annotation_legend_param = list(direction = "horizontal")
+    ),
+  # heatmap_legend_side = "bottom",
+  # annotation_legend_side = "bottom"
+)
+```
+
+## With ChIP data
+```{r overlap-matrix-GO-7, fig.align='center', fig.width=22, fig.height=17}
+try(
+  draw(
+    plot.goclassify(goc_s2[goc_s2$lengths > 10],
+      row_names_gp = gpar(fontsize = 10),
+      column_names_gp = gpar(fontsize = 10),
+      cluster_columns = FALSE,
+      cluster_rows = TRUE,
+      what = "proportion"
+      # heatmap_legend_param = list(direction = "horizontal"),
+      # annotation_legend_param = list(direction = "horizontal")
+    ) +
+      plot.goclassify(goc_s2,
+        row_names_gp = gpar(fontsize = 10),
+        column_names_gp = gpar(fontsize = 10),
+        cluster_columns = FALSE,
+        cluster_rows = TRUE,
+        what = "log2enr"
+        # heatmap_legend_param = list(direction = "horizontal"),
+        # annotation_legend_param = list(direction = "horizontal")
+      ) +
+      plot.goclassify(goc_s2,
+        row_names_gp = gpar(fontsize = 10),
+        column_names_gp = gpar(fontsize = 10),
+        cluster_columns = FALSE,
+        cluster_rows = TRUE,
+        what = "enrichment"
+        # heatmap_legend_param = list(direction = "horizontal"),
+        # annotation_legend_param = list(direction = "horizontal")
+      ) +
+      plot.goclassify(goc_s2,
+        row_names_gp = gpar(fontsize = 10),
+        column_names_gp = gpar(fontsize = 10),
+        cluster_columns = FALSE,
+        cluster_rows = TRUE,
+        what = "jaccard"
+        # heatmap_legend_param = list(direction = "horizontal"),
+        # annotation_legend_param = list(direction = "horizontal")
+      ),
+    # heatmap_legend_side = "bottom",
+    # annotation_legend_side = "bottom"
+  )
+)
+```
+
+
+# Tables
+```{r overlap-matrix-GO-8 }
+data <- goc_s1
+data$lengths <- data.frame(data$lengths)
+data <- lapply(data, data.frame)
+writexl::write_xlsx(x = data, path = "output/goClassify_without_ChIP_data.xlsx", col_names = T, format_headers = T)
+
+data <- goc_s2
+data$lengths <- data.frame(data$lengths)
+data <- lapply(data, data.frame)
+writexl::write_xlsx(x = data, path = "output/goClassify_with_ChIP_data.xlsx", col_names = T, format_headers = T)
+```
+
+
+# SessionInfo
+```{r overlap-matrix-GO-9 }
+devtools::session_info() %>%
+  details::details()
+```
