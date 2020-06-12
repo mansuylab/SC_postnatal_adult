@@ -142,7 +142,7 @@ splitAndName <- function(o) {
         y,
         ifelse(x$H3K4me3, "H3K4me3", NA),
         ifelse(x$H3K27acOnly, "H3K27ac", NA),
-        ifelse(x$H3K27meOnly, "H3K27me", NA)
+        ifelse(x$H3K27me3Only, "H3K27me3", NA)
       )
     }
     paste(y[!is.na(y)], collapse = ".")
