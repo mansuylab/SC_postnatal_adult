@@ -42,6 +42,21 @@ list_s1 <- lapply(sp_df_s1, function(x) inner_join(mat[, 1:73], x)$SYMBOL)
 list_s2 <- lapply(sp_df_s2, function(x) inner_join(mat[, 1:73], x)$SYMBOL)
 ```
 
+## Filtering based on number of genes
+```{r}
+list_s1 <- purrr::compact(
+  lapply(list_s1, function(x) if (length(x) > 20) {
+    return(x)
+  })
+)
+
+list_s2 <- purrr::compact(
+  lapply(list_s2, function(x) if (length(x) > 20) {
+    return(x)
+  })
+)
+```
+
 # GO analysis
 ```{r overlap-matrix-GO-3, message=FALSE, warning=FALSE}
 go <- msigdbr::msigdbr("Mus musculus", "C5")
@@ -96,15 +111,6 @@ draw(
       column_names_gp = gpar(fontsize = 10),
       cluster_columns = FALSE,
       cluster_rows = TRUE,
-      what = "enrichment"
-      # heatmap_legend_param = list(direction = "horizontal"),
-      # annotation_legend_param = list(direction = "horizontal")
-    ) +
-    plot.goclassify(goc_s1,
-      row_names_gp = gpar(fontsize = 10),
-      column_names_gp = gpar(fontsize = 10),
-      cluster_columns = FALSE,
-      cluster_rows = TRUE,
       what = "jaccard"
       # heatmap_legend_param = list(direction = "horizontal"),
       # annotation_legend_param = list(direction = "horizontal")
@@ -133,15 +139,6 @@ try(
         cluster_columns = FALSE,
         cluster_rows = TRUE,
         what = "log2enr"
-        # heatmap_legend_param = list(direction = "horizontal"),
-        # annotation_legend_param = list(direction = "horizontal")
-      ) +
-      plot.goclassify(goc_s2,
-        row_names_gp = gpar(fontsize = 10),
-        column_names_gp = gpar(fontsize = 10),
-        cluster_columns = FALSE,
-        cluster_rows = TRUE,
-        what = "enrichment"
         # heatmap_legend_param = list(direction = "horizontal"),
         # annotation_legend_param = list(direction = "horizontal")
       ) +
