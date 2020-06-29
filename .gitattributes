@@ -51,3 +51,5 @@ log filter=fat -crlf
 *results.html filter=fat -crlf
 *.svg filter=fat -crlf
 *.motif filter=fat -crlf
+STDERR filter=fat -crlf
+STDOUT filter=fat -crlf
