@@ -55,7 +55,7 @@ incoming <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
 if (!file.exists("./output/counts.RData")) {
   txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
 
-  peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db")
+  # peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db")
 
   pa <- data.frame(
     plgINS:::annoPeaks(
@@ -65,8 +65,10 @@ if (!file.exists("./output/counts.RData")) {
     )
   )
 
-  colnames(pa)[12:ncol(pa)] <- paste(colnames(pa)[12:ncol(pa)], "pa", sep = "_")
-
+  # colnames(pa)[12:ncol(pa)] <- paste(colnames(pa)[12:ncol(pa)], "pa", sep = "_")
+  colnames(pa) <- gsub(pattern = "_pa|\\.", replacement = "", x = colnames(pa))
+  
+  
   # Reading counts from the peak regions
   counts <- regionCounts(bamFiles,
     regions = peakAnno@anno,
@@ -76,10 +78,10 @@ if (!file.exists("./output/counts.RData")) {
 
   rowData(counts) <- DataFrame(data.frame(rowRanges(counts)))
 
-  pa_c <- data.frame(rowData(counts))
-  m <- DataFrame(inner_join(pa_c, pa))
+  # pa_c <- data.frame(rowData(counts))
+  # m <- DataFrame(inner_join(pa_c, pa))
 
-  rowData(counts) <- m
+  # rowData(counts) <- m
 
   save(counts, file = "./output/counts.RData")
 } else {
@@ -238,8 +240,8 @@ pdftools::pdf_convert(pdf = "output/ma_plot.pdf", format = "png", filenames = "o
 
 ## Differential analysis results
 ```{r 20191118-differential-analysis-11 }
-data@metadata$annotation <- peakAnno
-offsets@metadata$annotation <- peakAnno
+# data@metadata$annotation <- pa
+# offsets@metadata$annotation <- pa
 save(data, offsets, file = "output/atac_diff_chromatin_accessibility.RData")
 ```
 
