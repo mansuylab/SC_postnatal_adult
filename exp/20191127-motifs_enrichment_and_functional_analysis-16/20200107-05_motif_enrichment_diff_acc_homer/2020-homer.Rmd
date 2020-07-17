@@ -1,0 +1,435 @@
+---
+title: "ATAC-Seq: HOMER"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-01-07 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r 2020-homer-1, message=FALSE, warning=FALSE}
+library(details)
+library(dplyr)
+library(marge)
+library(GenomicRanges)
+library(SummarizedExperiment)
+library(parallel)
+source("input/findMotif.R")
+```
+
+# Data
+
+```{r 2020-homer-2 }
+allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(da)[1:5] <- gsub(pattern = "Peak-", replacement = "", x = colnames(da)[1:5])
+da_f <- da[da$`diffAccessibility-qvalue` <= 0.05 & abs(da$`diffAccessibility-logFC`) >= 1, ]
+```
+
+# HOMER
+
+## Function
+
+```{r 2020-homer-3 }
+perform_homer <- function(df, FC, bg, out, fName,
+                          DB = NULL, anno = NULL,
+                          split = FALSE, sp_col = NULL) {
+  d <- NULL
+
+  if (FC == "pos") {
+    d <- df[df$`diffAccessibility-logFC` > 0, ]
+  } else if (FC == "neg") {
+    d <- df[df$`diffAccessibility-logFC` < 0, ]
+  } else {
+    d <- df
+  }
+
+  sp_d <- NULL
+  bg_n <- NULL
+
+  if (split) {
+    if (!is.null(sp_col)) {
+      d[, sp_col] <- gsub(
+        pattern = " ", replacement = "_",
+        x = d[, sp_col]
+      )
+
+      d[, sp_col] <- gsub(
+        pattern = "<=", replacement = "",
+        x = d[, sp_col]
+      )
+
+      sp_d <- split(d, d[, sp_col])
+      names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+
+      bg[, sp_col] <- gsub(
+        pattern = " ", replacement = "_",
+        x = bg[, sp_col]
+      )
+
+      bg[, sp_col] <- gsub(
+        pattern = "<=", replacement = "",
+        x = bg[, sp_col]
+      )
+
+      bg_n <- split(bg, bg[, sp_col])
+      names(bg_n) <- paste(fName, names(bg_n), sep = "-")
+    } else {
+      d$`Peak-annotation` <- gsub(
+        pattern = "\\ \\(.*|\\'", replacement = "",
+        x = d$`Peak-annotation`
+      )
+      d$`Peak-annotation` <- gsub(
+        pattern = " ", replacement = "_",
+        x = d$`Peak-annotation`
+      )
+      sp_d <- split(d, d$`Peak-annotation`)
+      names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+
+      bg$`Peak-annotation` <- gsub(
+        pattern = "\\ \\(.*|\\'", replacement = "",
+        x = bg$`Peak-annotation`
+      )
+      bg$`Peak-annotation` <- gsub(
+        pattern = " ", replacement = "_",
+        x = bg$`Peak-annotation`
+      )
+
+      bg_n <- split(bg, bg$`Peak-annotation`)
+      names(bg_n) <- paste(fName, names(bg_n), sep = "-")
+    }
+  } else {
+    sp_d <- list(d)
+    names(sp_d) <- paste(fName, sep = "/")
+
+    bg_n <- list(bg)
+    names(bg_n) <- paste(fName, sep = "/")
+  }
+
+  results_dir <- out
+
+  if (is.null(DB)) {
+    for (i in 1:length(sp_d)) {
+      x <- sp_d[[i]]
+
+      n <- names(sp_d)[i]
+
+      o <- paste0(results_dir, fName, "/", names(sp_d)[i])
+      print(o)
+
+      find_motifs_genome(
+        x = x[, c(1:3, 6, 4:5, 7:ncol(x))],
+        path = o,
+        genome = "mm10",
+        motif_length = c(8, 10, 12),
+        scan_size = 100,
+        optimize_count = 8,
+        background = bg_n[[n]],
+        local_background = FALSE,
+        only_known = FALSE, only_denovo = FALSE,
+        fdr_num = 5,
+        cores = 16, cache = 1000,
+        overwrite = TRUE, keep_minimal = FALSE
+      )
+    }
+  } else {
+    for (i in 1:length(sp_d)) {
+      x <- sp_d[[i]]
+
+      n <- names(sp_d)[i]
+
+      o <- paste0(results_dir, fName, "/", n)
+
+      if (!is.null(sp_col)) {
+        o <- paste(o, "pa", sep = "_")
+      }
+
+
+      print(o)
+      findMotifs(
+        x = x[, c(1:3, 6, 4:5, 7:ncol(x))],
+        path = o,
+        genome = "mm10",
+        motif_length = c(8, 10, 12),
+        scan_size = 100,
+        optimize_count = 8,
+        background = bg_n[[n]],
+        local_background = FALSE,
+        only_known = FALSE, only_denovo = FALSE,
+        fdr_num = 5,
+        cores = 16, cache = 1000,
+        overwrite = TRUE, keep_minimal = FALSE,
+        motif_file = DB
+      )
+
+      find_motifs_instances(
+        x = x[, c(1:3, 6, 4:5, 7:ncol(x))],
+        path = paste(o, "motifInstances.txt", sep = "/"),
+        genome = "mm10",
+        motif_file = DB
+      )
+
+      colnames(x)[1:5] <- paste("Peak", colnames(x)[1:5], sep = "-")
+
+      motifFind <- read.delim(
+        file = paste(o, "motifInstances.txt", sep = "/"),
+        header = T, sep = "\t",
+        stringsAsFactors = F, check.names = F
+      )
+      colnames(motifFind)[1] <- "Peak-Name"
+      colnames(motifFind) <- gsub(pattern = " ", replacement = "", x = colnames(motifFind))
+      colnames(motifFind)[2:ncol(motifFind)] <- paste("MotifFind",
+        colnames(motifFind)[2:ncol(motifFind)],
+        sep = "-"
+      )
+
+      motifAnno <- read.delim(
+        file = anno,
+        header = T, sep = "\t",
+        stringsAsFactors = F, check.names = F
+      )
+
+      resultsFile <- read.delim(
+        file = paste(o, "knownResults.txt", sep = "/"),
+        header = T, sep = "\t",
+        stringsAsFactors = F, check.names = F
+      )
+
+      tab1 <- merge(x = motifFind, y = x)
+      tab2 <- merge(x = motifAnno, resultsFile, by.x = "Model", by.y = "Motif Name")
+
+      tab.m <- merge(
+        x = tab2, y = tab1,
+        by.x = "Model",
+        by.y = "MotifFind-MotifName", all.x = T
+      )
+
+      tab.m <- tab.m[, c(1:18, 20:23, 19, 24:ncol(tab.m))]
+      tab.m_sig <- tab.m[tab.m$`q-value (Benjamini)` <= 0.05, ]
+
+      n <- paste(o, "knownResults.txt.gz", sep = "/")
+      n_sig <- paste(o, "knownResults.xlsx", sep = "/")
+
+      write.table(x = tab.m, file = gzfile(n), quote = F, sep = "\t", row.names = F)
+      writexl::write_xlsx(x = tab.m_sig, path = n_sig, col_names = T, format_headers = T)
+    }
+  }
+}
+```
+
+## Background and motif file
+```{r 2020-homer-4}
+bg <- da
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
+motifFile <- "input/HOCOMOCOv11_core_MOUSE_mono_homer_format_0.001.motif"
+annoMotif <- "input/MOUSE_mono_motifs_HOCOMOCO.tsv"
+```
+
+
+## Analysis HOCOMOCO DB
+```{r 2020-homer-6, warning=FALSE, message=FALSE, eval=F}
+perform_homer(
+  df = da_f, FC = "all", bg = bg,
+  fName = "PND_Adult", out = "output/hocomocoDB/",
+  DB = motifFile, split = F, anno = annoMotif
+)
+
+perform_homer(
+  df = da_f, FC = "neg", bg = bg,
+  out = "output/hocomocoDB/",
+  fName = "Adult_Negative",
+  DB = motifFile, split = F, anno = annoMotif
+)
+
+perform_homer(
+  df = da_f, FC = "pos", bg = bg,
+  out = "output/hocomocoDB/",
+  fName = "Adult_Positive",
+  DB = motifFile, split = F, anno = annoMotif
+)
+
+perform_homer(
+  df = da_f, FC = "all", bg = bg,
+  fName = "PND_Adult", out = "output/hocomocoDB/",
+  DB = motifFile, split = T, anno = annoMotif
+)
+
+perform_homer(
+  df = da_f, FC = "neg", bg = bg,
+  out = "output/hocomocoDB/",
+  fName = "Adult_Negative",
+  DB = motifFile, split = T, anno = annoMotif
+)
+
+perform_homer(
+  df = da_f, FC = "pos", bg = bg,
+  out = "output/hocomocoDB/",
+  fName = "Adult_Positive",
+  DB = motifFile, split = T, anno = annoMotif
+)
+```
+
+```{r, warning=FALSE, message=FALSE, eval=T}
+perform_homer(
+  df = da_f, FC = "all", bg = bg,
+  fName = "PND_Adult", out = "output/hocomocoDB/",
+  DB = motifFile, split = T, anno = annoMotif,
+  sp_col = "Peak-class"
+)
+
+perform_homer(
+  df = da_f, FC = "neg", bg = bg,
+  out = "output/hocomocoDB/",
+  fName = "Adult_Negative",
+  DB = motifFile, split = T, anno = annoMotif,
+  sp_col = "Peak-class"
+)
+
+perform_homer(
+  df = da_f, FC = "pos", bg = bg,
+  out = "output/hocomocoDB/",
+  fName = "Adult_Positive",
+  DB = motifFile, split = T, anno = annoMotif,
+  sp_col = "Peak-class"
+)
+```
+
+
+## Analysis Homer DB
+```{r 2020-homer-5, warning=FALSE, message=FALSE, eval=F}
+perform_homer(
+  df = da_f, FC = "all", bg = bg,
+  fName = "PND_Adult", out = "output/homerDB/",
+  DB = NULL, split = F
+)
+
+perform_homer(
+  df = da_f, FC = "neg", bg = bg,
+  out = "output/homerDB/",
+  fName = "Adult_Negative",
+  DB = NULL, split = F
+)
+
+perform_homer(
+  df = da_f, FC = "pos", bg = bg,
+  out = "output/homerDB/",
+  fName = "Adult_Positive",
+  DB = NULL, split = F
+)
+
+perform_homer(
+  df = da_f, FC = "all", bg = bg,
+  fName = "PND_Adult", out = "output/homerDB/",
+  DB = NULL, split = T
+)
+
+perform_homer(
+  df = da_f, FC = "neg", bg = bg,
+  out = "output/homerDB/",
+  fName = "Adult_Negative",
+  DB = NULL, split = T
+)
+
+perform_homer(
+  df = da_f, FC = "pos", bg = bg,
+  out = "output/homerDB/",
+  fName = "Adult_Positive",
+  DB = NULL, split = T
+)
+```
+
+
+<!-- ############## -->
+
+<!-- ## Read results -->
+
+<!-- ## Adult_Negative -->
+<!-- ```{r} -->
+<!-- read_motifs <- function(path){ -->
+<!--   p <- paste0(path, "/knownResults") -->
+<!--   m <- list.files(path = p, pattern = ".motif", full.names = T) -->
+<!--   m_read <- lapply(m, read_homer) -->
+<!-- } -->
+
+<!-- universalmotif::read_homer() -->
+
+<!-- plot(motifs_pcm, ic.scale=FALSE) -->
+
+<!-- ``` -->
+
+<!-- # Results -->
+
+<!-- ```{r, eval = F, echo = F} -->
+<!-- library(motifStack) -->
+
+<!-- motifStack:::readPWM -->
+
+<!-- pcm <- read.table(file.path(find.package("motifStack"),  -->
+<!--                             "extdata", "bin_SOLEXA.pcm")) -->
+<!-- pcm <- pcm[,3:ncol(pcm)] -->
+<!-- rownames(pcm) <- c("A","C","G","T") -->
+<!-- motif <- new("pcm", mat=as.matrix(pcm), name="bin_SOLEXA") -->
+<!-- ##pfm object -->
+<!-- #motif <- pcm2pfm(pcm) -->
+<!-- #motif <- new("pfm", mat=motif, name="bin_SOLEXA") -->
+<!-- plot(motif) -->
+<!-- ``` -->
+
+
+<!-- # Appending annotations -->
+<!-- ```{r append_anno, eval = F} -->
+<!-- xl <- list.files(path = "./output/hocomocoDB", pattern = ".txt.gz", full.names = T, recursive = T) -->
+
+<!-- t <- lapply(xl, function(x) { -->
+<!--   t <- read.delim(x, header = T, check.names = F, stringsAsFactors = F) -->
+<!--   an <- data.frame(rowData(data), check.names = F) -->
+<!--   an <- an[, grep(pattern = "Name|_pa", x = colnames(an))] -->
+<!--   m <- merge(t, an, all.x = T) -->
+
+<!--   c1 <- colnames(t) -->
+<!--   c2 <- c1[grep(pattern = "diffA", x = c1, invert = T)] -->
+<!--   c3 <- colnames(m)[!colnames(m) %in% colnames(t)] -->
+<!--   c4 <- c1[grep(pattern = "diffA", x = c1)] -->
+<!--   col <- c(c2, c3, c4) -->
+
+<!--   m1 <- m[, col] -->
+
+<!--   write.table(x = m1, file = gzfile(x), quote = F, sep = "\t", row.names = F) -->
+<!-- }) -->
+<!-- ``` -->
+
+```{r}
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r 2020-homer-7 }
+devtools::session_info() %>%
+  details()
+```
