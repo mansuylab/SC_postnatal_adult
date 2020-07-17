@@ -1,0 +1,146 @@
+---
+title: "ATAC-Seq: Motif overlap (HOCOMOCO)"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r 20191118-tfbs-motif-overlap-1, message=FALSE, warning=FALSE}
+library(SummarizedExperiment)
+library(BSgenome.Mmusculus.UCSC.mm10)
+source("./input/ranges_utils.R")
+```
+
+
+# Differential accessible regions
+```{r 20191118-tfbs-motif-overlap-2, message=FALSE, warning=FALSE}
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(da)[1:5] <- gsub(pattern = "Peak-", replacement = "", x = colnames(da)[1:5])
+
+da.f <- da[abs(da$`diffAccessibility-logFC`) >= 1 & da$`diffAccessibility-qvalue` <= 0.05, ]
+colnames(da.f)[1:5] <- gsub(pattern = "Peak-", replacement = "", x = colnames(da.f)[1:5])
+
+da.GR <- GRanges(da.f)
+names(da.GR) <- NULL
+```
+
+# HOCOMOCO
+```{r 20191118-tfbs-motif-overlap-3}
+hocomoco <- readRDS("./input/HOCOMOCOv11_mouse.PFMatrixList.rds")
+desc <- read.table("input/MOUSE_mono_motifs_HOCOMOCO.tsv",
+  sep = "\t",
+  header = T, stringsAsFactors = F, check.names = F
+)
+```
+
+# TFBS overlap
+
+## All
+```{r 20191118-tfbs-motif-overlap-4, message=FALSE, warning=FALSE}
+da.all <- GRanges(da)
+da.all <- da.all[which(seqnames(da.all) %in% seqnames(BSgenome.Mmusculus.UCSC.mm10))]
+tf.overlap.all <- cpg2motifs(se = da.all, motifs = hocomoco)
+
+res.all <- data.frame(Motifs = names(tf.overlap.all$occurences), 
+                  tf.overlap.all$occurences, stringsAsFactors = F)
+
+scores.all <- data.frame(Motifs = names(tf.overlap.all$topMotifs), 
+                     nOccurrence = as.numeric(tf.overlap.all$topMotifs))
+
+res.tab.all <- GRanges(merge(res.all, scores.all))
+```
+
+
+## DA
+```{r 20191118-tfbs-motif-overlap-5, message=FALSE, warning=FALSE}
+da <- da.GR[which(seqnames(da.GR) %in% seqnames(BSgenome.Mmusculus.UCSC.mm10))]
+tf.overlap.diffAcc <- cpg2motifs(se = da, motifs = hocomoco)
+
+res <- data.frame(Motifs = names(tf.overlap.diffAcc$occurences), 
+                  tf.overlap.diffAcc$occurences, stringsAsFactors = F)
+
+scores <- data.frame(Motifs = names(tf.overlap.diffAcc$topMotifs), 
+                     nOccurrence = as.numeric(tf.overlap.diffAcc$topMotifs))
+
+res.tab <- GRanges(merge(res, scores))
+```
+
+
+# Results
+
+## All
+```{r 20191118-tfbs-motif-overlap-6}
+tab.GR.all <- plgINS::metaGR(gr1 = res.tab.all, gr2 = da.all)
+tab.all <- data.frame(tab.GR.all, stringsAsFactors = F)
+
+table.all <- merge(desc, tab.all, by.x = "Model", by.y = "Motifs")
+table.all <- table.all[,1:45]
+# table <- table[,grep(pattern = "GRanges.", x = colnames(table), invert = TRUE, value = TRUE)]
+colnames(table.all)[1] <- "Motifs"
+colnames(table.all)[1:17] <- paste("TF", colnames(table.all)[1:17], sep = "-")
+colnames(table.all) <- gsub(pattern = "GRanges.", replacement = "", x = colnames(table.all))
+colnames(table.all) <- gsub(pattern = "\\.", replacement = "-", x = colnames(table.all))
+colnames(table.all)[18:22] <- paste("Peak", colnames(table.all)[18:22], sep = "-")
+
+writexl::write_xlsx(
+  x = table.all, path = "./output/all_peaks_tfbs_hocomoco_overlap.xlsx",
+  col_names = T, format_headers = T
+)
+```
+
+
+## DA
+```{r 20191118-tfbs-motif-overlap-7}
+tab.GR <- plgINS::metaGR(gr1 = res.tab, gr2 = da.GR)
+tab <- data.frame(tab.GR, stringsAsFactors = F)
+
+table <- merge(desc, tab, by.x = "Model", by.y = "Motifs")
+table <- table[,1:45]
+# table <- table[,grep(pattern = "GRanges.", x = colnames(table), invert = TRUE, value = TRUE)]
+colnames(table)[1] <- "Motifs"
+colnames(table)[1:17] <- paste("TF", colnames(table)[1:17], sep = "-")
+colnames(table) <- gsub(pattern = "GRanges.", replacement = "", x = colnames(table))
+colnames(table) <- gsub(pattern = "\\.", replacement = "-", x = colnames(table))
+colnames(table)[18:22] <- paste("Peak", colnames(table)[18:22], sep = "-")
+
+writexl::write_xlsx(
+  x = table, path = "./output/atac_diff_acc_tfbs_hocomoco_overlap.xlsx",
+  col_names = T, format_headers = T
+)
+```
+
+# GMT
+```{r 20191118-tfbs-motif-overlap-8}
+gmt_tab <- table.all[,c(1, 18:20)]
+gmt_tab$Peaks <- paste0(gmt_tab[,2], ":", gmt_tab[,3], "-", gmt_tab[,4])
+gmt_tab <- gmt_tab[,c(1,5)]
+gmt <- split(x = gmt_tab, f = gmt_tab$`TF-Motifs`)
+gmt <- lapply(gmt, function(x) x[,2])
+saveRDS(object = gmt, file = "./output/tfMotifs_GMT.rds")
+```
+
+
+# SessionInfo
+```{r 20191118-tfbs-motif-overlap-9}
+devtools::session_info()
+```

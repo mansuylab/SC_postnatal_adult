@@ -1,0 +1,186 @@
+---
+title: "ATAC-Seq: rGREAT"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r 20191118-rGREAT-1, message=FALSE, warning=FALSE}
+library(rGREAT)
+library(parallel)
+library(SummarizedExperiment)
+library(details)
+library(dplyr)
+```
+
+# Data
+
+```{r 20191118-rGREAT-2 }
+allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+  header = F,
+  col.names = c(
+    "Chr", "Start", "End", "Name", "Score", "Strand",
+    "FoldChange", "negLog10pvalue", "negLog10qvalue",
+    "Summit"
+  ), stringsAsFactors = F
+))
+
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(da)[1:5] <- gsub(pattern = "Peak-", replacement = "", x = colnames(da)[1:5])
+da_f <- da[da$`diffAccessibility-qvalue` <= 0.05 & abs(da$`diffAccessibility-logFC`) >= 1, ]
+```
+
+# rGREAT
+
+## Function
+```{r 20191118-rGREAT-3 }
+perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL) {
+  d <- NULL
+
+  if (FC == "pos") {
+    d <- df[df$`diffAccessibility-logFC` > 0, ]
+  } else if (FC == "neg") {
+    d <- df[df$`diffAccessibility-logFC` < 0, ]
+  } else {
+    d <- df
+  }
+
+  sp_d <- NULL
+  if (split) {
+    if (!is.null(sp_col)) {
+      d[, sp_col] <- gsub(
+        pattern = " ", replacement = "_",
+        x = d[, sp_col]
+      )
+      sp_d <- split(d, d[, sp_col])
+      names(sp_d) <- paste0(fName, "-", names(sp_d))
+    } else {
+      d$`Peak-annotation` <- gsub(
+        pattern = "\\ \\(.*|\\'", replacement = "",
+        x = d$`Peak-annotation`
+      )
+      d$`Peak-annotation` <- gsub(
+        pattern = " ", replacement = "_",
+        x = d$`Peak-annotation`
+      )
+      sp_d <- split(d, d$`Peak-annotation`)
+      names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+    }
+  } else {
+    sp_d <- list(d)
+    names(sp_d) <- fName
+  }
+
+  great <- mclapply(sp_d, function(x) {
+    df_GR <- GRanges(x)
+    set.seed(123)
+    bed <- data.frame(df_GR, stringsAsFactors = F)
+    bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
+    job <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
+    tb <- getEnrichmentTables(job)
+    return(list(table = tb, job = job))
+  }, mc.preschedule = F, mc.cores = length(sp_d))
+
+  for (i in 1:length(great)) {
+    tb <- great[[i]]$table
+    n <- names(great)[i]
+
+    writexl::write_xlsx(
+      x = tb$`GO Molecular Function`,
+      path = paste0("output/", n, "_GO_MF.xlsx"),
+      col_names = T, format_headers = T
+    )
+    writexl::write_xlsx(
+      x = tb$`GO Biological Process`,
+      path = paste0("output/", n, "_GO_BP.xlsx"),
+      col_names = T, format_headers = T
+    )
+    writexl::write_xlsx(
+      x = tb$`GO Cellular Component`,
+      path = paste0("output/", n, "_GO_CC.xlsx"),
+      col_names = T, format_headers = T
+    )
+  }
+  return(great)
+}
+```
+
+## Background
+```{r 20191118-rGREAT-4 }
+bg <- da
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
+```
+
+
+## Analysis
+```{r 20191118-rGREAT-5, eval = T}
+all <- perform_rGREAT(df = da, FC = "all", bg = bg, fName = "PND15_Adult", split = F)
+pnd15 <- perform_rGREAT(df = da_f, FC = "neg", bg = bg, fName = "Adult_Negative", split = F)
+adult <- perform_rGREAT(df = da_f, FC = "pos", bg = bg, fName = "Adult_Positive", split = F)
+```
+
+## Analysis split
+```{r 20191118-rGREAT-6 }
+all_sp <- perform_rGREAT(df = da, FC = "all", bg = bg, fName = "PND15_Adult", split = T, sp_col = "Peak-class")
+pnd15_sp <- perform_rGREAT(df = da_f, FC = "neg", bg = bg, fName = "Adult_Negative", split = T, sp_col = "Peak-class")
+adult_sp <- perform_rGREAT(df = da_f, FC = "pos", bg = bg, fName = "Adult_Positive", split = T, sp_col = "Peak-class")
+```
+
+
+<!-- ## Analysis split -->
+<!-- ```{r 20191118-rGREAT-6, eval = T} -->
+<!-- all_sp <- perform_rGREAT(df = da, FC = "all", bg = bg, fName = "PND15_Adult", split = T) -->
+<!-- pnd15_sp <- perform_rGREAT(df = da_f, FC = "neg", bg = bg, fName = "Adult_Negative", split = T) -->
+<!-- adult_sp <- perform_rGREAT(df = da_f, FC = "pos", bg = bg, fName = "Adult_Positive", split = T) -->
+<!-- ``` -->
+
+
+
+# Annotation plot
+
+## All
+```{r 20191118-rGREAT-7, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
+plotRegionGeneAssociationGraphs(all[[1]]$job)
+```
+
+
+## PND15
+```{r 20191118-rGREAT-8, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
+plotRegionGeneAssociationGraphs(pnd15[[1]]$job)
+```
+
+## Adult
+```{r 20191118-rGREAT-9, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
+plotRegionGeneAssociationGraphs(adult[[1]]$job)
+```
+
+
+```{r}
+report::cite_packages(sessionInfo())
+```
+
+# SessionInfo
+```{r 20191118-rGREAT-10 }
+devtools::session_info() %>% 
+  details()
+```
