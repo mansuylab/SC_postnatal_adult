@@ -1,0 +1,579 @@
+---
+title: "SC controls: Isoforms switch analysis"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-07-08 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = FALSE)
+```
+
+# Packages required
+```{r 20200708-isoform-switch-analysis-1, warning=FALSE, message=FALSE}
+library(IsoformSwitchAnalyzeR)
+library(stringr)
+library(data.table)
+library(readr)
+library(forcats)
+library(ggplot2)
+library(dplyr)
+library(parallel)
+library(VennDiagram)
+source("https://gist.githubusercontent.com/dktanwar/a2ae94850b2b27d73bc94fb11360e3ed/raw/37f03e17e016cefb97cd41d24122ede2d299c1de/importRdata1.R")
+```
+
+# Setup
+```{r 20200708-isoform-switch-analysis-2 }
+salmonDir <- "./input/salmon"
+if (!dir.exists(salmonDir)) {
+  stop("directory containing the salmon files does not exist.")
+}
+
+annotation_file <- "./input/gencode.vM18.chr_patch_hapl_scaff.annotation.gtf.gz"
+if (!file.exists(annotation_file)) {
+  stop("the annotation file does not exist.")
+}
+
+nt_file <- "./input/gencode.vM18_plus_repeatsTx_plus_piRNAprecursors.fa.gz"
+if (!file.exists(nt_file)) {
+  stop("the genome file does not exist.")
+}
+
+pfam_dir <- "./input/pfamfiles"
+if (!dir.exists(pfam_dir)) {
+  stop("Pfamfiles do not exist.")
+}
+
+fasta_dir <- "./output/isoformSwitchAnalyzeR_fasta_files/"
+if (!dir.exists(fasta_dir)) {
+  dir.create(fasta_dir)
+}
+
+anno_dir <- "./output/annotationResults"
+if (!dir.exists(anno_dir)) {
+  dir.create(anno_dir)
+}
+
+results_dir <- "./output/results"
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir)
+}
+
+switchList <- readRDS("output/results/switchList.RDS")
+```
+
+# Design matrix
+```{r 20200708-isoform-switch-analysis-3, warning=FALSE, message=FALSE,results=FALSE, eval = FALSE}
+load("input/SC_controls_rnaseq_salmon.tds.RData")
+meta <- salmon@phenoData
+design_matrix <- data.frame(
+  sampleID = meta$Samples,
+  condition = fct_rev(meta$Group),
+  stringsAsFactors = F
+)
+```
+
+# Making the switchList
+```{r 20200708-isoform-switch-analysis-4, warning=FALSE, message=FALSE, eval = FALSE}
+salmon_quant <- importIsoformExpression(salmonDir, showProgress = FALSE)
+
+switchList <- importRdata1(
+  isoformCountMatrix = salmon_quant$counts,
+  isoformRepExpression = salmon_quant$abundance,
+  designMatrix = design_matrix,
+  isoformExonAnnoation = annotation_file,
+  isoformNtFasta = nt_file,
+)
+```
+
+## Summary of isoforms before Filtering step
+```{r 20200708-isoform-switch-analysis-5, eval = FALSE}
+summary(switchList)
+```
+
+# Filter based on counts
+```{r 20200708-isoform-switch-analysis-6, warning=FALSE, message=FALSE, eval = FALSE}
+switchList <- preFilter(
+  switchAnalyzeRlist = switchList,
+  geneExpressionCutoff = 1, # default = 1
+  isoformExpressionCutoff = 0 # default = 0
+)
+```
+
+## Summary of isoforms after the Filtering step
+```{r 20200708-isoform-switch-analysis-7, eval = FALSE}
+summary(switchList)
+```
+
+# Test for DEU (DEXseq)
+```{r 20200708-isoform-switch-analysis-8, warning=FALSE, message=FALSE, eval = FALSE}
+switchList <- isoformSwitchTestDEXSeq(
+  switchAnalyzeRlist = switchList,
+  reduceToSwitchingGenes = TRUE, # means we discard all genes without at least one significant differential isoform
+  reduceFurtherToGenesWithConsequencePotential = FALSE, # if TRUE we only keep switch pairs
+  showProgress = FALSE
+)
+```
+
+## Summary of isoforms after tests for differential usage with DEXSeq
+```{r 20200708-isoform-switch-analysis-9, eval = FALSE}
+summary(switchList)
+```
+
+# Extract the nucleotide sequences for running external analysis
+```{r 20200708-isoform-switch-analysis-10, warning=FALSE, message=FALSE, eval = FALSE}
+switchList <- extractSequence(
+  switchList,
+  pathToOutput = fasta_dir
+)
+```
+
+
+# Running external analysis
+```{r 20200708-isoform-switch-analysis-11, engine='bash', message = FALSE, warning = FALSE, eval = FALSE}
+eval "$(conda shell.bash hook)"
+conda activate py27
+
+echo 'Running CPC2!'
+
+CPC2.py -i ./output/isoformSwitchAnalyzeR_fasta_files/isoformSwitchAnalyzeR_isoform_nt.fasta -o ./output/annotationResults/cpc2Output.txt
+
+echo 'Done running CPC2!'
+
+source $(conda info --base)/etc/profile.d/conda.sh
+conda deactivate
+
+echo 'Running Pfam!'
+
+# pfam does not overwrite existing outputfiles. therefore, remove existing outputfile
+test -f ./output/annotationResults/pfamOutput.txt && rm ./output/annotationResults/pfamOutput.txt
+
+pfam_scan.pl -fasta ./output/isoformSwitchAnalyzeR_fasta_files/isoformSwitchAnalyzeR_isoform_AA.fasta -dir ./input/pfamfiles -outfile ./output/annotationResults/pfamOutput.txt
+
+echo 'Done running Pfam!'
+
+echo 'Running SignalP'
+
+signalp -fasta ./output/isoformSwitchAnalyzeR_fasta_files/isoformSwitchAnalyzeR_isoform_AA.fasta -prefix ./output/annotationResults/signalp
+
+echo 'Done running SignalP!'
+
+echo 'Running IUPred2A'
+
+python /mnt/IM/projects/daniela/iupred2a/iupred2a_new.py -a ./output/isoformSwitchAnalyzeR_fasta_files/isoformSwitchAnalyzeR_isoform_AA.fasta long > ./output/annotationResults/iupred2a_output.txt
+
+echo 'Done running IUPred2A!'
+
+source $(conda info --base)/etc/profile.d/conda.sh
+conda deactivate
+```
+
+
+# Reading external analysis
+```{r 20200708-isoform-switch-analysis-12, warning=FALSE, message=FALSE, eval = FALSE}
+switchList <- analyzeCPC2(
+  switchAnalyzeRlist = switchList,
+  pathToCPC2resultFile = "./output/annotationResults/cpc2Output.txt",
+  codingCutoff = 0.721, # 0.721 is suggested by others of isoformSwitchAnalyzeR
+  removeNoncodinORFs = FALSE,
+  quiet = TRUE
+)
+
+switchList <- analyzePFAM(
+  switchAnalyzeRlist = switchList,
+  pathToPFAMresultFile = "./output/annotationResults/pfamOutput.txt",
+  showProgress = FALSE,
+  quiet = TRUE
+)
+
+## SignalP analysis
+# note: you'll get a warning that non-eukaryote was selected.->Ignore
+switchList <- analyzeSignalP(
+  switchAnalyzeRlist = switchList,
+  pathToSignalPresultFile = "./output/annotationResults/signalp_summary.signalp5",
+  minSignalPeptideProbability = 0.001,
+  quiet = TRUE
+)
+
+## IUPred2A analysis: intrinsically disordered protein regions (IDR) and Intrinsically Disordered Binding Regions (IDBR)
+switchList <- analyzeIUPred2A(
+  switchAnalyzeRlist = switchList,
+  pathToIUPred2AresultFile = "./output/annotationResults/iupred2a_output.txt",
+  quiet = TRUE
+)
+```
+
+
+# Incorporating external analysis
+```{r 20200708-isoform-switch-analysis-13, warning=FALSE, message=FALSE, eval = FALSE}
+switchList <- analyzeAlternativeSplicing(switchList,
+  onlySwitchingGenes = FALSE,
+  quiet = TRUE
+)
+
+consequencesToAnalyze <- c(
+  "intron_retention",
+  "coding_potential",
+  "ORF_seq_similarity",
+  "NMD_status",
+  "domains_identified",
+  "IDR_identified",
+  "IDR_type",
+  "signal_peptide_identified"
+)
+
+switchList <- analyzeSwitchConsequences(
+  switchList,
+  consequencesToAnalyze = consequencesToAnalyze,
+  removeNonConseqSwitches = FALSE,
+  onlySigIsoforms = FALSE,
+  dIFcutoff = 0.1,
+  showProgress = FALSE
+)
+```
+
+
+# Adding logFC, pvalues and qvalues
+```{r 20200708-isoform-switch-analysis-14, eval = FALSE}
+load("input/limma_SC_Controls.RData")
+deaGene <- lapply(dea.limma, function(x) {
+  x <- x[, c(1, 2, 5, 6)]
+  colnames(x) <- c(
+    "gene_name", "gene_log2_fold_change",
+    "gene_p_value", "gene_q_value"
+  )
+  return(x)
+})
+
+deaGene <- plyr::ldply(deaGene, data.frame)
+
+load("input/tx_limma_SC_Controls.RData")
+deaTx <- lapply(dea.limma, function(x) {
+  x <- x[, c(1, 2, 5, 6)]
+  colnames(x) <- c(
+    "gene_name", "gene_log2_fold_change",
+    "gene_p_value", "gene_q_value"
+  )
+  return(x)
+})
+
+deaTx <- plyr::ldply(deaTx, data.frame)
+
+
+
+switchList$isoformFeatures <- switchList$isoformFeatures[, -which(colnames(switchList$isoformFeatures) %in% colnames(deaGene)[3:5])]
+
+deaGene$condition_1 <- gsub(pattern = " vs.*", replacement = "", x = deaGene$.id)
+deaGene$condition_2 <- trimWhiteSpace(gsub(pattern = ".*vs", replacement = "", x = deaGene$.id))
+deaGene <- deaGene[, -1]
+
+switchList$isoformFeatures <- merge(switchList$isoformFeatures, deaGene, all.x = TRUE)
+
+switchList$isoformFeatures <- switchList$isoformFeatures[, -which(colnames(switchList$isoformFeatures) %in% colnames(deaTx)[3:5])]
+
+deaTx$condition_1 <- gsub(pattern = " vs.*", replacement = "", x = deaTx$.id)
+deaTx$condition_2 <- trimWhiteSpace(gsub(pattern = ".*vs", replacement = "", x = deaTx$.id))
+deaTx <- deaTx[, -1]
+
+switchList$isoformFeatures <- merge(switchList$isoformFeatures, deaTx, all.x = TRUE)
+```
+
+# Adding domain names
+```{r 20200708-isoform-switch-analysis-15, eval = FALSE}
+hmm <- fread(
+  input = "input/pfamfiles/Pfam-A.clans.tsv.gz", sep = "\t",
+  header = F, data.table = F,
+  stringsAsFactors = F, check.names = F
+)[, c(1, 5)]
+colnames(hmm) <- c("hmm_acc", "hmm_name")
+
+switchList$domainAnalysis$hmm_Name <- switchList$domainAnalysis$hmm_name
+switchList$domainAnalysis$hmm_acc <- gsub(
+  pattern = "\\..*", replacement = "",
+  x = switchList$domainAnalysis$hmm_acc
+)
+
+switchList$domainAnalysis <- switchList$domainAnalysis[, -which(colnames(switchList$domainAnalysis) %in% "hmm_name")]
+
+switchList$domainAnalysis <- merge(switchList$domainAnalysis, hmm, all.x = TRUE)
+
+saveRDS(switchList, file = "output/results/switchList.RDS")
+```
+
+# Results
+```{r 20200708-isoform-switch-analysis-16, results='asis'}
+# switchList <- readRDS("output/results/switchList.RDS")
+cat("## Summary of switches without filtering for functional consequences\n\n")
+extractSwitchSummary(switchList,
+  dIFcutoff = 0.1,
+  filterForConsequences = FALSE
+)
+
+cat("\n\n")
+
+cat("## Summary of switches with switch pairs consisting of 2 significantly differentially used isoforms, NOT filtered for functional consequences\n\n")
+extractSwitchSummary(switchList,
+  dIFcutoff = 0.1,
+  filterForConsequences = FALSE,
+  onlySigIsoforms = TRUE
+)
+
+cat("\n\n")
+
+cat("## Summary of switches with filtering for functional consequences\n\n")
+extractSwitchSummary(switchList,
+  dIFcutoff = 0.1,
+  filterForConsequences = TRUE
+)
+
+cat("\n\n")
+
+cat("## Summary of switches with switch pairs cosisting of 2 significantly differentially used isoforms, filtered for functional consequences\n\n")
+extractSwitchSummary(switchList,
+  dIFcutoff = 0.1,
+  filterForConsequences = TRUE,
+  onlySigIsoforms = TRUE
+)
+
+cat("\n\n")
+```
+
+# Write tables of significant diff. used isoforms
+```{r 20200708-isoform-switch-analysis-17 }
+alpha <- 0.05
+dIFcutoff <- 0.1
+
+dataDF <- as.data.table(switchList$isoformFeatures)[abs(dIF) > dIFcutoff & isoform_switch_q_value < alpha]
+writexl::write_xlsx(
+  x = dataDF, path = "./output/results/IsoformSwitches.xlsx",
+  col_names = T, format_headers = T
+)
+
+# filter the Switchlist for those with an expression thresold of 2 TPM.
+switchThr <- as.data.table(switchList$isoformFeatures)[(iso_value_1 >= 2 | iso_value_2 >= 2) & abs(dIF) > dIFcutoff & isoform_switch_q_value < alpha]
+writexl::write_xlsx(
+  x = switchThr,
+  path = "./output/results/IsoformSwitches_ExprThr_2TPM.xlsx",
+  col_names = TRUE, format_headers = TRUE
+)
+```
+
+
+# Plots
+
+<!-- ```{r 20200708-isoform-switch-analysis-18, eval=FALSE} -->
+<!-- switchPlotTopSwitches(switchAnalyzeRlist = switchList, -->
+<!--                       n = Inf, quiet = T, -->
+<!--                       pathToOutput = "output/results/plots") -->
+<!-- ``` -->
+
+```{r 20200708-isoform-switch-analysis-18, results='asis', fig.align='center', fig.align='center', fig.height=8.5, fig.width=11}
+# condition_1 <- unique(switchThr$condition_1)
+# condition_2 <- unique(switchThr$condition_2)
+
+make_plots <- function(switch_list, switch_thr, cond1, cond2, outdir) {
+  o <- paste0(outdir, "/", cond1, "_vs_", cond2)
+
+  system(paste("mkdir -p", o))
+
+  g <- unique(switch_thr$gene_name[switch_thr$condition_1 == cond1 & switch_thr$condition_2 == cond2])
+
+  tmp <- mclapply(g, function(x) {
+    f <- paste0(o, "/", x, ".pdf")
+    if (!file.exists(f)) {
+      pdf(file = f, width = 11, height = 8.5, onefile = FALSE)
+      switchPlot(
+        switchAnalyzeRlist = switch_list,
+        gene = x,
+        condition1 = cond1,
+        condition2 = cond2,
+      )
+      dev.off()
+    }
+  }, mc.preschedule = FALSE, mc.cores = detectCores())
+}
+
+
+make_plots(switch_list = switchList, switch_thr = switchThr, cond1 = "PND8", cond2 = "PND15", outdir = "output/results")
+make_plots(switch_list = switchList, switch_thr = switchThr, cond1 = "PND15", cond2 = "Adult", outdir = "output/results")
+make_plots(switch_list = switchList, switch_thr = switchThr, cond1 = "PND8", cond2 = "Adult", outdir = "output/results")
+```
+
+<!-- # Tables -->
+
+<!-- ```{r} -->
+<!-- make_DT <- function(df) { -->
+<!--   df <- data.frame(df, stringsAsFactors = F, check.names = F) -->
+<!--   DT::datatable( -->
+<!--     df, -->
+<!--     rownames = F, -->
+<!--     filter = "top", extensions = c("Buttons", "ColReorder"), options = list( -->
+<!--       pageLength = 10, -->
+<!--       buttons = c("copy", "csv", "excel", "pdf", "print"), -->
+<!--       colReorder = list(realtime = FALSE), -->
+<!--       dom = "fltBip" -->
+<!--     ) -->
+<!--   ) -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- ## IsoformSwitches -->
+
+<!-- ```{r 20200220-isoform-switch-analysis-19} -->
+<!-- dataDF %>% make_DT() -->
+<!-- ``` -->
+
+<!-- ## IsoformSwitches after TPM 2 cutoff -->
+<!-- ```{r 20200220-isoform-switch-analysis-20} -->
+<!-- switchThr %>% make_DT() -->
+<!-- ``` -->
+
+
+```{r 20200708-isoform-switch-analysis-19 }
+pdf("output/results/overview_plots.pdf", width = 8.5, height = 11)
+extractSplicingGenomeWide(
+  switchList,
+  featureToExtract = "isoformUsage",
+  splicingToAnalyze = "all",
+  alpha = 0.05,
+  dIFcutoff = 0.1,
+  violinPlot = TRUE,
+  alphas = c(0.05, 0.001),
+  localTheme = theme_bw(),
+  plot = TRUE,
+  returnResult = TRUE
+)
+
+## Analyze global splicing
+extractSplicingSummary(
+  switchAnalyzeRlist = switchList,
+  splicingToAnalyze = "all",
+  asFractionTotal = FALSE,
+  alpha = 0.05,
+  dIFcutoff = 0.1,
+  onlySigIsoforms = FALSE,
+  plot = TRUE,
+  plotGenes = FALSE,
+  localTheme = theme_bw(),
+  returnResult = FALSE
+)
+
+extractSplicingEnrichment(
+  switchList,
+  splicingToAnalyze = "all",
+  alpha = 0.05,
+  dIFcutoff = 0.1,
+  onlySigIsoforms = FALSE,
+  countGenes = TRUE,
+  plot = TRUE,
+  localTheme = theme_bw(base_size = 14),
+  minEventsForPlotting = 10,
+  returnResult = TRUE,
+  returnSummary = TRUE
+)
+
+extractConsequenceSummary(switchList)
+
+extractConsequenceEnrichment(switchList)
+extractConsequenceGenomeWide(switchList)
+
+### Volcano like plot:
+ggplot(data = switchList$isoformFeatures, aes(x = dIF, y = -log10(isoform_switch_q_value))) +
+  geom_point(
+    aes(color = abs(dIF) > 0.1 & isoform_switch_q_value < 0.05), # default cutoff
+    size = 1
+  ) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") + # default cutoff
+  geom_vline(xintercept = c(-0.1, 0.1), linetype = "dashed") + # default cutoff
+  facet_wrap(~condition_2) +
+  # facet_grid(condition_1 ~ condition_2) + # alternative to facet_wrap if you have overlapping conditions
+  scale_color_manual("Signficant\nIsoform Switch", values = c("black", "red")) +
+  labs(x = "dIF", y = "-Log10 ( Isoform Switch Q Value )") +
+  theme_bw()
+
+### Switch vs Gene changes:
+ggplot(data = switchList$isoformFeatures, aes(x = gene_log2_fold_change, y = dIF)) +
+  geom_point(
+    aes(color = abs(dIF) > 0.1 & isoform_switch_q_value < 0.05), # default cutoff
+    size = 1
+  ) +
+  facet_wrap(~condition_2) +
+  # facet_grid(condition_1 ~ condition_2) + # alternative to facet_wrap if you have overlapping conditions
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual("Signficant\nIsoform Switch", values = c("black", "red")) +
+  labs(x = "Gene log2 fold change", y = "dIF") +
+  theme_bw()
+
+
+### analyze the biological mechanisms
+bioMechanismeAnalysis <- analyzeSwitchConsequences(
+  switchList,
+  consequencesToAnalyze = c("tss", "tts", "intron_structure"),
+  showProgress = FALSE
+)$switchConsequence # only the consequences are interesting here
+
+### subset to those with differences
+bioMechanismeAnalysis <- bioMechanismeAnalysis[which(bioMechanismeAnalysis$isoformsDifferent), ]
+
+### extract the consequences of interest already stored in the switchAnalyzeRlist
+myConsequences <- switchList$switchConsequence
+myConsequences <- myConsequences[which(myConsequences$isoformsDifferent), ]
+myConsequences$isoPair <- paste(myConsequences$isoformUpregulated, myConsequences$isoformDownregulated) # id for specific iso comparison
+
+### Obtain the mechanisms of the isoform switches with consequences
+bioMechanismeAnalysis$isoPair <- paste(bioMechanismeAnalysis$isoformUpregulated, bioMechanismeAnalysis$isoformDownregulated)
+bioMechanismeAnalysis <- bioMechanismeAnalysis[which(bioMechanismeAnalysis$isoPair %in% myConsequences$isoPair), ] # id for specific iso comparison
+
+### Create list with the isoPair ids for each consequence
+AS <- bioMechanismeAnalysis$isoPair[which(bioMechanismeAnalysis$featureCompared == "intron_structure")]
+aTSS <- bioMechanismeAnalysis$isoPair[which(bioMechanismeAnalysis$featureCompared == "tss")]
+aTTS <- bioMechanismeAnalysis$isoPair[which(bioMechanismeAnalysis$featureCompared == "tts")]
+
+mechList <- list(
+  AS = AS,
+  aTSS = aTSS,
+  aTTS = aTTS
+)
+
+### Create Venn diagram
+myVenn <- venn.diagram(
+  x = mechList,
+  col = "transparent",
+  alpha = 0.4,
+  fill = RColorBrewer::brewer.pal(n = 3, name = "Dark2"),
+  filename = NULL
+)
+
+### Plot the venn diagram
+grid.newpage()
+grid.draw(myVenn)
+dev.off()
+```
+
+
+# Session Info
+```{r 20200708-isoform-switch-analysis-20 }
+devtools::session_info() %>%
+  details::details()
+```
