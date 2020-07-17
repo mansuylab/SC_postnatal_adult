@@ -27,6 +27,7 @@ link-citations: yes
 ```{r 20191118-differential-analysis-1, message=FALSE, warning=FALSE}
 library(csaw)
 library(edgeR)
+library(dplyr)
 library(ChIPseeker)
 library(TxDb.Mmusculus.UCSC.mm10.knownGene)
 library(org.Mm.eg.db)
@@ -36,7 +37,7 @@ library(ggpubr)
 ```
 
 # Reading the counts
-```{r 20191118-differential-analysis-2}
+```{r 20191118-differential-analysis-2 }
 # BAM files
 bamFiles <- list.files(path = "input", pattern = "bam$", full.names = T)
 
@@ -50,10 +51,22 @@ incoming <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
   ), stringsAsFactors = F
 ))
 
-txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
-peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db")
 
 if (!file.exists("./output/counts.RData")) {
+  txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
+
+  peakAnno <- annotatePeak(peak = incoming, TxDb = txdb, tssRegion = c(-1000, 1000), annoDb = "org.Mm.eg.db")
+
+  pa <- data.frame(
+    plgINS:::annoPeaks(
+      peaks = incoming,
+      gtf = "/mnt/IM/reference/annotation/gencodeM18/gencode.vM18.chr_patch_hapl_scaff.annotation.gtf.gz",
+      proximal = 1000
+    )
+  )
+
+  colnames(pa)[12:ncol(pa)] <- paste(colnames(pa)[12:ncol(pa)], "pa", sep = "_")
+
   # Reading counts from the peak regions
   counts <- regionCounts(bamFiles,
     regions = peakAnno@anno,
@@ -62,6 +75,12 @@ if (!file.exists("./output/counts.RData")) {
   )
 
   rowData(counts) <- DataFrame(data.frame(rowRanges(counts)))
+
+  pa_c <- data.frame(rowData(counts))
+  m <- DataFrame(inner_join(pa_c, pa))
+
+  rowData(counts) <- m
+
   save(counts, file = "./output/counts.RData")
 } else {
   load("./output/counts.RData")
@@ -71,7 +90,7 @@ if (!file.exists("./output/counts.RData")) {
 # Filtering counts
 
 ## Function
-```{r 20191118-differential-analysis-3}
+```{r 20191118-differential-analysis-3 }
 counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
   counts2 <- apply(counts, 1, FUN = function(x) {
     sum(x >= 15) >= floor(length(x) * 0.4)
@@ -81,7 +100,7 @@ counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
 ```
 
 ## Filter counts
-```{r 20191118-differential-analysis-4}
+```{r 20191118-differential-analysis-4 }
 keep <- counts_filter(counts = assay(counts))
 counts.filt <- counts[keep]
 ```
@@ -89,7 +108,7 @@ counts.filt <- counts[keep]
 # Differential binding
 
 ## TMM normalization
-```{r 20191118-differential-analysis-5}
+```{r 20191118-differential-analysis-5 }
 data <- normFactors(counts.filt)
 colnames(rowData(data)) <- paste("Peak", colnames(rowData(data)), sep = "-")
 
@@ -110,7 +129,7 @@ rowData(data) <- cbind(rowData(data), results$table)
 ```
 
 ## Loess-based normalization
-```{r 20191118-differential-analysis-6}
+```{r 20191118-differential-analysis-6 }
 offsets <- normOffsets(counts.filt)
 # offsets <- normOffsets(data, span=0.4)
 # offsets <- normOffsets(data, iterations=1)
@@ -136,7 +155,7 @@ rowData(offsets) <- cbind(rowData(offsets), results1$table)
 # MA plots
 
 ## TMM
-```{r 20191118-differential-analysis-7}
+```{r 20191118-differential-analysis-7 }
 tmm <- rowData(data)
 # plot(tmp$`diffAccessibility-logCPM`, tmp$`diffAccessibility-logFC`)
 
@@ -155,12 +174,12 @@ p1 <- ggplot(data = res_tmm, aes(
     ceiling(max(abs(res_tmm$diffAccessibility.logFC)))
   )) +
   ggtitle("TMM normalization") +
-  labs(subtitle="Loess fit") +
+  labs(subtitle = "Loess fit") +
   xlab("Mean expression") +
   ylab("Log2 Fold Change") +
   theme(
     plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
-    plot.subtitle=element_text(size=16, hjust=0.5, face="italic", color="blue"),
+    plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"),
     axis.title.x = element_text(face = "bold", size = 15),
     axis.text.x = element_text(face = "bold", size = 12),
     legend.title = element_text(face = "bold", size = 15),
@@ -190,12 +209,12 @@ p2 <- ggplot(data = res_loess, aes(
     ceiling(max(abs(res_loess$diffAccessibility.logFC)))
   )) +
   ggtitle("Loess normalization") +
-  labs(subtitle="Loess fit") +
+  labs(subtitle = "Loess fit") +
   xlab("Mean expression") +
   ylab("Log2 Fold Change") +
   theme(
     plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
-    plot.subtitle=element_text(size=16, hjust=0.5, face="italic", color="blue"),
+    plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"),
     axis.title.x = element_text(face = "bold", size = 15),
     axis.text.x = element_text(face = "bold", size = 12),
     legend.title = element_text(face = "bold", size = 15),
@@ -205,24 +224,26 @@ p2 <- ggplot(data = res_loess, aes(
   stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1)
 ```
 
-```{r 20191118-differential-analysis-9}
+```{r 20191118-differential-analysis-9 }
 p <- ggarrange(p1, p2, ncol = 2, nrow = 1, common.legend = TRUE, legend = "bottom")
 ```
 
 # Saving results
 
 ## MA plots
-```{r 20191118-differential-analysis-10}
+```{r 20191118-differential-analysis-10 }
 ggsave(filename = "output/ma_plot.pdf", plot = p, width = 11, height = 8.5)
 pdftools::pdf_convert(pdf = "output/ma_plot.pdf", format = "png", filenames = "output/ma_plot.png", dpi = 200)
 ```
 
 ## Differential analysis results
-```{r 20191118-differential-analysis-11}
+```{r 20191118-differential-analysis-11 }
 data@metadata$annotation <- peakAnno
 offsets@metadata$annotation <- peakAnno
 save(data, offsets, file = "output/atac_diff_chromatin_accessibility.RData")
+```
 
+```{r 20191118-differential-analysis-12}
 tab <- list(
   TMM = data.frame(rowData(data), check.names = F, stringsAsFactors = F),
   Loess = data.frame(rowData(offsets), check.names = F, stringsAsFactors = F)
@@ -243,6 +264,6 @@ writexl::write_xlsx(
 
 
 # SessionInfo
-```{r 20191118-differential-analysis-12}
+```{r 20191118-differential-analysis-13 }
 devtools::session_info()
 ```
