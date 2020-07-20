@@ -2952,6 +2952,7 @@ window.onload = function() {
       <li><a href="#background">Background</a></li>
       <li><a href="#analysis">Analysis</a></li>
       <li><a href="#analysis-split">Analysis split</a></li>
+      <li><a href="#analysis-split-all-background">Analysis split all background</a></li>
       </ul></li>
       <li><a href="#annotation-plot">Annotation plot</a>
       <ul>
@@ -2959,12 +2960,13 @@ window.onload = function() {
       <li><a href="#pnd15">PND15</a></li>
       <li><a href="#adult">Adult</a></li>
       </ul></li>
+      <li><a href="#references">References</a></li>
       <li><a href="#sessioninfo">SessionInfo</a></li>
       </ul>
     </div>
     <div id="postamble" data-toggle="wy-nav-shift" class="status">
                   <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> 2020-07-17</p>
+                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> 2020-07-20</p>
           </div>
    </div>
      
@@ -2980,7 +2982,10 @@ window.onload = function() {
 <span id="cb1-2"><a href="#cb1-2"></a><span class="kw">library</span>(parallel)</span>
 <span id="cb1-3"><a href="#cb1-3"></a><span class="kw">library</span>(SummarizedExperiment)</span>
 <span id="cb1-4"><a href="#cb1-4"></a><span class="kw">library</span>(details)</span>
-<span id="cb1-5"><a href="#cb1-5"></a><span class="kw">library</span>(dplyr)</span></code></pre></div>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="kw">library</span>(dplyr)</span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="kw">library</span>(GenomicRanges)</span>
+<span id="cb1-7"><a href="#cb1-7"></a><span class="kw">library</span>(foreach)</span>
+<span id="cb1-8"><a href="#cb1-8"></a><span class="kw">library</span>(doParallel)</span></code></pre></div>
 </div>
 <div id="data" class="section level1">
 <h1>Data</h1>
@@ -3002,7 +3007,7 @@ window.onload = function() {
 <h1>rGREAT</h1>
 <div id="function" class="section level2">
 <h2>Function</h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>perform_rGREAT &lt;-<span class="st"> </span><span class="cf">function</span>(df, FC, bg, fName, <span class="dt">split =</span> <span class="ot">FALSE</span>, <span class="dt">sp_col =</span> <span class="ot">NULL</span>) {</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>perform_rGREAT &lt;-<span class="st"> </span><span class="cf">function</span>(df, FC, bg, fName, <span class="dt">split =</span> <span class="ot">FALSE</span>, <span class="dt">sp_col =</span> <span class="ot">NULL</span>, <span class="dt">split_bg =</span> <span class="ot">FALSE</span>) {</span>
 <span id="cb3-2"><a href="#cb3-2"></a>  d &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
 <span id="cb3-3"><a href="#cb3-3"></a></span>
 <span id="cb3-4"><a href="#cb3-4"></a>  <span class="cf">if</span> (FC <span class="op">==</span><span class="st"> &quot;pos&quot;</span>) {</span>
@@ -3014,63 +3019,126 @@ window.onload = function() {
 <span id="cb3-10"><a href="#cb3-10"></a>  }</span>
 <span id="cb3-11"><a href="#cb3-11"></a></span>
 <span id="cb3-12"><a href="#cb3-12"></a>  sp_d &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
-<span id="cb3-13"><a href="#cb3-13"></a>  <span class="cf">if</span> (split) {</span>
-<span id="cb3-14"><a href="#cb3-14"></a>    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(sp_col)) {</span>
-<span id="cb3-15"><a href="#cb3-15"></a>      d[, sp_col] &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
-<span id="cb3-16"><a href="#cb3-16"></a>        <span class="dt">pattern =</span> <span class="st">&quot; &quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;_&quot;</span>,</span>
-<span id="cb3-17"><a href="#cb3-17"></a>        <span class="dt">x =</span> d[, sp_col]</span>
-<span id="cb3-18"><a href="#cb3-18"></a>      )</span>
-<span id="cb3-19"><a href="#cb3-19"></a>      sp_d &lt;-<span class="st"> </span><span class="kw">split</span>(d, d[, sp_col])</span>
-<span id="cb3-20"><a href="#cb3-20"></a>      <span class="kw">names</span>(sp_d) &lt;-<span class="st"> </span><span class="kw">paste0</span>(fName, <span class="st">&quot;-&quot;</span>, <span class="kw">names</span>(sp_d))</span>
-<span id="cb3-21"><a href="#cb3-21"></a>    } <span class="cf">else</span> {</span>
-<span id="cb3-22"><a href="#cb3-22"></a>      d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span> &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
-<span id="cb3-23"><a href="#cb3-23"></a>        <span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st"> </span><span class="ch">\\</span><span class="st">(.*|</span><span class="ch">\\</span><span class="st">&#39;&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>,</span>
-<span id="cb3-24"><a href="#cb3-24"></a>        <span class="dt">x =</span> d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span></span>
+<span id="cb3-13"><a href="#cb3-13"></a>  bg_n &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
+<span id="cb3-14"><a href="#cb3-14"></a></span>
+<span id="cb3-15"><a href="#cb3-15"></a>  <span class="cf">if</span> (split) {</span>
+<span id="cb3-16"><a href="#cb3-16"></a>    <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(sp_col)) {</span>
+<span id="cb3-17"><a href="#cb3-17"></a>      d[, sp_col] &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-18"><a href="#cb3-18"></a>        <span class="dt">pattern =</span> <span class="st">&quot; &quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;_&quot;</span>,</span>
+<span id="cb3-19"><a href="#cb3-19"></a>        <span class="dt">x =</span> d[, sp_col]</span>
+<span id="cb3-20"><a href="#cb3-20"></a>      )</span>
+<span id="cb3-21"><a href="#cb3-21"></a></span>
+<span id="cb3-22"><a href="#cb3-22"></a>      d[, sp_col] &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-23"><a href="#cb3-23"></a>        <span class="dt">pattern =</span> <span class="st">&quot;&lt;=&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb3-24"><a href="#cb3-24"></a>        <span class="dt">x =</span> d[, sp_col]</span>
 <span id="cb3-25"><a href="#cb3-25"></a>      )</span>
-<span id="cb3-26"><a href="#cb3-26"></a>      d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span> &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
-<span id="cb3-27"><a href="#cb3-27"></a>        <span class="dt">pattern =</span> <span class="st">&quot; &quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;_&quot;</span>,</span>
-<span id="cb3-28"><a href="#cb3-28"></a>        <span class="dt">x =</span> d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span></span>
-<span id="cb3-29"><a href="#cb3-29"></a>      )</span>
-<span id="cb3-30"><a href="#cb3-30"></a>      sp_d &lt;-<span class="st"> </span><span class="kw">split</span>(d, d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span>)</span>
-<span id="cb3-31"><a href="#cb3-31"></a>      <span class="kw">names</span>(sp_d) &lt;-<span class="st"> </span><span class="kw">paste</span>(fName, <span class="kw">names</span>(sp_d), <span class="dt">sep =</span> <span class="st">&quot;-&quot;</span>)</span>
-<span id="cb3-32"><a href="#cb3-32"></a>    }</span>
-<span id="cb3-33"><a href="#cb3-33"></a>  } <span class="cf">else</span> {</span>
-<span id="cb3-34"><a href="#cb3-34"></a>    sp_d &lt;-<span class="st"> </span><span class="kw">list</span>(d)</span>
-<span id="cb3-35"><a href="#cb3-35"></a>    <span class="kw">names</span>(sp_d) &lt;-<span class="st"> </span>fName</span>
-<span id="cb3-36"><a href="#cb3-36"></a>  }</span>
-<span id="cb3-37"><a href="#cb3-37"></a></span>
-<span id="cb3-38"><a href="#cb3-38"></a>  great &lt;-<span class="st"> </span><span class="kw">mclapply</span>(sp_d, <span class="cf">function</span>(x) {</span>
-<span id="cb3-39"><a href="#cb3-39"></a>    df_GR &lt;-<span class="st"> </span><span class="kw">GRanges</span>(x)</span>
-<span id="cb3-40"><a href="#cb3-40"></a>    <span class="kw">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb3-41"><a href="#cb3-41"></a>    bed &lt;-<span class="st"> </span><span class="kw">data.frame</span>(df_GR, <span class="dt">stringsAsFactors =</span> F)</span>
-<span id="cb3-42"><a href="#cb3-42"></a>    bed &lt;-<span class="st"> </span>bed[<span class="kw">substr</span>(<span class="dt">x =</span> bed<span class="op">$</span>seqnames, <span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">stop =</span> <span class="dv">3</span>) <span class="op">==</span><span class="st"> &quot;chr&quot;</span>, ]</span>
-<span id="cb3-43"><a href="#cb3-43"></a>    job &lt;-<span class="st"> </span><span class="kw">submitGreatJob</span>(<span class="dt">gr =</span> bed, <span class="dt">bg =</span> bg, <span class="dt">species =</span> <span class="st">&quot;mm10&quot;</span>)</span>
-<span id="cb3-44"><a href="#cb3-44"></a>    tb &lt;-<span class="st"> </span><span class="kw">getEnrichmentTables</span>(job)</span>
-<span id="cb3-45"><a href="#cb3-45"></a>    <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">table =</span> tb, <span class="dt">job =</span> job))</span>
-<span id="cb3-46"><a href="#cb3-46"></a>  }, <span class="dt">mc.preschedule =</span> F, <span class="dt">mc.cores =</span> <span class="kw">length</span>(sp_d))</span>
-<span id="cb3-47"><a href="#cb3-47"></a></span>
-<span id="cb3-48"><a href="#cb3-48"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(great)) {</span>
-<span id="cb3-49"><a href="#cb3-49"></a>    tb &lt;-<span class="st"> </span>great[[i]]<span class="op">$</span>table</span>
-<span id="cb3-50"><a href="#cb3-50"></a>    n &lt;-<span class="st"> </span><span class="kw">names</span>(great)[i]</span>
-<span id="cb3-51"><a href="#cb3-51"></a></span>
-<span id="cb3-52"><a href="#cb3-52"></a>    writexl<span class="op">::</span><span class="kw">write_xlsx</span>(</span>
-<span id="cb3-53"><a href="#cb3-53"></a>      <span class="dt">x =</span> tb<span class="op">$</span><span class="st">`</span><span class="dt">GO Molecular Function</span><span class="st">`</span>,</span>
-<span id="cb3-54"><a href="#cb3-54"></a>      <span class="dt">path =</span> <span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_MF.xlsx&quot;</span>),</span>
-<span id="cb3-55"><a href="#cb3-55"></a>      <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T</span>
-<span id="cb3-56"><a href="#cb3-56"></a>    )</span>
-<span id="cb3-57"><a href="#cb3-57"></a>    writexl<span class="op">::</span><span class="kw">write_xlsx</span>(</span>
-<span id="cb3-58"><a href="#cb3-58"></a>      <span class="dt">x =</span> tb<span class="op">$</span><span class="st">`</span><span class="dt">GO Biological Process</span><span class="st">`</span>,</span>
-<span id="cb3-59"><a href="#cb3-59"></a>      <span class="dt">path =</span> <span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_BP.xlsx&quot;</span>),</span>
-<span id="cb3-60"><a href="#cb3-60"></a>      <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T</span>
-<span id="cb3-61"><a href="#cb3-61"></a>    )</span>
-<span id="cb3-62"><a href="#cb3-62"></a>    writexl<span class="op">::</span><span class="kw">write_xlsx</span>(</span>
-<span id="cb3-63"><a href="#cb3-63"></a>      <span class="dt">x =</span> tb<span class="op">$</span><span class="st">`</span><span class="dt">GO Cellular Component</span><span class="st">`</span>,</span>
-<span id="cb3-64"><a href="#cb3-64"></a>      <span class="dt">path =</span> <span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_CC.xlsx&quot;</span>),</span>
-<span id="cb3-65"><a href="#cb3-65"></a>      <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T</span>
-<span id="cb3-66"><a href="#cb3-66"></a>    )</span>
-<span id="cb3-67"><a href="#cb3-67"></a>  }</span>
-<span id="cb3-68"><a href="#cb3-68"></a>  <span class="kw">return</span>(great)</span>
-<span id="cb3-69"><a href="#cb3-69"></a>}</span></code></pre></div>
+<span id="cb3-26"><a href="#cb3-26"></a></span>
+<span id="cb3-27"><a href="#cb3-27"></a>      sp_d &lt;-<span class="st"> </span><span class="kw">split</span>(d, d[, sp_col])</span>
+<span id="cb3-28"><a href="#cb3-28"></a>      <span class="kw">names</span>(sp_d) &lt;-<span class="st"> </span><span class="kw">paste</span>(fName, <span class="kw">names</span>(sp_d), <span class="dt">sep =</span> <span class="st">&quot;-&quot;</span>)</span>
+<span id="cb3-29"><a href="#cb3-29"></a></span>
+<span id="cb3-30"><a href="#cb3-30"></a>      bg[, sp_col] &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-31"><a href="#cb3-31"></a>        <span class="dt">pattern =</span> <span class="st">&quot; &quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;_&quot;</span>,</span>
+<span id="cb3-32"><a href="#cb3-32"></a>        <span class="dt">x =</span> bg[, sp_col]</span>
+<span id="cb3-33"><a href="#cb3-33"></a>      )</span>
+<span id="cb3-34"><a href="#cb3-34"></a></span>
+<span id="cb3-35"><a href="#cb3-35"></a>      bg[, sp_col] &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-36"><a href="#cb3-36"></a>        <span class="dt">pattern =</span> <span class="st">&quot;&lt;=&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb3-37"><a href="#cb3-37"></a>        <span class="dt">x =</span> bg[, sp_col]</span>
+<span id="cb3-38"><a href="#cb3-38"></a>      )</span>
+<span id="cb3-39"><a href="#cb3-39"></a></span>
+<span id="cb3-40"><a href="#cb3-40"></a>      bg_n &lt;-<span class="st"> </span><span class="kw">split</span>(bg, bg[, sp_col])</span>
+<span id="cb3-41"><a href="#cb3-41"></a>      <span class="kw">names</span>(bg_n) &lt;-<span class="st"> </span><span class="kw">paste</span>(fName, <span class="kw">names</span>(bg_n), <span class="dt">sep =</span> <span class="st">&quot;-&quot;</span>)</span>
+<span id="cb3-42"><a href="#cb3-42"></a>    } <span class="cf">else</span> {</span>
+<span id="cb3-43"><a href="#cb3-43"></a>      d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span> &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-44"><a href="#cb3-44"></a>        <span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st"> </span><span class="ch">\\</span><span class="st">(.*|</span><span class="ch">\\</span><span class="st">&#39;&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb3-45"><a href="#cb3-45"></a>        <span class="dt">x =</span> d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span></span>
+<span id="cb3-46"><a href="#cb3-46"></a>      )</span>
+<span id="cb3-47"><a href="#cb3-47"></a>      d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span> &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-48"><a href="#cb3-48"></a>        <span class="dt">pattern =</span> <span class="st">&quot; &quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;_&quot;</span>,</span>
+<span id="cb3-49"><a href="#cb3-49"></a>        <span class="dt">x =</span> d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span></span>
+<span id="cb3-50"><a href="#cb3-50"></a>      )</span>
+<span id="cb3-51"><a href="#cb3-51"></a>      sp_d &lt;-<span class="st"> </span><span class="kw">split</span>(d, d<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span>)</span>
+<span id="cb3-52"><a href="#cb3-52"></a>      <span class="kw">names</span>(sp_d) &lt;-<span class="st"> </span><span class="kw">paste</span>(fName, <span class="kw">names</span>(sp_d), <span class="dt">sep =</span> <span class="st">&quot;-&quot;</span>)</span>
+<span id="cb3-53"><a href="#cb3-53"></a></span>
+<span id="cb3-54"><a href="#cb3-54"></a>      bg<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span> &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-55"><a href="#cb3-55"></a>        <span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st"> </span><span class="ch">\\</span><span class="st">(.*|</span><span class="ch">\\</span><span class="st">&#39;&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>,</span>
+<span id="cb3-56"><a href="#cb3-56"></a>        <span class="dt">x =</span> bg<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span></span>
+<span id="cb3-57"><a href="#cb3-57"></a>      )</span>
+<span id="cb3-58"><a href="#cb3-58"></a>      bg<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span> &lt;-<span class="st"> </span><span class="kw">gsub</span>(</span>
+<span id="cb3-59"><a href="#cb3-59"></a>        <span class="dt">pattern =</span> <span class="st">&quot; &quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;_&quot;</span>,</span>
+<span id="cb3-60"><a href="#cb3-60"></a>        <span class="dt">x =</span> bg<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span></span>
+<span id="cb3-61"><a href="#cb3-61"></a>      )</span>
+<span id="cb3-62"><a href="#cb3-62"></a></span>
+<span id="cb3-63"><a href="#cb3-63"></a>      bg_n &lt;-<span class="st"> </span><span class="kw">split</span>(bg, bg<span class="op">$</span><span class="st">`</span><span class="dt">Peak-annotation</span><span class="st">`</span>)</span>
+<span id="cb3-64"><a href="#cb3-64"></a>      <span class="kw">names</span>(bg_n) &lt;-<span class="st"> </span><span class="kw">paste</span>(fName, <span class="kw">names</span>(bg_n), <span class="dt">sep =</span> <span class="st">&quot;-&quot;</span>)</span>
+<span id="cb3-65"><a href="#cb3-65"></a>    }</span>
+<span id="cb3-66"><a href="#cb3-66"></a>  } <span class="cf">else</span> {</span>
+<span id="cb3-67"><a href="#cb3-67"></a>    sp_d &lt;-<span class="st"> </span><span class="kw">list</span>(d)</span>
+<span id="cb3-68"><a href="#cb3-68"></a>    <span class="kw">names</span>(sp_d) &lt;-<span class="st"> </span><span class="kw">paste</span>(fName, <span class="dt">sep =</span> <span class="st">&quot;/&quot;</span>)</span>
+<span id="cb3-69"><a href="#cb3-69"></a></span>
+<span id="cb3-70"><a href="#cb3-70"></a>    bg_n &lt;-<span class="st"> </span><span class="kw">list</span>(bg)</span>
+<span id="cb3-71"><a href="#cb3-71"></a>    <span class="kw">names</span>(bg_n) &lt;-<span class="st"> </span><span class="kw">paste</span>(fName, <span class="dt">sep =</span> <span class="st">&quot;/&quot;</span>)</span>
+<span id="cb3-72"><a href="#cb3-72"></a>  }</span>
+<span id="cb3-73"><a href="#cb3-73"></a></span>
+<span id="cb3-74"><a href="#cb3-74"></a></span>
+<span id="cb3-75"><a href="#cb3-75"></a>  cl &lt;-<span class="st"> </span><span class="kw">makeCluster</span>(<span class="kw">length</span>(sp_d))</span>
+<span id="cb3-76"><a href="#cb3-76"></a>  <span class="kw">registerDoParallel</span>(cl)</span>
+<span id="cb3-77"><a href="#cb3-77"></a></span>
+<span id="cb3-78"><a href="#cb3-78"></a></span>
+<span id="cb3-79"><a href="#cb3-79"></a>  great &lt;-<span class="st"> </span><span class="kw">foreach</span>(<span class="dt">i =</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(sp_d)) <span class="op">%dopar%</span><span class="st"> </span>{</span>
+<span id="cb3-80"><a href="#cb3-80"></a>    <span class="kw">library</span>(GenomicRanges)</span>
+<span id="cb3-81"><a href="#cb3-81"></a>    <span class="kw">library</span>(rGREAT)</span>
+<span id="cb3-82"><a href="#cb3-82"></a>    n &lt;-<span class="st"> </span><span class="kw">names</span>(sp_d)[i]</span>
+<span id="cb3-83"><a href="#cb3-83"></a>    df_GR &lt;-<span class="st"> </span><span class="kw">GRanges</span>(sp_d[[i]])</span>
+<span id="cb3-84"><a href="#cb3-84"></a></span>
+<span id="cb3-85"><a href="#cb3-85"></a>    bgr &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
+<span id="cb3-86"><a href="#cb3-86"></a>    <span class="cf">if</span> (split_bg) {</span>
+<span id="cb3-87"><a href="#cb3-87"></a>      bgr &lt;-<span class="st"> </span>bg_n[[n]]</span>
+<span id="cb3-88"><a href="#cb3-88"></a>    } <span class="cf">else</span> {</span>
+<span id="cb3-89"><a href="#cb3-89"></a>      bgr &lt;-<span class="st"> </span>bg</span>
+<span id="cb3-90"><a href="#cb3-90"></a>    }</span>
+<span id="cb3-91"><a href="#cb3-91"></a></span>
+<span id="cb3-92"><a href="#cb3-92"></a>    <span class="kw">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb3-93"><a href="#cb3-93"></a>    bed &lt;-<span class="st"> </span><span class="kw">data.frame</span>(df_GR, <span class="dt">stringsAsFactors =</span> F)</span>
+<span id="cb3-94"><a href="#cb3-94"></a>    bed &lt;-<span class="st"> </span>bed[<span class="kw">substr</span>(<span class="dt">x =</span> bed<span class="op">$</span>seqnames, <span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">stop =</span> <span class="dv">3</span>) <span class="op">==</span><span class="st"> &quot;chr&quot;</span>, ]</span>
+<span id="cb3-95"><a href="#cb3-95"></a>    job &lt;-<span class="st"> </span><span class="kw">submitGreatJob</span>(<span class="dt">gr =</span> bed, <span class="dt">bg =</span> bgr, <span class="dt">species =</span> <span class="st">&quot;mm10&quot;</span>)</span>
+<span id="cb3-96"><a href="#cb3-96"></a>    tb &lt;-<span class="st"> </span><span class="kw">getEnrichmentTables</span>(job)</span>
+<span id="cb3-97"><a href="#cb3-97"></a></span>
+<span id="cb3-98"><a href="#cb3-98"></a>    <span class="kw">list</span>(<span class="dt">table =</span> tb, <span class="dt">job =</span> job)</span>
+<span id="cb3-99"><a href="#cb3-99"></a>  }</span>
+<span id="cb3-100"><a href="#cb3-100"></a></span>
+<span id="cb3-101"><a href="#cb3-101"></a>  <span class="kw">stopCluster</span>(cl)</span>
+<span id="cb3-102"><a href="#cb3-102"></a></span>
+<span id="cb3-103"><a href="#cb3-103"></a></span>
+<span id="cb3-104"><a href="#cb3-104"></a>  <span class="cf">if</span> (split <span class="op">&amp;</span><span class="st"> </span><span class="op">!</span>split_bg) {</span>
+<span id="cb3-105"><a href="#cb3-105"></a>    <span class="kw">names</span>(great) &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="kw">names</span>(sp_d), <span class="st">&quot;bg_all&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
+<span id="cb3-106"><a href="#cb3-106"></a>  } <span class="cf">else</span> {</span>
+<span id="cb3-107"><a href="#cb3-107"></a>    <span class="kw">names</span>(great) &lt;-<span class="st"> </span><span class="kw">names</span>(sp_d)</span>
+<span id="cb3-108"><a href="#cb3-108"></a>  }</span>
+<span id="cb3-109"><a href="#cb3-109"></a></span>
+<span id="cb3-110"><a href="#cb3-110"></a></span>
+<span id="cb3-111"><a href="#cb3-111"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(great)) {</span>
+<span id="cb3-112"><a href="#cb3-112"></a>    tb &lt;-<span class="st"> </span>great[[i]]<span class="op">$</span>table</span>
+<span id="cb3-113"><a href="#cb3-113"></a>    n &lt;-<span class="st"> </span><span class="kw">names</span>(great)[i]</span>
+<span id="cb3-114"><a href="#cb3-114"></a></span>
+<span id="cb3-115"><a href="#cb3-115"></a>    writexl<span class="op">::</span><span class="kw">write_xlsx</span>(</span>
+<span id="cb3-116"><a href="#cb3-116"></a>      <span class="dt">x =</span> tb<span class="op">$</span><span class="st">`</span><span class="dt">GO Molecular Function</span><span class="st">`</span>,</span>
+<span id="cb3-117"><a href="#cb3-117"></a>      <span class="dt">path =</span> <span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_MF.xlsx&quot;</span>),</span>
+<span id="cb3-118"><a href="#cb3-118"></a>      <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T</span>
+<span id="cb3-119"><a href="#cb3-119"></a>    )</span>
+<span id="cb3-120"><a href="#cb3-120"></a>    writexl<span class="op">::</span><span class="kw">write_xlsx</span>(</span>
+<span id="cb3-121"><a href="#cb3-121"></a>      <span class="dt">x =</span> tb<span class="op">$</span><span class="st">`</span><span class="dt">GO Biological Process</span><span class="st">`</span>,</span>
+<span id="cb3-122"><a href="#cb3-122"></a>      <span class="dt">path =</span> <span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_BP.xlsx&quot;</span>),</span>
+<span id="cb3-123"><a href="#cb3-123"></a>      <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T</span>
+<span id="cb3-124"><a href="#cb3-124"></a>    )</span>
+<span id="cb3-125"><a href="#cb3-125"></a>    writexl<span class="op">::</span><span class="kw">write_xlsx</span>(</span>
+<span id="cb3-126"><a href="#cb3-126"></a>      <span class="dt">x =</span> tb<span class="op">$</span><span class="st">`</span><span class="dt">GO Cellular Component</span><span class="st">`</span>,</span>
+<span id="cb3-127"><a href="#cb3-127"></a>      <span class="dt">path =</span> <span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_CC.xlsx&quot;</span>),</span>
+<span id="cb3-128"><a href="#cb3-128"></a>      <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T</span>
+<span id="cb3-129"><a href="#cb3-129"></a>    )</span>
+<span id="cb3-130"><a href="#cb3-130"></a>  }</span>
+<span id="cb3-131"><a href="#cb3-131"></a>  <span class="kw">return</span>(great)</span>
+<span id="cb3-132"><a href="#cb3-132"></a>}</span></code></pre></div>
 </div>
 <div id="background" class="section level2">
 <h2>Background</h2>
@@ -3080,608 +3148,54 @@ window.onload = function() {
 <div id="analysis" class="section level2">
 <h2>Analysis</h2>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>, <span class="dt">split =</span> F)</span>
-<span id="cb5-2"><a href="#cb5-2"></a>pnd15 &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>, <span class="dt">split =</span> F)</span></code></pre></div>
-<pre><code>## Don&#39;t make too frequent requests. The time break is 300s.
-## Please wait for 285s for the next request.
-## The time break can be set by `request_interval` argument.</code></pre>
-<pre><code>## 
-  |                                                                            
-  |                                                                      |   0%
-  |                                                                            
-  |                                                                      |   1%
-  |                                                                            
-  |=                                                                     |   1%
-  |                                                                            
-  |=                                                                     |   2%
-  |                                                                            
-  |==                                                                    |   2%
-  |                                                                            
-  |==                                                                    |   3%
-  |                                                                            
-  |==                                                                    |   4%
-  |                                                                            
-  |===                                                                   |   4%
-  |                                                                            
-  |===                                                                   |   5%
-  |                                                                            
-  |====                                                                  |   5%
-  |                                                                            
-  |====                                                                  |   6%
-  |                                                                            
-  |=====                                                                 |   7%
-  |                                                                            
-  |=====                                                                 |   8%
-  |                                                                            
-  |======                                                                |   8%
-  |                                                                            
-  |======                                                                |   9%
-  |                                                                            
-  |=======                                                               |   9%
-  |                                                                            
-  |=======                                                               |  10%
-  |                                                                            
-  |=======                                                               |  11%
-  |                                                                            
-  |========                                                              |  11%
-  |                                                                            
-  |========                                                              |  12%
-  |                                                                            
-  |=========                                                             |  12%
-  |                                                                            
-  |=========                                                             |  13%
-  |                                                                            
-  |==========                                                            |  14%
-  |                                                                            
-  |==========                                                            |  15%
-  |                                                                            
-  |===========                                                           |  15%
-  |                                                                            
-  |===========                                                           |  16%
-  |                                                                            
-  |============                                                          |  16%
-  |                                                                            
-  |============                                                          |  17%
-  |                                                                            
-  |============                                                          |  18%
-  |                                                                            
-  |=============                                                         |  18%
-  |                                                                            
-  |=============                                                         |  19%
-  |                                                                            
-  |==============                                                        |  20%
-  |                                                                            
-  |==============                                                        |  21%
-  |                                                                            
-  |===============                                                       |  21%
-  |                                                                            
-  |===============                                                       |  22%
-  |                                                                            
-  |================                                                      |  22%
-  |                                                                            
-  |================                                                      |  23%
-  |                                                                            
-  |=================                                                     |  24%
-  |                                                                            
-  |=================                                                     |  25%
-  |                                                                            
-  |==================                                                    |  25%
-  |                                                                            
-  |==================                                                    |  26%
-  |                                                                            
-  |===================                                                   |  27%
-  |                                                                            
-  |===================                                                   |  28%
-  |                                                                            
-  |====================                                                  |  28%
-  |                                                                            
-  |====================                                                  |  29%
-  |                                                                            
-  |=====================                                                 |  29%
-  |                                                                            
-  |=====================                                                 |  30%
-  |                                                                            
-  |======================                                                |  31%
-  |                                                                            
-  |======================                                                |  32%
-  |                                                                            
-  |=======================                                               |  32%
-  |                                                                            
-  |=======================                                               |  33%
-  |                                                                            
-  |========================                                              |  34%
-  |                                                                            
-  |========================                                              |  35%
-  |                                                                            
-  |=========================                                             |  35%
-  |                                                                            
-  |=========================                                             |  36%
-  |                                                                            
-  |==========================                                            |  36%
-  |                                                                            
-  |==========================                                            |  37%
-  |                                                                            
-  |==========================                                            |  38%
-  |                                                                            
-  |===========================                                           |  38%
-  |                                                                            
-  |===========================                                           |  39%
-  |                                                                            
-  |============================                                          |  40%
-  |                                                                            
-  |============================                                          |  41%
-  |                                                                            
-  |=============================                                         |  41%
-  |                                                                            
-  |=============================                                         |  42%
-  |                                                                            
-  |==============================                                        |  42%
-  |                                                                            
-  |==============================                                        |  43%
-  |                                                                            
-  |===============================                                       |  44%
-  |                                                                            
-  |===============================                                       |  45%
-  |                                                                            
-  |================================                                      |  45%
-  |                                                                            
-  |================================                                      |  46%
-  |                                                                            
-  |=================================                                     |  47%
-  |                                                                            
-  |=================================                                     |  48%
-  |                                                                            
-  |==================================                                    |  48%
-  |                                                                            
-  |==================================                                    |  49%
-  |                                                                            
-  |===================================                                   |  49%
-  |                                                                            
-  |===================================                                   |  50%
-  |                                                                            
-  |====================================                                  |  51%
-  |                                                                            
-  |====================================                                  |  52%
-  |                                                                            
-  |=====================================                                 |  52%
-  |                                                                            
-  |=====================================                                 |  53%
-  |                                                                            
-  |======================================                                |  54%
-  |                                                                            
-  |======================================                                |  55%
-  |                                                                            
-  |=======================================                               |  55%
-  |                                                                            
-  |=======================================                               |  56%
-  |                                                                            
-  |========================================                              |  57%
-  |                                                                            
-  |========================================                              |  58%
-  |                                                                            
-  |=========================================                             |  58%
-  |                                                                            
-  |=========================================                             |  59%
-  |                                                                            
-  |==========================================                            |  60%
-  |                                                                            
-  |==========================================                            |  61%
-  |                                                                            
-  |===========================================                           |  61%
-  |                                                                            
-  |===========================================                           |  62%
-  |                                                                            
-  |============================================                          |  62%
-  |                                                                            
-  |============================================                          |  63%
-  |                                                                            
-  |=============================================                         |  64%
-  |                                                                            
-  |=============================================                         |  65%
-  |                                                                            
-  |==============================================                        |  65%
-  |                                                                            
-  |==============================================                        |  66%
-  |                                                                            
-  |===============================================                       |  67%
-  |                                                                            
-  |===============================================                       |  68%
-  |                                                                            
-  |================================================                      |  68%
-  |                                                                            
-  |================================================                      |  69%
-  |                                                                            
-  |=================================================                     |  69%
-  |                                                                            
-  |=================================================                     |  70%
-  |                                                                            
-  |==================================================                    |  71%
-  |                                                                            
-  |==================================================                    |  72%
-  |                                                                            
-  |===================================================                   |  72%
-  |                                                                            
-  |===================================================                   |  73%
-  |                                                                            
-  |====================================================                  |  74%
-  |                                                                            
-  |====================================================                  |  75%
-  |                                                                            
-  |=====================================================                 |  75%
-  |                                                                            
-  |=====================================================                 |  76%
-  |                                                                            
-  |======================================================                |  77%
-  |                                                                            
-  |======================================================                |  78%
-  |                                                                            
-  |=======================================================               |  78%
-  |                                                                            
-  |=======================================================               |  79%
-  |                                                                            
-  |========================================================              |  80%
-  |                                                                            
-  |========================================================              |  81%
-  |                                                                            
-  |=========================================================             |  81%
-  |                                                                            
-  |=========================================================             |  82%
-  |                                                                            
-  |==========================================================            |  82%
-  |                                                                            
-  |==========================================================            |  83%
-  |                                                                            
-  |===========================================================           |  84%
-  |                                                                            
-  |===========================================================           |  85%
-  |                                                                            
-  |============================================================          |  85%
-  |                                                                            
-  |============================================================          |  86%
-  |                                                                            
-  |=============================================================         |  87%
-  |                                                                            
-  |=============================================================         |  88%
-  |                                                                            
-  |==============================================================        |  88%
-  |                                                                            
-  |==============================================================        |  89%
-  |                                                                            
-  |===============================================================       |  89%
-  |                                                                            
-  |===============================================================       |  90%
-  |                                                                            
-  |================================================================      |  91%
-  |                                                                            
-  |================================================================      |  92%
-  |                                                                            
-  |=================================================================     |  92%
-  |                                                                            
-  |=================================================================     |  93%
-  |                                                                            
-  |=================================================================     |  94%
-  |                                                                            
-  |==================================================================    |  94%
-  |                                                                            
-  |==================================================================    |  95%
-  |                                                                            
-  |===================================================================   |  95%
-  |                                                                            
-  |===================================================================   |  96%
-  |                                                                            
-  |====================================================================  |  97%
-  |                                                                            
-  |====================================================================  |  98%
-  |                                                                            
-  |===================================================================== |  98%
-  |                                                                            
-  |===================================================================== |  99%
-  |                                                                            
-  |======================================================================| 100%</code></pre>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>adult &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>, <span class="dt">split =</span> F)</span></code></pre></div>
-<pre><code>## Don&#39;t make too frequent requests. The time break is 300s.
-## Please wait for 287s for the next request.
-## The time break can be set by `request_interval` argument.</code></pre>
-<pre><code>## 
-  |                                                                            
-  |                                                                      |   0%
-  |                                                                            
-  |                                                                      |   1%
-  |                                                                            
-  |=                                                                     |   1%
-  |                                                                            
-  |=                                                                     |   2%
-  |                                                                            
-  |==                                                                    |   2%
-  |                                                                            
-  |==                                                                    |   3%
-  |                                                                            
-  |===                                                                   |   4%
-  |                                                                            
-  |===                                                                   |   5%
-  |                                                                            
-  |====                                                                  |   5%
-  |                                                                            
-  |====                                                                  |   6%
-  |                                                                            
-  |=====                                                                 |   7%
-  |                                                                            
-  |=====                                                                 |   8%
-  |                                                                            
-  |======                                                                |   8%
-  |                                                                            
-  |======                                                                |   9%
-  |                                                                            
-  |=======                                                               |   9%
-  |                                                                            
-  |=======                                                               |  10%
-  |                                                                            
-  |========                                                              |  11%
-  |                                                                            
-  |========                                                              |  12%
-  |                                                                            
-  |=========                                                             |  12%
-  |                                                                            
-  |=========                                                             |  13%
-  |                                                                            
-  |==========                                                            |  14%
-  |                                                                            
-  |==========                                                            |  15%
-  |                                                                            
-  |===========                                                           |  15%
-  |                                                                            
-  |===========                                                           |  16%
-  |                                                                            
-  |============                                                          |  17%
-  |                                                                            
-  |============                                                          |  18%
-  |                                                                            
-  |=============                                                         |  18%
-  |                                                                            
-  |=============                                                         |  19%
-  |                                                                            
-  |==============                                                        |  20%
-  |                                                                            
-  |==============                                                        |  21%
-  |                                                                            
-  |===============                                                       |  21%
-  |                                                                            
-  |===============                                                       |  22%
-  |                                                                            
-  |================                                                      |  22%
-  |                                                                            
-  |================                                                      |  23%
-  |                                                                            
-  |=================                                                     |  24%
-  |                                                                            
-  |=================                                                     |  25%
-  |                                                                            
-  |==================                                                    |  25%
-  |                                                                            
-  |==================                                                    |  26%
-  |                                                                            
-  |===================                                                   |  26%
-  |                                                                            
-  |===================                                                   |  27%
-  |                                                                            
-  |===================                                                   |  28%
-  |                                                                            
-  |====================                                                  |  28%
-  |                                                                            
-  |====================                                                  |  29%
-  |                                                                            
-  |=====================                                                 |  30%
-  |                                                                            
-  |=====================                                                 |  31%
-  |                                                                            
-  |======================                                                |  31%
-  |                                                                            
-  |======================                                                |  32%
-  |                                                                            
-  |=======================                                               |  32%
-  |                                                                            
-  |=======================                                               |  33%
-  |                                                                            
-  |========================                                              |  34%
-  |                                                                            
-  |========================                                              |  35%
-  |                                                                            
-  |=========================                                             |  35%
-  |                                                                            
-  |=========================                                             |  36%
-  |                                                                            
-  |==========================                                            |  37%
-  |                                                                            
-  |==========================                                            |  38%
-  |                                                                            
-  |===========================                                           |  38%
-  |                                                                            
-  |===========================                                           |  39%
-  |                                                                            
-  |============================                                          |  39%
-  |                                                                            
-  |============================                                          |  40%
-  |                                                                            
-  |=============================                                         |  41%
-  |                                                                            
-  |=============================                                         |  42%
-  |                                                                            
-  |==============================                                        |  42%
-  |                                                                            
-  |==============================                                        |  43%
-  |                                                                            
-  |===============================                                       |  44%
-  |                                                                            
-  |===============================                                       |  45%
-  |                                                                            
-  |================================                                      |  45%
-  |                                                                            
-  |================================                                      |  46%
-  |                                                                            
-  |=================================                                     |  47%
-  |                                                                            
-  |=================================                                     |  48%
-  |                                                                            
-  |==================================                                    |  48%
-  |                                                                            
-  |==================================                                    |  49%
-  |                                                                            
-  |===================================                                   |  50%
-  |                                                                            
-  |===================================                                   |  51%
-  |                                                                            
-  |====================================                                  |  51%
-  |                                                                            
-  |====================================                                  |  52%
-  |                                                                            
-  |=====================================                                 |  52%
-  |                                                                            
-  |=====================================                                 |  53%
-  |                                                                            
-  |======================================                                |  54%
-  |                                                                            
-  |======================================                                |  55%
-  |                                                                            
-  |=======================================                               |  55%
-  |                                                                            
-  |=======================================                               |  56%
-  |                                                                            
-  |========================================                              |  56%
-  |                                                                            
-  |========================================                              |  57%
-  |                                                                            
-  |========================================                              |  58%
-  |                                                                            
-  |=========================================                             |  58%
-  |                                                                            
-  |=========================================                             |  59%
-  |                                                                            
-  |==========================================                            |  60%
-  |                                                                            
-  |==========================================                            |  61%
-  |                                                                            
-  |===========================================                           |  61%
-  |                                                                            
-  |===========================================                           |  62%
-  |                                                                            
-  |============================================                          |  62%
-  |                                                                            
-  |============================================                          |  63%
-  |                                                                            
-  |=============================================                         |  64%
-  |                                                                            
-  |=============================================                         |  65%
-  |                                                                            
-  |==============================================                        |  65%
-  |                                                                            
-  |==============================================                        |  66%
-  |                                                                            
-  |===============================================                       |  67%
-  |                                                                            
-  |===============================================                       |  68%
-  |                                                                            
-  |================================================                      |  68%
-  |                                                                            
-  |================================================                      |  69%
-  |                                                                            
-  |=================================================                     |  69%
-  |                                                                            
-  |=================================================                     |  70%
-  |                                                                            
-  |==================================================                    |  71%
-  |                                                                            
-  |==================================================                    |  72%
-  |                                                                            
-  |===================================================                   |  72%
-  |                                                                            
-  |===================================================                   |  73%
-  |                                                                            
-  |===================================================                   |  74%
-  |                                                                            
-  |====================================================                  |  74%
-  |                                                                            
-  |====================================================                  |  75%
-  |                                                                            
-  |=====================================================                 |  75%
-  |                                                                            
-  |=====================================================                 |  76%
-  |                                                                            
-  |======================================================                |  77%
-  |                                                                            
-  |======================================================                |  78%
-  |                                                                            
-  |=======================================================               |  78%
-  |                                                                            
-  |=======================================================               |  79%
-  |                                                                            
-  |========================================================              |  79%
-  |                                                                            
-  |========================================================              |  80%
-  |                                                                            
-  |========================================================              |  81%
-  |                                                                            
-  |=========================================================             |  81%
-  |                                                                            
-  |=========================================================             |  82%
-  |                                                                            
-  |==========================================================            |  82%
-  |                                                                            
-  |==========================================================            |  83%
-  |                                                                            
-  |===========================================================           |  84%
-  |                                                                            
-  |===========================================================           |  85%
-  |                                                                            
-  |============================================================          |  85%
-  |                                                                            
-  |============================================================          |  86%
-  |                                                                            
-  |=============================================================         |  86%
-  |                                                                            
-  |=============================================================         |  87%
-  |                                                                            
-  |=============================================================         |  88%
-  |                                                                            
-  |==============================================================        |  88%
-  |                                                                            
-  |==============================================================        |  89%
-  |                                                                            
-  |===============================================================       |  90%
-  |                                                                            
-  |===============================================================       |  91%
-  |                                                                            
-  |================================================================      |  91%
-  |                                                                            
-  |================================================================      |  92%
-  |                                                                            
-  |=================================================================     |  92%
-  |                                                                            
-  |=================================================================     |  93%
-  |                                                                            
-  |==================================================================    |  94%
-  |                                                                            
-  |==================================================================    |  95%
-  |                                                                            
-  |===================================================================   |  95%
-  |                                                                            
-  |===================================================================   |  96%
-  |                                                                            
-  |====================================================================  |  97%
-  |                                                                            
-  |====================================================================  |  98%
-  |                                                                            
-  |===================================================================== |  98%
-  |                                                                            
-  |===================================================================== |  99%
-  |                                                                            
-  |======================================================================|  99%
-  |                                                                            
-  |======================================================================| 100%</code></pre>
+<span id="cb5-2"><a href="#cb5-2"></a>pnd15 &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>, <span class="dt">split =</span> F)</span>
+<span id="cb5-3"><a href="#cb5-3"></a>adult &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>, <span class="dt">split =</span> F)</span></code></pre></div>
 </div>
 <div id="analysis-split" class="section level2">
 <h2>Analysis split</h2>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>all_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>, <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>)</span>
-<span id="cb11-2"><a href="#cb11-2"></a>pnd15_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>, <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>)</span>
-<span id="cb11-3"><a href="#cb11-3"></a>adult_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>, <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>all_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb6-2"><a href="#cb6-2"></a>  <span class="dt">df =</span> da, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb6-3"><a href="#cb6-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>,</span>
+<span id="cb6-5"><a href="#cb6-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb6-6"><a href="#cb6-6"></a>)</span>
+<span id="cb6-7"><a href="#cb6-7"></a></span>
+<span id="cb6-8"><a href="#cb6-8"></a>pnd15_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb6-9"><a href="#cb6-9"></a>  <span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb6-10"><a href="#cb6-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb6-11"><a href="#cb6-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>,</span>
+<span id="cb6-12"><a href="#cb6-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb6-13"><a href="#cb6-13"></a>)</span>
+<span id="cb6-14"><a href="#cb6-14"></a></span>
+<span id="cb6-15"><a href="#cb6-15"></a>adult_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb6-16"><a href="#cb6-16"></a>  <span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb6-17"><a href="#cb6-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb6-18"><a href="#cb6-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>,</span>
+<span id="cb6-19"><a href="#cb6-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb6-20"><a href="#cb6-20"></a>)</span></code></pre></div>
+</div>
+<div id="analysis-split-all-background" class="section level2">
+<h2>Analysis split all background</h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a>all_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb7-2"><a href="#cb7-2"></a>  <span class="dt">df =</span> da, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb7-3"><a href="#cb7-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb7-4"><a href="#cb7-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>,</span>
+<span id="cb7-5"><a href="#cb7-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a>)</span>
+<span id="cb7-7"><a href="#cb7-7"></a></span>
+<span id="cb7-8"><a href="#cb7-8"></a>pnd15_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb7-9"><a href="#cb7-9"></a>  <span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb7-10"><a href="#cb7-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb7-11"><a href="#cb7-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>,</span>
+<span id="cb7-12"><a href="#cb7-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb7-13"><a href="#cb7-13"></a>)</span>
+<span id="cb7-14"><a href="#cb7-14"></a></span>
+<span id="cb7-15"><a href="#cb7-15"></a>adult_sp &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb7-16"><a href="#cb7-16"></a>  <span class="dt">df =</span> da_f, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb7-17"><a href="#cb7-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb7-18"><a href="#cb7-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Peak-class&quot;</span>,</span>
+<span id="cb7-19"><a href="#cb7-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb7-20"><a href="#cb7-20"></a>)</span></code></pre></div>
 <!-- ## Analysis split -->
 <!-- ```{r 20191118-rGREAT-6, eval = T} -->
 <!-- all_sp <- perform_rGREAT(df = da, FC = "all", bg = bg, fName = "PND15_Adult", split = T) -->
@@ -3694,203 +3208,214 @@ window.onload = function() {
 <h1>Annotation plot</h1>
 <div id="all" class="section level2">
 <h2>All</h2>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a><span class="kw">plotRegionGeneAssociationGraphs</span>(all[[<span class="dv">1</span>]]<span class="op">$</span>job)</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a><span class="kw">plotRegionGeneAssociationGraphs</span>(all[[<span class="dv">1</span>]]<span class="op">$</span>job)</span></code></pre></div>
 </div>
 <div id="pnd15" class="section level2">
 <h2>PND15</h2>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a><span class="kw">plotRegionGeneAssociationGraphs</span>(pnd15[[<span class="dv">1</span>]]<span class="op">$</span>job)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a><span class="kw">plotRegionGeneAssociationGraphs</span>(pnd15[[<span class="dv">1</span>]]<span class="op">$</span>job)</span></code></pre></div>
 </div>
 <div id="adult" class="section level2">
 <h2>Adult</h2>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a><span class="kw">plotRegionGeneAssociationGraphs</span>(adult[[<span class="dv">1</span>]]<span class="op">$</span>job)</span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a>report<span class="op">::</span><span class="kw">cite_packages</span>(<span class="kw">sessionInfo</span>())</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a><span class="kw">plotRegionGeneAssociationGraphs</span>(adult[[<span class="dv">1</span>]]<span class="op">$</span>job)</span></code></pre></div>
+</div>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>report<span class="op">::</span><span class="kw">cite_packages</span>(<span class="kw">sessionInfo</span>())</span></code></pre></div>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["References"],"name":[1],"type":["fctr"],"align":["left"]}],"data":[{"1":"Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2020). dplyr: A Grammar of Data Manipulation. R package version 1.0.0. https://CRAN.R-project.org/package=dplyr"},{"1":"Henrik Bengtsson (2020). matrixStats: Functions that Apply to Rows and Columns of Matrices (and to Vectors). R package version 0.56.0. https://CRAN.R-project.org/package=matrixStats"},{"1":"Hervé Pagès, with contributions from Peter Hickey and Aaron Lun (2020). DelayedArray: A unified framework for working transparently with on-disk and in-memory array-like datasets. R package version 0.12.3."},{"1":"H. Pagès, M. Lawrence and P. Aboyoun (2020). S4Vectors: Foundation of vector-like and list-like containers in Bioconductor. R package version 0.24.4."},{"1":"Jonathan Sidi (2020). details: Create Details HTML Tag for Markdown and Package Documentation. R package version 0.2.1. https://CRAN.R-project.org/package=details"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Martin Morgan, Valerie Obenchain, Jim Hester and Hervé Pagès (2019). SummarizedExperiment: SummarizedExperiment container. R package version 1.16.1."},{"1":"Martin Morgan, Valerie Obenchain, Michel Lang, Ryan Thompson and Nitesh Turaga (2019). BiocParallel: Bioconductor facilities for parallel evaluation. R package version 1.20.1. https://github.com/Bioconductor/BiocParallel"},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Sonali Arora, Martin Morgan, Marc Carlson and H. Pagès (2020). GenomeInfoDb: Utilities for manipulating chromosome names, including modifying them to follow a particular naming style. R package version 1.22.1."},{"1":"Zuguang Gu (2019). rGREAT: Client for GREAT Analysis. https://github.com/jokergoo/rGREAT, http://great.stanford.edu/public/html/."}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["References"],"name":[1],"type":["fctr"],"align":["left"]}],"data":[{"1":"Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2020). dplyr: A Grammar of Data Manipulation. R package version 1.0.0. https://CRAN.R-project.org/package=dplyr"},{"1":"Henrik Bengtsson (2020). matrixStats: Functions that Apply to Rows and Columns of Matrices (and to Vectors). R package version 0.56.0. https://CRAN.R-project.org/package=matrixStats"},{"1":"Hervé Pagès, with contributions from Peter Hickey and Aaron Lun (2020). DelayedArray: A unified framework for working transparently with on-disk and in-memory array-like datasets. R package version 0.12.3."},{"1":"H. Pagès, M. Lawrence and P. Aboyoun (2020). S4Vectors: Foundation of vector-like and list-like containers in Bioconductor. R package version 0.24.4."},{"1":"Jonathan Sidi (2020). details: Create Details HTML Tag for Markdown and Package Documentation. R package version 0.2.1. https://CRAN.R-project.org/package=details"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Martin Morgan, Valerie Obenchain, Jim Hester and Hervé Pagès (2019). SummarizedExperiment: SummarizedExperiment container. R package version 1.16.1."},{"1":"Martin Morgan, Valerie Obenchain, Michel Lang, Ryan Thompson and Nitesh Turaga (2019). BiocParallel: Bioconductor facilities for parallel evaluation. R package version 1.20.1. https://github.com/Bioconductor/BiocParallel"},{"1":"Microsoft and Steve Weston (2020). foreach: Provides Foreach Looping Construct. R package version 1.5.0. https://CRAN.R-project.org/package=foreach"},{"1":"Microsoft Corporation and Steve Weston (2019). doParallel: Foreach Parallel Adaptor for the 'parallel' Package. R package version 1.0.15. https://CRAN.R-project.org/package=doParallel"},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Revolution Analytics and Steve Weston (2019). iterators: Provides Iterator Construct. R package version 1.0.12. https://CRAN.R-project.org/package=iterators"},{"1":"Sonali Arora, Martin Morgan, Marc Carlson and H. Pagès (2020). GenomeInfoDb: Utilities for manipulating chromosome names, including modifying them to follow a particular naming style. R package version 1.22.1."},{"1":"Zuguang Gu (2019). rGREAT: Client for GREAT Analysis. https://github.com/jokergoo/rGREAT, http://great.stanford.edu/public/html/."}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
-</div>
 </div>
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>() <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb16-2"><a href="#cb16-2"></a><span class="st">  </span><span class="kw">details</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>() <span class="op">%&gt;%</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="st">  </span><span class="kw">details</span>()</span></code></pre></div>
 <details closed>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a></span>
-<span id="cb17-2"><a href="#cb17-2"></a>─ Session info ───────────────────────────────────────────────────────────────</span>
-<span id="cb17-3"><a href="#cb17-3"></a> setting  value                       </span>
-<span id="cb17-4"><a href="#cb17-4"></a> version  R version <span class="dv">3</span>.<span class="fl">6.2</span> (<span class="dv">2019-12-12</span>)</span>
-<span id="cb17-5"><a href="#cb17-5"></a> os       Ubuntu <span class="dv">16</span>.<span class="fl">04.6</span> LTS          </span>
-<span id="cb17-6"><a href="#cb17-6"></a> system   x86_<span class="dv">64</span>, linux<span class="op">-</span>gnu           </span>
-<span id="cb17-7"><a href="#cb17-7"></a> ui       X11                         </span>
-<span id="cb17-8"><a href="#cb17-8"></a> <span class="kw">language</span> (EN)                        </span>
-<span id="cb17-9"><a href="#cb17-9"></a> collate  en_US.UTF<span class="dv">-8</span>                 </span>
-<span id="cb17-10"><a href="#cb17-10"></a> ctype    en_US.UTF<span class="dv">-8</span>                 </span>
-<span id="cb17-11"><a href="#cb17-11"></a> tz       Europe<span class="op">/</span>Zurich               </span>
-<span id="cb17-12"><a href="#cb17-12"></a> date     <span class="dv">2020-07-17</span>                  </span>
-<span id="cb17-13"><a href="#cb17-13"></a></span>
-<span id="cb17-14"><a href="#cb17-14"></a>─ Packages ───────────────────────────────────────────────────────────────────</span>
-<span id="cb17-15"><a href="#cb17-15"></a> package              <span class="op">*</span><span class="st"> </span>version    date       lib</span>
-<span id="cb17-16"><a href="#cb17-16"></a> assertthat             <span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2019-03-21</span> [<span class="dv">1</span>]</span>
-<span id="cb17-17"><a href="#cb17-17"></a> backports              <span class="dv">1</span>.<span class="fl">1.7</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
-<span id="cb17-18"><a href="#cb17-18"></a> Biobase              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-19"><a href="#cb17-19"></a> BiocGenerics         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-20"><a href="#cb17-20"></a> BiocParallel         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.1</span>     <span class="dv">2019-12-21</span> [<span class="dv">1</span>]</span>
-<span id="cb17-21"><a href="#cb17-21"></a> bitops                 <span class="fl">1.0</span><span class="dv">-6</span>      <span class="dv">2013-08-17</span> [<span class="dv">1</span>]</span>
-<span id="cb17-22"><a href="#cb17-22"></a> bookdown               <span class="fl">0.18</span>       <span class="dv">2020-03-05</span> [<span class="dv">1</span>]</span>
-<span id="cb17-23"><a href="#cb17-23"></a> callr                  <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-03-28</span> [<span class="dv">1</span>]</span>
-<span id="cb17-24"><a href="#cb17-24"></a> cli                    <span class="dv">2</span>.<span class="fl">0.2</span>      <span class="dv">2020-02-28</span> [<span class="dv">1</span>]</span>
-<span id="cb17-25"><a href="#cb17-25"></a> clipr                  <span class="dv">0</span>.<span class="fl">7.0</span>      <span class="dv">2019-07-23</span> [<span class="dv">1</span>]</span>
-<span id="cb17-26"><a href="#cb17-26"></a> crayon                 <span class="dv">1</span>.<span class="fl">3.4</span>      <span class="dv">2017-09-16</span> [<span class="dv">1</span>]</span>
-<span id="cb17-27"><a href="#cb17-27"></a> DelayedArray         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">12.3</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb17-28"><a href="#cb17-28"></a> desc                   <span class="dv">1</span>.<span class="fl">2.0</span>      <span class="dv">2018-05-01</span> [<span class="dv">1</span>]</span>
-<span id="cb17-29"><a href="#cb17-29"></a> details              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2020-01-12</span> [<span class="dv">1</span>]</span>
-<span id="cb17-30"><a href="#cb17-30"></a> devtools               <span class="dv">2</span>.<span class="fl">3.0</span>      <span class="dv">2020-04-10</span> [<span class="dv">1</span>]</span>
-<span id="cb17-31"><a href="#cb17-31"></a> digest                 <span class="dv">0</span>.<span class="fl">6.25</span>     <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
-<span id="cb17-32"><a href="#cb17-32"></a> dplyr                <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.0</span>      <span class="dv">2020-05-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-33"><a href="#cb17-33"></a> ellipsis               <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2020-05-15</span> [<span class="dv">1</span>]</span>
-<span id="cb17-34"><a href="#cb17-34"></a> evaluate               <span class="fl">0.14</span>       <span class="dv">2019-05-28</span> [<span class="dv">1</span>]</span>
-<span id="cb17-35"><a href="#cb17-35"></a> fansi                  <span class="dv">0</span>.<span class="fl">4.1</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
-<span id="cb17-36"><a href="#cb17-36"></a> fs                     <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-04-04</span> [<span class="dv">1</span>]</span>
-<span id="cb17-37"><a href="#cb17-37"></a> generics               <span class="dv">0</span>.<span class="fl">0.2</span>      <span class="dv">2018-11-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-38"><a href="#cb17-38"></a> GenomeInfoDb         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2020-03-27</span> [<span class="dv">1</span>]</span>
-<span id="cb17-39"><a href="#cb17-39"></a> GenomeInfoDbData       <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
-<span id="cb17-40"><a href="#cb17-40"></a> GenomicRanges        <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">38.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-41"><a href="#cb17-41"></a> GetoptLong             <span class="dv">0</span>.<span class="fl">1.8</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
-<span id="cb17-42"><a href="#cb17-42"></a> GlobalOptions          <span class="dv">0</span>.<span class="fl">1.1</span>      <span class="dv">2019-09-30</span> [<span class="dv">1</span>]</span>
-<span id="cb17-43"><a href="#cb17-43"></a> glue                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
-<span id="cb17-44"><a href="#cb17-44"></a> htmltools              <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2019-10-04</span> [<span class="dv">1</span>]</span>
-<span id="cb17-45"><a href="#cb17-45"></a> httr                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2019-08-05</span> [<span class="dv">1</span>]</span>
-<span id="cb17-46"><a href="#cb17-46"></a> insight                <span class="dv">0</span>.<span class="fl">8.3</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb17-47"><a href="#cb17-47"></a> IRanges              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">20.2</span>     <span class="dv">2020-01-13</span> [<span class="dv">1</span>]</span>
-<span id="cb17-48"><a href="#cb17-48"></a> jsonlite               <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-02-02</span> [<span class="dv">1</span>]</span>
-<span id="cb17-49"><a href="#cb17-49"></a> knitr                  <span class="fl">1.28</span>       <span class="dv">2020-02-06</span> [<span class="dv">1</span>]</span>
-<span id="cb17-50"><a href="#cb17-50"></a> lattice                <span class="fl">0.20</span><span class="dv">-41</span>    <span class="dv">2020-04-02</span> [<span class="dv">1</span>]</span>
-<span id="cb17-51"><a href="#cb17-51"></a> lifecycle              <span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-03-06</span> [<span class="dv">1</span>]</span>
-<span id="cb17-52"><a href="#cb17-52"></a> magrittr               <span class="fl">1.5</span>        <span class="dv">2014-11-22</span> [<span class="dv">1</span>]</span>
-<span id="cb17-53"><a href="#cb17-53"></a> Matrix                 <span class="fl">1.2</span><span class="dv">-18</span>     <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
-<span id="cb17-54"><a href="#cb17-54"></a> matrixStats          <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">56.0</span>     <span class="dv">2020-03-13</span> [<span class="dv">1</span>]</span>
-<span id="cb17-55"><a href="#cb17-55"></a> memoise                <span class="dv">1</span>.<span class="dv">1</span>.<span class="fl">0.9000</span> <span class="dv">2020-05-06</span> [<span class="dv">1</span>]</span>
-<span id="cb17-56"><a href="#cb17-56"></a> pillar                 <span class="dv">1</span>.<span class="fl">4.4</span>      <span class="dv">2020-05-05</span> [<span class="dv">1</span>]</span>
-<span id="cb17-57"><a href="#cb17-57"></a> pkgbuild               <span class="dv">1</span>.<span class="fl">0.8</span>      <span class="dv">2020-05-07</span> [<span class="dv">1</span>]</span>
-<span id="cb17-58"><a href="#cb17-58"></a> pkgconfig              <span class="dv">2</span>.<span class="fl">0.3</span>      <span class="dv">2019-09-22</span> [<span class="dv">1</span>]</span>
-<span id="cb17-59"><a href="#cb17-59"></a> pkgload                <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-60"><a href="#cb17-60"></a> png                    <span class="fl">0.1</span><span class="dv">-7</span>      <span class="dv">2013-12-03</span> [<span class="dv">1</span>]</span>
-<span id="cb17-61"><a href="#cb17-61"></a> prettyunits            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
-<span id="cb17-62"><a href="#cb17-62"></a> processx               <span class="dv">3</span>.<span class="fl">4.2</span>      <span class="dv">2020-02-09</span> [<span class="dv">1</span>]</span>
-<span id="cb17-63"><a href="#cb17-63"></a> ps                     <span class="dv">1</span>.<span class="fl">3.3</span>      <span class="dv">2020-05-08</span> [<span class="dv">1</span>]</span>
-<span id="cb17-64"><a href="#cb17-64"></a> purrr                  <span class="dv">0</span>.<span class="fl">3.4</span>      <span class="dv">2020-04-17</span> [<span class="dv">1</span>]</span>
-<span id="cb17-65"><a href="#cb17-65"></a> R6                     <span class="dv">2</span>.<span class="fl">4.1</span>      <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
-<span id="cb17-66"><a href="#cb17-66"></a> Rcpp                   <span class="dv">1</span>.<span class="dv">0</span>.<span class="fl">4.6</span>    <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb17-67"><a href="#cb17-67"></a> RCurl                  <span class="fl">1.98-1.2</span>   <span class="dv">2020-04-18</span> [<span class="dv">1</span>]</span>
-<span id="cb17-68"><a href="#cb17-68"></a> remotes                <span class="dv">2</span>.<span class="fl">1.1</span>      <span class="dv">2020-02-15</span> [<span class="dv">1</span>]</span>
-<span id="cb17-69"><a href="#cb17-69"></a> report                 <span class="dv">0</span>.<span class="fl">1.0</span>      <span class="dv">2020-03-19</span> [<span class="dv">1</span>]</span>
-<span id="cb17-70"><a href="#cb17-70"></a> rGREAT               <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">18.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-71"><a href="#cb17-71"></a> rjson                  <span class="dv">0</span>.<span class="fl">2.20</span>     <span class="dv">2018-06-08</span> [<span class="dv">1</span>]</span>
-<span id="cb17-72"><a href="#cb17-72"></a> rlang                  <span class="dv">0</span>.<span class="fl">4.6</span>      <span class="dv">2020-05-02</span> [<span class="dv">1</span>]</span>
-<span id="cb17-73"><a href="#cb17-73"></a> rmarkdown              <span class="fl">2.1</span>        <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
-<span id="cb17-74"><a href="#cb17-74"></a> rmdformats             <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2020-06-07</span> [<span class="dv">1</span>]</span>
-<span id="cb17-75"><a href="#cb17-75"></a> rprojroot              <span class="fl">1.3</span><span class="dv">-2</span>      <span class="dv">2018-01-03</span> [<span class="dv">1</span>]</span>
-<span id="cb17-76"><a href="#cb17-76"></a> S4Vectors            <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">24.4</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb17-77"><a href="#cb17-77"></a> sessioninfo            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2018-11-05</span> [<span class="dv">1</span>]</span>
-<span id="cb17-78"><a href="#cb17-78"></a> stringi                <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-02-17</span> [<span class="dv">1</span>]</span>
-<span id="cb17-79"><a href="#cb17-79"></a> stringr                <span class="dv">1</span>.<span class="fl">4.0</span>      <span class="dv">2019-02-10</span> [<span class="dv">1</span>]</span>
-<span id="cb17-80"><a href="#cb17-80"></a> SummarizedExperiment <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">16.1</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
-<span id="cb17-81"><a href="#cb17-81"></a> testthat               <span class="dv">2</span>.<span class="fl">3.2</span>      <span class="dv">2020-03-02</span> [<span class="dv">1</span>]</span>
-<span id="cb17-82"><a href="#cb17-82"></a> tibble                 <span class="dv">3</span>.<span class="fl">0.1</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb17-83"><a href="#cb17-83"></a> tidyselect             <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-11</span> [<span class="dv">1</span>]</span>
-<span id="cb17-84"><a href="#cb17-84"></a> usethis                <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-04-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-85"><a href="#cb17-85"></a> vctrs                  <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2020-06-05</span> [<span class="dv">1</span>]</span>
-<span id="cb17-86"><a href="#cb17-86"></a> withr                  <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb17-87"><a href="#cb17-87"></a> writexl                <span class="fl">1.2</span>        <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
-<span id="cb17-88"><a href="#cb17-88"></a> xfun                   <span class="fl">0.13</span>       <span class="dv">2020-04-13</span> [<span class="dv">1</span>]</span>
-<span id="cb17-89"><a href="#cb17-89"></a> xml2                   <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
-<span id="cb17-90"><a href="#cb17-90"></a> XVector                <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-91"><a href="#cb17-91"></a> yaml                   <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
-<span id="cb17-92"><a href="#cb17-92"></a> zlibbioc               <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb17-93"><a href="#cb17-93"></a> source                           </span>
-<span id="cb17-94"><a href="#cb17-94"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-95"><a href="#cb17-95"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-96"><a href="#cb17-96"></a> Bioconductor                     </span>
-<span id="cb17-97"><a href="#cb17-97"></a> Bioconductor                     </span>
-<span id="cb17-98"><a href="#cb17-98"></a> Bioconductor                     </span>
-<span id="cb17-99"><a href="#cb17-99"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-100"><a href="#cb17-100"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-101"><a href="#cb17-101"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-102"><a href="#cb17-102"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-103"><a href="#cb17-103"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-104"><a href="#cb17-104"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-105"><a href="#cb17-105"></a> Bioconductor                     </span>
-<span id="cb17-106"><a href="#cb17-106"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-107"><a href="#cb17-107"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-108"><a href="#cb17-108"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-109"><a href="#cb17-109"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-110"><a href="#cb17-110"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-111"><a href="#cb17-111"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-112"><a href="#cb17-112"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-113"><a href="#cb17-113"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-114"><a href="#cb17-114"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-115"><a href="#cb17-115"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-116"><a href="#cb17-116"></a> Bioconductor                     </span>
-<span id="cb17-117"><a href="#cb17-117"></a> Bioconductor                     </span>
-<span id="cb17-118"><a href="#cb17-118"></a> Bioconductor                     </span>
-<span id="cb17-119"><a href="#cb17-119"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-120"><a href="#cb17-120"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-121"><a href="#cb17-121"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-122"><a href="#cb17-122"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-123"><a href="#cb17-123"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-124"><a href="#cb17-124"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-125"><a href="#cb17-125"></a> Bioconductor                     </span>
-<span id="cb17-126"><a href="#cb17-126"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-127"><a href="#cb17-127"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-128"><a href="#cb17-128"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-129"><a href="#cb17-129"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-130"><a href="#cb17-130"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-131"><a href="#cb17-131"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-132"><a href="#cb17-132"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-133"><a href="#cb17-133"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f)   </span>
-<span id="cb17-134"><a href="#cb17-134"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-135"><a href="#cb17-135"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-136"><a href="#cb17-136"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-137"><a href="#cb17-137"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-138"><a href="#cb17-138"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-139"><a href="#cb17-139"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-140"><a href="#cb17-140"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-141"><a href="#cb17-141"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-142"><a href="#cb17-142"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-143"><a href="#cb17-143"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-144"><a href="#cb17-144"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-145"><a href="#cb17-145"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-146"><a href="#cb17-146"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-147"><a href="#cb17-147"></a> <span class="kw">Github</span> (easystats<span class="op">/</span>report<span class="op">@</span>dcdd283)</span>
-<span id="cb17-148"><a href="#cb17-148"></a> Bioconductor                     </span>
-<span id="cb17-149"><a href="#cb17-149"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-150"><a href="#cb17-150"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-151"><a href="#cb17-151"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-152"><a href="#cb17-152"></a> <span class="kw">Github</span> (juba<span class="op">/</span>rmdformats<span class="op">@</span>94cd7a3) </span>
-<span id="cb17-153"><a href="#cb17-153"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-154"><a href="#cb17-154"></a> Bioconductor                     </span>
-<span id="cb17-155"><a href="#cb17-155"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-156"><a href="#cb17-156"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-157"><a href="#cb17-157"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-158"><a href="#cb17-158"></a> Bioconductor                     </span>
-<span id="cb17-159"><a href="#cb17-159"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-160"><a href="#cb17-160"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-161"><a href="#cb17-161"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-162"><a href="#cb17-162"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-163"><a href="#cb17-163"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-164"><a href="#cb17-164"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-165"><a href="#cb17-165"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb17-166"><a href="#cb17-166"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-167"><a href="#cb17-167"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-168"><a href="#cb17-168"></a> Bioconductor                     </span>
-<span id="cb17-169"><a href="#cb17-169"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb17-170"><a href="#cb17-170"></a> Bioconductor                     </span>
-<span id="cb17-171"><a href="#cb17-171"></a></span>
-<span id="cb17-172"><a href="#cb17-172"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
-<span id="cb17-173"><a href="#cb17-173"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb17-174"><a href="#cb17-174"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb17-175"><a href="#cb17-175"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a></span>
+<span id="cb13-2"><a href="#cb13-2"></a>─ Session info ───────────────────────────────────────────────────────────────</span>
+<span id="cb13-3"><a href="#cb13-3"></a> setting  value                       </span>
+<span id="cb13-4"><a href="#cb13-4"></a> version  R version <span class="dv">3</span>.<span class="fl">6.2</span> (<span class="dv">2019-12-12</span>)</span>
+<span id="cb13-5"><a href="#cb13-5"></a> os       Ubuntu <span class="dv">16</span>.<span class="fl">04.6</span> LTS          </span>
+<span id="cb13-6"><a href="#cb13-6"></a> system   x86_<span class="dv">64</span>, linux<span class="op">-</span>gnu           </span>
+<span id="cb13-7"><a href="#cb13-7"></a> ui       X11                         </span>
+<span id="cb13-8"><a href="#cb13-8"></a> <span class="kw">language</span> (EN)                        </span>
+<span id="cb13-9"><a href="#cb13-9"></a> collate  en_US.UTF<span class="dv">-8</span>                 </span>
+<span id="cb13-10"><a href="#cb13-10"></a> ctype    en_US.UTF<span class="dv">-8</span>                 </span>
+<span id="cb13-11"><a href="#cb13-11"></a> tz       Europe<span class="op">/</span>Zurich               </span>
+<span id="cb13-12"><a href="#cb13-12"></a> date     <span class="dv">2020-07-20</span>                  </span>
+<span id="cb13-13"><a href="#cb13-13"></a></span>
+<span id="cb13-14"><a href="#cb13-14"></a>─ Packages ───────────────────────────────────────────────────────────────────</span>
+<span id="cb13-15"><a href="#cb13-15"></a> package              <span class="op">*</span><span class="st"> </span>version    date       lib</span>
+<span id="cb13-16"><a href="#cb13-16"></a> assertthat             <span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2019-03-21</span> [<span class="dv">1</span>]</span>
+<span id="cb13-17"><a href="#cb13-17"></a> backports              <span class="dv">1</span>.<span class="fl">1.7</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
+<span id="cb13-18"><a href="#cb13-18"></a> Biobase              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-19"><a href="#cb13-19"></a> BiocGenerics         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-20"><a href="#cb13-20"></a> BiocParallel         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.1</span>     <span class="dv">2019-12-21</span> [<span class="dv">1</span>]</span>
+<span id="cb13-21"><a href="#cb13-21"></a> bitops                 <span class="fl">1.0</span><span class="dv">-6</span>      <span class="dv">2013-08-17</span> [<span class="dv">1</span>]</span>
+<span id="cb13-22"><a href="#cb13-22"></a> bookdown               <span class="fl">0.18</span>       <span class="dv">2020-03-05</span> [<span class="dv">1</span>]</span>
+<span id="cb13-23"><a href="#cb13-23"></a> callr                  <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-03-28</span> [<span class="dv">1</span>]</span>
+<span id="cb13-24"><a href="#cb13-24"></a> cli                    <span class="dv">2</span>.<span class="fl">0.2</span>      <span class="dv">2020-02-28</span> [<span class="dv">1</span>]</span>
+<span id="cb13-25"><a href="#cb13-25"></a> clipr                  <span class="dv">0</span>.<span class="fl">7.0</span>      <span class="dv">2019-07-23</span> [<span class="dv">1</span>]</span>
+<span id="cb13-26"><a href="#cb13-26"></a> codetools              <span class="fl">0.2</span><span class="dv">-16</span>     <span class="dv">2018-12-24</span> [<span class="dv">1</span>]</span>
+<span id="cb13-27"><a href="#cb13-27"></a> crayon                 <span class="dv">1</span>.<span class="fl">3.4</span>      <span class="dv">2017-09-16</span> [<span class="dv">1</span>]</span>
+<span id="cb13-28"><a href="#cb13-28"></a> DelayedArray         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">12.3</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb13-29"><a href="#cb13-29"></a> desc                   <span class="dv">1</span>.<span class="fl">2.0</span>      <span class="dv">2018-05-01</span> [<span class="dv">1</span>]</span>
+<span id="cb13-30"><a href="#cb13-30"></a> details              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2020-01-12</span> [<span class="dv">1</span>]</span>
+<span id="cb13-31"><a href="#cb13-31"></a> devtools               <span class="dv">2</span>.<span class="fl">3.0</span>      <span class="dv">2020-04-10</span> [<span class="dv">1</span>]</span>
+<span id="cb13-32"><a href="#cb13-32"></a> digest                 <span class="dv">0</span>.<span class="fl">6.25</span>     <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
+<span id="cb13-33"><a href="#cb13-33"></a> doParallel           <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.15</span>     <span class="dv">2019-08-02</span> [<span class="dv">1</span>]</span>
+<span id="cb13-34"><a href="#cb13-34"></a> dplyr                <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.0</span>      <span class="dv">2020-05-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-35"><a href="#cb13-35"></a> ellipsis               <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2020-05-15</span> [<span class="dv">1</span>]</span>
+<span id="cb13-36"><a href="#cb13-36"></a> evaluate               <span class="fl">0.14</span>       <span class="dv">2019-05-28</span> [<span class="dv">1</span>]</span>
+<span id="cb13-37"><a href="#cb13-37"></a> fansi                  <span class="dv">0</span>.<span class="fl">4.1</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
+<span id="cb13-38"><a href="#cb13-38"></a> foreach              <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">5.0</span>      <span class="dv">2020-03-30</span> [<span class="dv">1</span>]</span>
+<span id="cb13-39"><a href="#cb13-39"></a> fs                     <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-04-04</span> [<span class="dv">1</span>]</span>
+<span id="cb13-40"><a href="#cb13-40"></a> generics               <span class="dv">0</span>.<span class="fl">0.2</span>      <span class="dv">2018-11-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-41"><a href="#cb13-41"></a> GenomeInfoDb         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2020-03-27</span> [<span class="dv">1</span>]</span>
+<span id="cb13-42"><a href="#cb13-42"></a> GenomeInfoDbData       <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
+<span id="cb13-43"><a href="#cb13-43"></a> GenomicRanges        <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">38.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-44"><a href="#cb13-44"></a> GetoptLong             <span class="dv">0</span>.<span class="fl">1.8</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
+<span id="cb13-45"><a href="#cb13-45"></a> GlobalOptions          <span class="dv">0</span>.<span class="fl">1.1</span>      <span class="dv">2019-09-30</span> [<span class="dv">1</span>]</span>
+<span id="cb13-46"><a href="#cb13-46"></a> glue                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
+<span id="cb13-47"><a href="#cb13-47"></a> htmltools              <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2019-10-04</span> [<span class="dv">1</span>]</span>
+<span id="cb13-48"><a href="#cb13-48"></a> httr                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2019-08-05</span> [<span class="dv">1</span>]</span>
+<span id="cb13-49"><a href="#cb13-49"></a> insight                <span class="dv">0</span>.<span class="fl">8.3</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb13-50"><a href="#cb13-50"></a> IRanges              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">20.2</span>     <span class="dv">2020-01-13</span> [<span class="dv">1</span>]</span>
+<span id="cb13-51"><a href="#cb13-51"></a> iterators            <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.12</span>     <span class="dv">2019-07-26</span> [<span class="dv">1</span>]</span>
+<span id="cb13-52"><a href="#cb13-52"></a> jsonlite               <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-02-02</span> [<span class="dv">1</span>]</span>
+<span id="cb13-53"><a href="#cb13-53"></a> knitr                  <span class="fl">1.28</span>       <span class="dv">2020-02-06</span> [<span class="dv">1</span>]</span>
+<span id="cb13-54"><a href="#cb13-54"></a> lattice                <span class="fl">0.20</span><span class="dv">-41</span>    <span class="dv">2020-04-02</span> [<span class="dv">1</span>]</span>
+<span id="cb13-55"><a href="#cb13-55"></a> lifecycle              <span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-03-06</span> [<span class="dv">1</span>]</span>
+<span id="cb13-56"><a href="#cb13-56"></a> magrittr               <span class="fl">1.5</span>        <span class="dv">2014-11-22</span> [<span class="dv">1</span>]</span>
+<span id="cb13-57"><a href="#cb13-57"></a> Matrix                 <span class="fl">1.2</span><span class="dv">-18</span>     <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
+<span id="cb13-58"><a href="#cb13-58"></a> matrixStats          <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">56.0</span>     <span class="dv">2020-03-13</span> [<span class="dv">1</span>]</span>
+<span id="cb13-59"><a href="#cb13-59"></a> memoise                <span class="dv">1</span>.<span class="dv">1</span>.<span class="fl">0.9000</span> <span class="dv">2020-05-06</span> [<span class="dv">1</span>]</span>
+<span id="cb13-60"><a href="#cb13-60"></a> pillar                 <span class="dv">1</span>.<span class="fl">4.4</span>      <span class="dv">2020-05-05</span> [<span class="dv">1</span>]</span>
+<span id="cb13-61"><a href="#cb13-61"></a> pkgbuild               <span class="dv">1</span>.<span class="fl">0.8</span>      <span class="dv">2020-05-07</span> [<span class="dv">1</span>]</span>
+<span id="cb13-62"><a href="#cb13-62"></a> pkgconfig              <span class="dv">2</span>.<span class="fl">0.3</span>      <span class="dv">2019-09-22</span> [<span class="dv">1</span>]</span>
+<span id="cb13-63"><a href="#cb13-63"></a> pkgload                <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-64"><a href="#cb13-64"></a> png                    <span class="fl">0.1</span><span class="dv">-7</span>      <span class="dv">2013-12-03</span> [<span class="dv">1</span>]</span>
+<span id="cb13-65"><a href="#cb13-65"></a> prettyunits            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
+<span id="cb13-66"><a href="#cb13-66"></a> processx               <span class="dv">3</span>.<span class="fl">4.2</span>      <span class="dv">2020-02-09</span> [<span class="dv">1</span>]</span>
+<span id="cb13-67"><a href="#cb13-67"></a> ps                     <span class="dv">1</span>.<span class="fl">3.3</span>      <span class="dv">2020-05-08</span> [<span class="dv">1</span>]</span>
+<span id="cb13-68"><a href="#cb13-68"></a> purrr                  <span class="dv">0</span>.<span class="fl">3.4</span>      <span class="dv">2020-04-17</span> [<span class="dv">1</span>]</span>
+<span id="cb13-69"><a href="#cb13-69"></a> R6                     <span class="dv">2</span>.<span class="fl">4.1</span>      <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
+<span id="cb13-70"><a href="#cb13-70"></a> Rcpp                   <span class="dv">1</span>.<span class="dv">0</span>.<span class="fl">4.6</span>    <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb13-71"><a href="#cb13-71"></a> RCurl                  <span class="fl">1.98-1.2</span>   <span class="dv">2020-04-18</span> [<span class="dv">1</span>]</span>
+<span id="cb13-72"><a href="#cb13-72"></a> remotes                <span class="dv">2</span>.<span class="fl">1.1</span>      <span class="dv">2020-02-15</span> [<span class="dv">1</span>]</span>
+<span id="cb13-73"><a href="#cb13-73"></a> report                 <span class="dv">0</span>.<span class="fl">1.0</span>      <span class="dv">2020-03-19</span> [<span class="dv">1</span>]</span>
+<span id="cb13-74"><a href="#cb13-74"></a> rGREAT               <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">18.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-75"><a href="#cb13-75"></a> rjson                  <span class="dv">0</span>.<span class="fl">2.20</span>     <span class="dv">2018-06-08</span> [<span class="dv">1</span>]</span>
+<span id="cb13-76"><a href="#cb13-76"></a> rlang                  <span class="dv">0</span>.<span class="fl">4.6</span>      <span class="dv">2020-05-02</span> [<span class="dv">1</span>]</span>
+<span id="cb13-77"><a href="#cb13-77"></a> rmarkdown              <span class="fl">2.1</span>        <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
+<span id="cb13-78"><a href="#cb13-78"></a> rmdformats             <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2020-06-07</span> [<span class="dv">1</span>]</span>
+<span id="cb13-79"><a href="#cb13-79"></a> rprojroot              <span class="fl">1.3</span><span class="dv">-2</span>      <span class="dv">2018-01-03</span> [<span class="dv">1</span>]</span>
+<span id="cb13-80"><a href="#cb13-80"></a> S4Vectors            <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">24.4</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb13-81"><a href="#cb13-81"></a> sessioninfo            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2018-11-05</span> [<span class="dv">1</span>]</span>
+<span id="cb13-82"><a href="#cb13-82"></a> stringi                <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-02-17</span> [<span class="dv">1</span>]</span>
+<span id="cb13-83"><a href="#cb13-83"></a> stringr                <span class="dv">1</span>.<span class="fl">4.0</span>      <span class="dv">2019-02-10</span> [<span class="dv">1</span>]</span>
+<span id="cb13-84"><a href="#cb13-84"></a> SummarizedExperiment <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">16.1</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
+<span id="cb13-85"><a href="#cb13-85"></a> testthat               <span class="dv">2</span>.<span class="fl">3.2</span>      <span class="dv">2020-03-02</span> [<span class="dv">1</span>]</span>
+<span id="cb13-86"><a href="#cb13-86"></a> tibble                 <span class="dv">3</span>.<span class="fl">0.1</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb13-87"><a href="#cb13-87"></a> tidyselect             <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-11</span> [<span class="dv">1</span>]</span>
+<span id="cb13-88"><a href="#cb13-88"></a> usethis                <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-04-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-89"><a href="#cb13-89"></a> vctrs                  <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2020-06-05</span> [<span class="dv">1</span>]</span>
+<span id="cb13-90"><a href="#cb13-90"></a> withr                  <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb13-91"><a href="#cb13-91"></a> writexl                <span class="fl">1.2</span>        <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
+<span id="cb13-92"><a href="#cb13-92"></a> xfun                   <span class="fl">0.13</span>       <span class="dv">2020-04-13</span> [<span class="dv">1</span>]</span>
+<span id="cb13-93"><a href="#cb13-93"></a> xml2                   <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
+<span id="cb13-94"><a href="#cb13-94"></a> XVector                <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-95"><a href="#cb13-95"></a> yaml                   <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
+<span id="cb13-96"><a href="#cb13-96"></a> zlibbioc               <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb13-97"><a href="#cb13-97"></a> source                           </span>
+<span id="cb13-98"><a href="#cb13-98"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-99"><a href="#cb13-99"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-100"><a href="#cb13-100"></a> Bioconductor                     </span>
+<span id="cb13-101"><a href="#cb13-101"></a> Bioconductor                     </span>
+<span id="cb13-102"><a href="#cb13-102"></a> Bioconductor                     </span>
+<span id="cb13-103"><a href="#cb13-103"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-104"><a href="#cb13-104"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-105"><a href="#cb13-105"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-106"><a href="#cb13-106"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-107"><a href="#cb13-107"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-108"><a href="#cb13-108"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-109"><a href="#cb13-109"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-110"><a href="#cb13-110"></a> Bioconductor                     </span>
+<span id="cb13-111"><a href="#cb13-111"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-112"><a href="#cb13-112"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-113"><a href="#cb13-113"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-114"><a href="#cb13-114"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-115"><a href="#cb13-115"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-116"><a href="#cb13-116"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-117"><a href="#cb13-117"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-118"><a href="#cb13-118"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-119"><a href="#cb13-119"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-120"><a href="#cb13-120"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-121"><a href="#cb13-121"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-122"><a href="#cb13-122"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-123"><a href="#cb13-123"></a> Bioconductor                     </span>
+<span id="cb13-124"><a href="#cb13-124"></a> Bioconductor                     </span>
+<span id="cb13-125"><a href="#cb13-125"></a> Bioconductor                     </span>
+<span id="cb13-126"><a href="#cb13-126"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-127"><a href="#cb13-127"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-128"><a href="#cb13-128"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-129"><a href="#cb13-129"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-130"><a href="#cb13-130"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-131"><a href="#cb13-131"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-132"><a href="#cb13-132"></a> Bioconductor                     </span>
+<span id="cb13-133"><a href="#cb13-133"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-134"><a href="#cb13-134"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-135"><a href="#cb13-135"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-136"><a href="#cb13-136"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-137"><a href="#cb13-137"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-138"><a href="#cb13-138"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-139"><a href="#cb13-139"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-140"><a href="#cb13-140"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-141"><a href="#cb13-141"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f)   </span>
+<span id="cb13-142"><a href="#cb13-142"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-143"><a href="#cb13-143"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-144"><a href="#cb13-144"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-145"><a href="#cb13-145"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-146"><a href="#cb13-146"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-147"><a href="#cb13-147"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-148"><a href="#cb13-148"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-149"><a href="#cb13-149"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-150"><a href="#cb13-150"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-151"><a href="#cb13-151"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-152"><a href="#cb13-152"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-153"><a href="#cb13-153"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-154"><a href="#cb13-154"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-155"><a href="#cb13-155"></a> <span class="kw">Github</span> (easystats<span class="op">/</span>report<span class="op">@</span>dcdd283)</span>
+<span id="cb13-156"><a href="#cb13-156"></a> Bioconductor                     </span>
+<span id="cb13-157"><a href="#cb13-157"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-158"><a href="#cb13-158"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-159"><a href="#cb13-159"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-160"><a href="#cb13-160"></a> <span class="kw">Github</span> (juba<span class="op">/</span>rmdformats<span class="op">@</span>94cd7a3) </span>
+<span id="cb13-161"><a href="#cb13-161"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-162"><a href="#cb13-162"></a> Bioconductor                     </span>
+<span id="cb13-163"><a href="#cb13-163"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-164"><a href="#cb13-164"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-165"><a href="#cb13-165"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-166"><a href="#cb13-166"></a> Bioconductor                     </span>
+<span id="cb13-167"><a href="#cb13-167"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-168"><a href="#cb13-168"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-169"><a href="#cb13-169"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-170"><a href="#cb13-170"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-171"><a href="#cb13-171"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-172"><a href="#cb13-172"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-173"><a href="#cb13-173"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb13-174"><a href="#cb13-174"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-175"><a href="#cb13-175"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-176"><a href="#cb13-176"></a> Bioconductor                     </span>
+<span id="cb13-177"><a href="#cb13-177"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb13-178"><a href="#cb13-178"></a> Bioconductor                     </span>
+<span id="cb13-179"><a href="#cb13-179"></a></span>
+<span id="cb13-180"><a href="#cb13-180"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
+<span id="cb13-181"><a href="#cb13-181"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb13-182"><a href="#cb13-182"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb13-183"><a href="#cb13-183"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
 </details>
 <p><br></p>
 </div>

@@ -30,6 +30,9 @@ library(parallel)
 library(SummarizedExperiment)
 library(details)
 library(dplyr)
+library(GenomicRanges)
+library(foreach)
+library(doParallel)
 ```
 
 # Data
@@ -54,7 +57,7 @@ da_f <- da[da$`diffAccessibility-qvalue` <= 0.05 & abs(da$`diffAccessibility-log
 
 ## Function
 ```{r 20191118-rGREAT-3 }
-perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL) {
+perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL, split_bg = FALSE) {
   d <- NULL
 
   if (FC == "pos") {
@@ -66,14 +69,35 @@ perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL) {
   }
 
   sp_d <- NULL
+  bg_n <- NULL
+
   if (split) {
     if (!is.null(sp_col)) {
       d[, sp_col] <- gsub(
         pattern = " ", replacement = "_",
         x = d[, sp_col]
       )
+
+      d[, sp_col] <- gsub(
+        pattern = "<=", replacement = "",
+        x = d[, sp_col]
+      )
+
       sp_d <- split(d, d[, sp_col])
-      names(sp_d) <- paste0(fName, "-", names(sp_d))
+      names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+
+      bg[, sp_col] <- gsub(
+        pattern = " ", replacement = "_",
+        x = bg[, sp_col]
+      )
+
+      bg[, sp_col] <- gsub(
+        pattern = "<=", replacement = "",
+        x = bg[, sp_col]
+      )
+
+      bg_n <- split(bg, bg[, sp_col])
+      names(bg_n) <- paste(fName, names(bg_n), sep = "-")
     } else {
       d$`Peak-annotation` <- gsub(
         pattern = "\\ \\(.*|\\'", replacement = "",
@@ -85,21 +109,63 @@ perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL) {
       )
       sp_d <- split(d, d$`Peak-annotation`)
       names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+
+      bg$`Peak-annotation` <- gsub(
+        pattern = "\\ \\(.*|\\'", replacement = "",
+        x = bg$`Peak-annotation`
+      )
+      bg$`Peak-annotation` <- gsub(
+        pattern = " ", replacement = "_",
+        x = bg$`Peak-annotation`
+      )
+
+      bg_n <- split(bg, bg$`Peak-annotation`)
+      names(bg_n) <- paste(fName, names(bg_n), sep = "-")
     }
   } else {
     sp_d <- list(d)
-    names(sp_d) <- fName
+    names(sp_d) <- paste(fName, sep = "/")
+
+    bg_n <- list(bg)
+    names(bg_n) <- paste(fName, sep = "/")
   }
 
-  great <- mclapply(sp_d, function(x) {
-    df_GR <- GRanges(x)
+
+  cl <- makeCluster(length(sp_d))
+  registerDoParallel(cl)
+
+
+  great <- foreach(i = 1:length(sp_d)) %dopar% {
+    library(GenomicRanges)
+    library(rGREAT)
+    n <- names(sp_d)[i]
+    df_GR <- GRanges(sp_d[[i]])
+
+    bgr <- NULL
+    if (split_bg) {
+      bgr <- bg_n[[n]]
+    } else {
+      bgr <- bg
+    }
+
     set.seed(123)
     bed <- data.frame(df_GR, stringsAsFactors = F)
     bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
-    job <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
+    job <- submitGreatJob(gr = bed, bg = bgr, species = "mm10")
     tb <- getEnrichmentTables(job)
-    return(list(table = tb, job = job))
-  }, mc.preschedule = F, mc.cores = length(sp_d))
+
+    list(table = tb, job = job)
+  }
+
+  stopCluster(cl)
+
+
+  if (split & !split_bg) {
+    names(great) <- paste(names(sp_d), "bg_all", sep = "_")
+  } else {
+    names(great) <- names(sp_d)
+  }
+
 
   for (i in 1:length(great)) {
     tb <- great[[i]]$table
@@ -133,17 +199,58 @@ bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
 
 
 ## Analysis
-```{r 20191118-rGREAT-5, eval = T}
+```{r 20191118-rGREAT-5, eval = T, message=FALSE, warning=FALSE}
 all <- perform_rGREAT(df = da, FC = "all", bg = bg, fName = "PND15_Adult", split = F)
 pnd15 <- perform_rGREAT(df = da_f, FC = "neg", bg = bg, fName = "Adult_Negative", split = F)
 adult <- perform_rGREAT(df = da_f, FC = "pos", bg = bg, fName = "Adult_Positive", split = F)
 ```
 
 ## Analysis split
-```{r 20191118-rGREAT-6 }
-all_sp <- perform_rGREAT(df = da, FC = "all", bg = bg, fName = "PND15_Adult", split = T, sp_col = "Peak-class")
-pnd15_sp <- perform_rGREAT(df = da_f, FC = "neg", bg = bg, fName = "Adult_Negative", split = T, sp_col = "Peak-class")
-adult_sp <- perform_rGREAT(df = da_f, FC = "pos", bg = bg, fName = "Adult_Positive", split = T, sp_col = "Peak-class")
+```{r 20191118-rGREAT-6, message=FALSE, warning=FALSE}
+all_sp <- perform_rGREAT(
+  df = da, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "Peak-class",
+  split_bg = TRUE
+)
+
+pnd15_sp <- perform_rGREAT(
+  df = da_f, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "Peak-class",
+  split_bg = TRUE
+)
+
+adult_sp <- perform_rGREAT(
+  df = da_f, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "Peak-class",
+  split_bg = TRUE
+)
+```
+
+## Analysis split all background
+```{r 20191118-rGREAT-7, message=FALSE, warning=FALSE}
+all_sp <- perform_rGREAT(
+  df = da, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "Peak-class",
+  split_bg = FALSE
+)
+
+pnd15_sp <- perform_rGREAT(
+  df = da_f, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "Peak-class",
+  split_bg = FALSE
+)
+
+adult_sp <- perform_rGREAT(
+  df = da_f, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "Peak-class",
+  split_bg = FALSE
+)
 ```
 
 
@@ -159,28 +266,29 @@ adult_sp <- perform_rGREAT(df = da_f, FC = "pos", bg = bg, fName = "Adult_Positi
 # Annotation plot
 
 ## All
-```{r 20191118-rGREAT-7, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
+```{r 20191118-rGREAT-8, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
 plotRegionGeneAssociationGraphs(all[[1]]$job)
 ```
 
 
 ## PND15
-```{r 20191118-rGREAT-8, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
+```{r 20191118-rGREAT-9, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
 plotRegionGeneAssociationGraphs(pnd15[[1]]$job)
 ```
 
 ## Adult
-```{r 20191118-rGREAT-9, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
+```{r 20191118-rGREAT-10, fig.width = 10, fig.height = 10/3, fig.align = 'center', eval = F}
 plotRegionGeneAssociationGraphs(adult[[1]]$job)
 ```
 
 
-```{r}
+# References
+```{r 20191118-rGREAT-11 }
 report::cite_packages(sessionInfo())
 ```
 
 # SessionInfo
-```{r 20191118-rGREAT-10 }
-devtools::session_info() %>% 
+```{r 20191118-rGREAT-12 }
+devtools::session_info() %>%
   details()
 ```
