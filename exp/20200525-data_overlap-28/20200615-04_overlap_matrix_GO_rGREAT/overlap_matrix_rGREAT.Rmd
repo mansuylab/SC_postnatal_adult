@@ -1,5 +1,5 @@
 ---
-title: "Overlap matrix GO classify"
+title: "Overlap matrix GREAT"
 author: "Deepak Tanwar"
 date: "<b>Created on:</b> 2020-06-15 <br> <b>Updated on:</b> `r Sys.Date()`"
 output:
@@ -35,6 +35,7 @@ library(dplyr)
 library(rGREAT)
 library(parallel)
 library(SummarizedExperiment)
+library(report)
 ```
 
 # Data
@@ -49,102 +50,104 @@ list_s2 <- lapply(sp_df_s2, function(x) inner_join(mat[, 1:73], x))
 ## Function
 ```{r overlap-matrix-rGREAT-3 }
 perform_rGREAT <- function(df, rna = FALSE, bg, fName = "no_ChIP_data", split = FALSE, outDir = NULL, rnaCutoff = FALSE) {
-  od <- paste0("./output/", outDir)
+  if (nrow(df) > 10) {
+    od <- paste0("./output/", outDir)
 
-  if (!dir.exists(od)) {
-    dir.create(od)
-  }
-  d <- NULL
-
-  if (rna) {
-    if (rnaCutoff) {
-      d <- df
-      d$rna <- (abs(d$RNA_PND15_vs_Adult_logFC) >= 1) & (d$RNA_PND15_vs_Adult_adj.P.Val <= 0.05)
-      d$rna <- tolower(d$rna)
-      d$rna[is.na(d$rna)] <- "not_detected"
-      d <- split(x = d, f = d$rna)
-    } else {
-      d <- df
-      d$rna <- (abs(d$RNA_PND15_vs_Adult_logFC) >= 0) & (d$RNA_PND15_vs_Adult_adj.P.Val >= 0)
-      d$rna <- tolower(d$rna)
-      d$rna[is.na(d$rna)] <- "not_detected"
-      d <- split(x = d, f = d$rna)
+    if (!dir.exists(od)) {
+      dir.create(od)
     }
-  } else {
-    d <- list(df)
-    names(d) <- fName
-  }
+    d <- NULL
+
+    if (rna) {
+      if (rnaCutoff) {
+        d <- df
+        d$rna <- (abs(d$RNA_PND15_vs_Adult_logFC) >= 1) & (d$RNA_PND15_vs_Adult_adj.P.Val <= 0.05)
+        d$rna <- tolower(d$rna)
+        d$rna[is.na(d$rna)] <- "not_detected"
+        d <- split(x = d, f = d$rna)
+      } else {
+        d <- df
+        d$rna <- (abs(d$RNA_PND15_vs_Adult_logFC) >= 0) & (d$RNA_PND15_vs_Adult_adj.P.Val >= 0)
+        d$rna <- tolower(d$rna)
+        d$rna[is.na(d$rna)] <- "not_detected"
+        d <- split(x = d, f = d$rna)
+      }
+    } else {
+      d <- list(df)
+      names(d) <- fName
+    }
 
 
-  sp_d <- NULL
-  if (split) {
-    e <- lapply(d, function(x) {
-      x$annotation <- x$annotation <- gsub(
-        pattern = "\\ \\(.*|\\'", replacement = "",
-        x = x$annotation
-      )
-      x$annotation <- x$annotation <- gsub(
-        pattern = " ", replacement = "_",
-        x = x$annotation
-      )
-      sp_d <- split(x, x$annotation)
-      names(sp_d) <- paste(fName, names(sp_d), sep = "-")
-      return(sp_d)
-    })
-    sp_d <- e
-  } else {
-    sp_d <- list(d)
-    names(sp_d) <- fName
-  }
+    sp_d <- NULL
+    if (split) {
+      e <- lapply(d, function(x) {
+        x$class <- gsub(
+          pattern = " ", replacement = "_",
+          x = x$class
+        )
+        x$class <- gsub(
+          pattern = "<=", replacement = "",
+          x = x$class
+        )
+        sp_d <- split(x, x$class)
+        names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+        return(sp_d)
+      })
+      sp_d <- e
+    } else {
+      sp_d <- list(d)
+      names(sp_d) <- fName
+    }
 
-  great <- mclapply(sp_d, function(x) {
-    res <- mclapply(x, function(y) {
-      df_GR <- GRanges(y)
-      set.seed(123)
-      bed <- data.frame(df_GR, stringsAsFactors = F)
-      bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
-      job <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
-      tb <- getEnrichmentTables(job)
-      return(list(table = tb, job = job))
-    }, mc.preschedule = F, mc.cores = length(x))
-    return(res)
-  }, mc.preschedule = F, mc.cores = length(sp_d))
+    great <- mclapply(sp_d, function(x) {
+      res <- mclapply(x, function(y) {
+        df_GR <- GRanges(y)
+        set.seed(123)
+        bed <- data.frame(df_GR, stringsAsFactors = F)
+        bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
+        job <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
+        tb <- getEnrichmentTables(job)
+        return(list(table = tb, job = job))
+      }, mc.preschedule = F, mc.cores = length(x))
+      return(res)
+    }, mc.preschedule = F, mc.cores = length(sp_d))
 
 
-  if ((split & rna) | rna) {
-    for (i in 1:length(great)) {
-      n <- names(great)[i]
-      for (j in 1:length(great[[i]])) {
-        n1 <- names(great[[i]])[j]
-        names(great[[i]])[j] <- paste(n1, n, sep = "-")
+    if ((split & rna) | rna) {
+      for (i in 1:length(great)) {
+        n <- names(great)[i]
+        for (j in 1:length(great[[i]])) {
+          n1 <- names(great[[i]])[j]
+          names(great[[i]])[j] <- paste(n1, n, sep = "-")
+        }
       }
     }
+
+
+    tmp <- mclapply(great, function(x) {
+      for (i in 1:length(x)) {
+        tb <- x[[i]]$table
+        n <- names(x)[i]
+        writexl::write_xlsx(
+          x = tb$`GO Molecular Function`,
+          path = paste0("output/", outDir, "/", n, "_GO_MF.xlsx"),
+          col_names = T, format_headers = T
+        )
+        writexl::write_xlsx(
+          x = tb$`GO Biological Process`,
+          path = paste0("output/", outDir, "/", n, "_GO_BP.xlsx"),
+          col_names = T, format_headers = T
+        )
+        writexl::write_xlsx(
+          x = tb$`GO Cellular Component`,
+          path = paste0("output/", outDir, "/", n, "_GO_CC.xlsx"),
+          col_names = T, format_headers = T
+        )
+      }
+    }, mc.preschedule = F, mc.cores = length(great))
+
+    return(great)
   }
-
-
-  tmp <- mclapply(great, function(x) {
-    for (i in 1:length(x)) {
-      tb <- x[[i]]$table
-      n <- names(x)[i]
-      writexl::write_xlsx(
-        x = tb$`GO Molecular Function`,
-        path = paste0("output/", outDir, "/", n, "_GO_MF.xlsx"),
-        col_names = T, format_headers = T
-      )
-      writexl::write_xlsx(
-        x = tb$`GO Biological Process`,
-        path = paste0("output/", outDir, "/", n, "_GO_BP.xlsx"),
-        col_names = T, format_headers = T
-      )
-      writexl::write_xlsx(
-        x = tb$`GO Cellular Component`,
-        path = paste0("output/", outDir, "/", n, "_GO_CC.xlsx"),
-        col_names = T, format_headers = T
-      )
-    }
-  }, mc.preschedule = F, mc.cores = length(great))
-
-  return(great)
 }
 ```
 
@@ -559,8 +562,13 @@ save(no_ChIP,
 <!-- ``` -->
 
 
+# References
+```{r overlap-matrix-rGREAT-9}
+report::cite_packages(session = sessionInfo())
+```
+
 # SessionInfo
-```{r overlap-matrix-rGREAT-9 }
+```{r overlap-matrix-rGREAT-10 }
 devtools::session_info() %>%
   details::details()
 ```
