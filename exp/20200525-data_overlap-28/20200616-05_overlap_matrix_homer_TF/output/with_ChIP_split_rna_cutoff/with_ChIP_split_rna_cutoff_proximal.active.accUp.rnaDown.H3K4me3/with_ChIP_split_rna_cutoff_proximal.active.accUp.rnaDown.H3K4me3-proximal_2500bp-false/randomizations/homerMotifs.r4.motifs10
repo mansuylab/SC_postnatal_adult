@@ -1,0 +1,55 @@
+>RAARSTCMWT	1-RAARSTCMWT	9.391788	-12.969072	0	T:4.0(25.00%),B:15.0(0.61%),P:1e-5	Tpos:50.0,Tstd:24.2,Bpos:48.3,Bstd:25.6,StrandBias:-10.0,Multiplicity:1.00
+0.479	0.001	0.498	0.021
+0.997	0.001	0.001	0.001
+0.761	0.001	0.001	0.237
+0.498	0.001	0.479	0.021
+0.001	0.475	0.523	0.001
+0.045	0.001	0.001	0.953
+0.237	0.761	0.001	0.001
+0.499	0.499	0.001	0.001
+0.500	0.001	0.001	0.498
+0.260	0.001	0.001	0.738
+>CTGCAGSTGS	2-CTGCAGSTGS	8.880958	-12.763111	0	T:5.0(31.25%),B:37.0(1.50%),P:1e-5	Tpos:43.7,Tstd:26.7,Bpos:59.0,Bstd:23.7,StrandBias:2.3,Multiplicity:1.20
+0.001	0.856	0.001	0.142
+0.142	0.001	0.001	0.856
+0.001	0.111	0.887	0.001
+0.001	0.997	0.001	0.001
+0.856	0.001	0.001	0.142
+0.286	0.001	0.712	0.001
+0.001	0.569	0.429	0.001
+0.001	0.143	0.314	0.542
+0.001	0.166	0.832	0.001
+0.001	0.457	0.541	0.001
+>TRGTCCTGTT	3-TRGTCCTGTT	7.930006	-8.525669	0	T:4.0(25.00%),B:47.0(1.90%),P:1e-3	Tpos:43.0,Tstd:36.9,Bpos:54.6,Bstd:27.4,StrandBias:1.6,Multiplicity:1.00
+0.277	0.001	0.001	0.721
+0.444	0.139	0.416	0.001
+0.001	0.139	0.721	0.139
+0.277	0.001	0.001	0.721
+0.139	0.721	0.001	0.139
+0.416	0.582	0.001	0.001
+0.001	0.001	0.001	0.997
+0.001	0.001	0.721	0.277
+0.001	0.001	0.138	0.860
+0.001	0.139	0.278	0.582
+>NNNNNNNNNN	4-NNNNNNNNNN	-nan	0.000000	0	T:0.0(0.00%),B:0.0(0.00%),P:1e0	Tpos:0.0,Tstd:0.0,Bpos:0.0,Bstd:0.0,StrandBias:0.0,Multiplicity:1.00
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+>NNNNNNNNNN	5-NNNNNNNNNN	-nan	0.000000	0	T:0.0(0.00%),B:0.0(0.00%),P:1e0	Tpos:0.0,Tstd:0.0,Bpos:0.0,Bstd:0.0,StrandBias:0.0,Multiplicity:1.00
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
+-nan	-nan	-nan	-nan
