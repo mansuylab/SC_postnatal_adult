@@ -36,12 +36,11 @@ library(plgINS)
 library(csaw)
 library(gUtils)
 library(edgeR)
-library(ChIPseeker)
-library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(report)
 ```
 
 # ATAC-Seq
-```{r overlap-matrix-2 , message=FALSE, warning=FALSE}
+```{r overlap-matrix-2, message=FALSE, warning=FALSE}
 # SE object
 load("input/atacseq/atac_diff_chromatin_accessibility.RData")
 
@@ -57,16 +56,19 @@ colnames(rd_atac) <- gsub(pattern = "Peak-", replacement = "", x = colnames(rd_a
 rd_atac <- GRanges(rd_atac)
 
 # Re-annotation of peaks
-txdb <- TxDb.Mmusculus.UCSC.mm10.knownGene
-peakAnno <- annotatePeak(peak = rd_atac, TxDb = txdb, tssRegion = c(-2500, 2500), annoDb = "org.Mm.eg.db")
-anno_rd <- data.frame(peakAnno@anno, stringsAsFactors = FALSE)
+peakAnno <- plgINS:::annoPeaks(
+  peaks = rd_atac, 
+  gtf ="/mnt/IM/reference/annotation/gencodeM18/gencode.vM18.chr_patch_hapl_scaff.annotation.gtf.gz", 
+  proximal = 2500
+)
+anno_rd <- data.frame(peakAnno, stringsAsFactors = FALSE)
 colnames(anno_rd)[6] <- paste("Peak", colnames(anno_rd)[6], sep = "-")
 
 # Results of diff analysis
 r <- data.frame(rowData(data), check.names = F, stringsAsFactors = FALSE)
 
 # Merging results with new annotation
-res <- inner_join(x = r[, -c(12:23)], y = anno_rd[, -c(1:5)])
+res <- inner_join(x = r[, -c(12:16)], y = anno_rd[, -c(1:5)])
 res <- res[, c(
   grep(pattern = "diffAccessibility", x = colnames(res), invert = TRUE),
   grep(pattern = "diffAccessibility", x = colnames(res))
@@ -265,7 +267,7 @@ mat_RNA <- inner_join(mat_RNA_counts_merged, dea.limma$`PND8 vs PND15`)
 mat_RNA <- inner_join(mat_RNA, dea.limma$`PND15 vs Adult`)
 
 # Changing column names
-colnames(mat_RNA)[1] <- "SYMBOL"
+colnames(mat_RNA)[1] <- "nearestTSS.gene_name"
 colnames(mat_RNA)[2:ncol(mat_RNA)] <- paste("RNA", colnames(mat_RNA)[2:ncol(mat_RNA)], sep = "_")
 
 # Adding RNA-Seq data to the main table
@@ -273,22 +275,27 @@ tab <- left_join(x = tab, y = mat_RNA)
 ```
 
 # Genes with distanceTSS `<=` 5kb
-```{r overlap-matrix-7}
-# Adding new column "Genes" to the main table with Gene symbols with distance TSS <- 5kb
-tab$Genes <- tab$SYMBOL
-tab$Genes[abs(tab$distanceToTSS) > 5000] <- NA
+```{r overlap-matrix-7 }
+# Adding new column "Genes" to the main table with Gene symbols with distance TSS <- 2.55kb
+tab$Genes <- tab$nearestTSS.gene_name
+tab$Genes[abs(tab$distance2nearestTSS) > 2500] <- NA
 tab <- tab[, c(1:6, ncol(tab), 7:(ncol(tab) - 1))]
 ```
 
 # Save data
-```{r overlap-matrix-8}
+```{r overlap-matrix-8 }
 writexl::write_xlsx(x = tab, path = "output/overlap_matrix.xlsx")
 write.table(x = tab, file = gzfile("output/overlap_matrix.txt.gz"), quote = F, sep = "\t", row.names = F)
 saveRDS(object = tab, file = "output/overlap_matrix.rds")
 ```
 
+# References
+```{r overlap-matrix-9}
+report::cite_packages(session = sessionInfo())
+```
+
 # SessionInfo
-```{r overlap-matrix-9 }
+```{r overlap-matrix-10 }
 devtools::session_info() %>%
   details::details()
 ```
