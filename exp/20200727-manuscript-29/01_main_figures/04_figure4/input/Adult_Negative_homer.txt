@@ -1,0 +1,1 @@
+../../../../20200129-repetetive_elements-25/20200129-02_repetetive_elements_motif_homer/output/hocomocoDB/Adult_Negative/Adult_Negative/knownResults.txt
