@@ -37,13 +37,14 @@ library(dplyr)
 library(ComplexHeatmap)
 library(RColorBrewer)
 library(DT)
+library(report)
 ```
 
 # Data
 ```{r overlap-matrix-heatmap-2 }
 mat <- readRDS("input/overlap_matrix.rds")
 
-mat$isProm <- (abs(mat$distanceToTSS) < 5000) / 2 + (abs(mat$distanceToTSS) < 2500) / 2
+mat$isProm <- (abs(mat$distance2nearestTSS) < 5000) / 2 + (abs(mat$distance2nearestTSS) < 2500) / 2
 
 fields <- c(
   "isProm", "diffAccessibility-logFC", "RNA_PND8_vs_PND15_logFC",
@@ -63,18 +64,19 @@ distal <- mat2[mat2[, 1] == 0, ]
 ```
 
 ```{r overlap-matrix-heatmap-3, fig.align='center', fig.height=8.5, fig.width=11}
-pheatmap(prom,
-  color = cols, breaks = se,
-  cluster_cols = FALSE, cluster_rows = FALSE
-)
+Heatmap(prom, 
+        col = circlize::colorRamp2(breaks = se, colors = cols),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE)
 ```
 
 ```{r overlap-matrix-heatmap-4, echo=FALSE}
-pheatmap(prom,
-  color = cols, breaks = se,
-  cluster_cols = FALSE, cluster_rows = FALSE,
-  filename = "output/heatmap_overlap_matrix.pdf"
-)
+pdf(file = "output/heatmap_overlap_matrix.pdf")
+Heatmap(prom, 
+        col = circlize::colorRamp2(breaks = se, colors = cols),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE)
+dev.off()
 ```
 
 
@@ -83,7 +85,7 @@ pheatmap(prom,
 ## Level 1
 ```{r overlap-matrix-heatmap-5 }
 # Distal
-mat$isDistal <- abs(mat$distanceToTSS) > 2500
+mat$isDistal <- abs(mat$distance2nearestTSS) > 2500
 
 # Proximal Active
 mat$isProximalActive <- !is.na(mat$RNA_PND15_vs_Adult_AveExpr)
@@ -121,10 +123,10 @@ rownames(mat) <- mat$Name
 
 # Split matrix
 ```{r overlap-matrix-heatmap-9 }
-# select the columns according to which we want to split
-mat2 <- mat[, 74:80]
 # for distal sites, we don't want to look at RNA:
-mat2$isProximalActive[mat2$isDistal] <- NA
+mat$isProximalActive[mat$isDistal] <- NA
+# select the columns according to which we want to split
+mat2 <- mat[, 67:73]
 mat2$expUp[mat2$isDistal] <- NA
 
 splitAndName <- function(o) {
@@ -243,7 +245,7 @@ make_DT(matrix())
 
 ## Regions without ChIP data {.tabset .tabset-dropdown}
 
-```{r overlap-matrix-heatmap-14}
+```{r overlap-matrix-heatmap-14 }
 get_col <- function(mat){
   col <- c(brewer.pal(n = 3, name = "Set1")[1:2], "grey")
   # col <- c("blue", "red", "grey")
@@ -410,8 +412,13 @@ for (i in 1:length(sp_df_s2)) {
 save(mat, df_s1, df_s2, sp_df_s1, sp_df_s2, file = "output/overlap_tables.RData")
 ```
 
+# References
+```{r overlap-matrix-heatmap-18}
+report::cite_packages(session = sessionInfo())
+```
+
 # SessionInfo
-```{r overlap-matrix-heatmap-18 }
+```{r overlap-matrix-heatmap-19 }
 devtools::session_info() %>%
   details::details()
 ```
