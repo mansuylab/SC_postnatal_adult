@@ -38,8 +38,11 @@ library(ComplexHeatmap)
 ```{r overlap-matrix-GO-2 }
 load("input/overlap_tables.RData")
 
-list_s1 <- lapply(sp_df_s1, function(x) inner_join(mat[, 1:73], x)$SYMBOL)
-list_s2 <- lapply(sp_df_s2, function(x) inner_join(mat[, 1:73], x)$SYMBOL)
+list_s1 <- lapply(sp_df_s1, function(x) inner_join(mat[, 1:73], x)$nearestTSS.gene_name)
+list_s2 <- lapply(sp_df_s2, function(x) inner_join(mat[, 1:73], x)$nearestTSS.gene_name)
+
+# list_s1 <- list_s1[lapply(list_s1, length) > 10]
+# list_s2 <- list_s2[lapply(list_s2, length) > 10]
 ```
 
 ## Filtering based on number of genes
