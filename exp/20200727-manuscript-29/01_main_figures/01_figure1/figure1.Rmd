@@ -43,63 +43,81 @@ library(ggthemes)
 ```
 
 
-# Theme
+# Colors
 ```{r}
-th <- theme_bw(base_size = 24) +
-
-  theme(
-    legend.background = element_rect(),
-
-    # title, subtitle, and caption
-    plot.title = element_text(
-      angle = 0,
-      size = 18,
-      face = "bold",
-      vjust = 1
-    ),
-    plot.subtitle = element_text(
-      angle = 0,
-      size = 14,
-      face = "plain",
-      vjust = 1
-    ),
-    plot.caption = element_text(
-      angle = 0,
-      size = 14,
-      face = "plain",
-      vjust = 1
-    ),
-
-    # axis text
-    axis.text.x = element_text(
-      angle = 0,
-      size = 16,
-      vjust = 1
-    ),
-    axis.text.y = element_text(
-      angle = 0,
-      size = 16,
-      vjust = 1
-    ),
-    axis.title = element_text(
-      size = 18
-    ),
-
-    # legend
-    legend.position = "top",
-    legend.key = element_blank(),
-    legend.key.size = unit(0.5, "cm"),
-    legend.text = element_text(
-      size = 16
-    ),
-    title = element_text(
-      size = 14
-    ),
-    legend.title = element_text(size = 18, face = "bold")
-  )
-
+cols <- magma(n = 10)[c(3, 6, 9)]
+cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
 ```
 
+# Colorbar
+```{r}
+myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2,4,6)])
+```
+
+# Theme
+```{r}
+th <- theme(
+  legend.background = element_rect(),
+
+  # title, subtitle, and caption
+  plot.title = element_text(
+    angle = 0,
+    size = 12,
+    face = "bold",
+    vjust = 1
+  ),
+  plot.subtitle = element_text(
+    angle = 0,
+    size = 10,
+    face = "plain",
+    vjust = 1
+  ),
+  plot.caption = element_text(
+    angle = 0,
+    size = 12,
+    face = "plain",
+    vjust = 1
+  ),
+
+  # axis text
+  axis.text.x = element_text(
+    angle = 0,
+    size = 6,
+    # vjust = 0.5,
+    # hjust = 0.5
+  ),
+  axis.text.y = element_text(
+    angle = 0,
+    size = 6,
+    # vjust = 0.5,
+    # hjust = 0.5
+  ),
+  axis.title = element_text(
+    size = 8,
+    face = "plain",
+  ),
+
+  # legend
+  legend.position = "top",
+  legend.key = element_blank(),
+  # legend.key.size = unit(0, "cm"),
+  legend.text = element_text(
+    size = 8,
+    margin = margin(r = 0, t = 0, b = 0, l = 0, unit = "pt"),
+    vjust = 0, hjust = 0
+  ),
+  legend.title = element_text(size = 8, face = "bold"),
+  legend.justification = "bottom",
+  legend.margin = margin(c(0, 0, 0, 0)),
+  legend.box.margin = margin(0, 0, -7, 0),
+  legend.key.height = unit(0, "cm"),
+  legend.key.width = unit(0, "cm"),
+  legend.spacing = unit(1, "mm"),
+  plot.margin = grid::unit(c(0, 0, 0, 0), "mm"),
+  strip.background = element_rect(fill = NA, colour = "black"),
+  strip.text.x = element_text(face = "bold", size = 8)
+)
+```
 
 
 # Data
@@ -107,13 +125,7 @@ th <- theme_bw(base_size = 24) +
 load("input/data_pData.RData")
 load("input/kmeans_sort_heatmaps_all_dge.RData")
 
-changes <- c("5-a", "3-b", "1-c", "2-d", "4-e")
-```
-
-# Colors
-```{r}
-cols <- magma(n = 10)[c(2, 5, 8)]
-cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
+# changes <- c("5-a", "3-b", "1-c", "2-d", "4-e")
 ```
 
 # Figures
@@ -131,21 +143,18 @@ pca <- prcomp(x = t(p_data))
 
 a <- autoplot(pca,
   data = pCol, colour = "Group",
-  frame = FALSE, frame.type = "norm", size = 3, alpha = 0.6
-) + 
+  frame = FALSE, frame.type = "norm", size = 5, alpha = 0.5
+) +
   scale_color_manual(values = c(cols)) +
   ggtitle("") +
+  theme_bw(base_family = "Helvetica") +
   th +
-  theme(legend.title = element_blank(),
-        legend.justification="bottom",
-          legend.margin=margin(0,0,0,0),
-          legend.box.margin=margin(0,0,-20,0),
-          plot.margin=grid::unit(c(1,1,1,1), "mm")) + 
-  labs(color = "Gene counts")
+  theme(legend.title = element_blank()) +
+  guides(color = guide_legend(override.aes = list(size = 3.5, alpha = 1), label.hjust = -1, label.vjust = 0.3))
 
-a
+ag <- egg::set_panel_size(p = a, width = unit(6.67, "cm"), height = unit(6.62, "cm"))
 
-ggsave(filename = "output/a.svg", plot = a, width = 4, height = 4, dpi = 320)
+ggsave(filename = "output/a.pdf", plot = ag, width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 ## B
@@ -186,60 +195,96 @@ mat <- mat[as.character(names(kmeans.new)), ]
 
 col_fun <- colorRamp2(c(-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5), viridis(n = 11))
 
-b <- Heatmap(
-  matrix = mat, clustering_method_columns = "ward.D2",
+set.seed(100)
+
+ha <-  HeatmapAnnotation(
+    Group = data$pData$Group,
+    col = list(Group = cols),
+    simple_anno_size = unit(3, "mm"),
+    show_annotation_name = TRUE,
+    annotation_name_side = "right",
+    annotation_name_rot = 0,
+    annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+    )
+  )
+
+ra <- HeatmapAnnotation(
+    Cluster = kmeans.new,
+    which = "row",
+    col = list(Cluster = kmeans_cols),
+    simple_anno_size = unit(3, "mm"),
+    show_annotation_name = TRUE,
+    annotation_name_side = "bottom",
+    annotation_name_rot = 0,
+    annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+    )
+)
+
+b <- ha %v% Heatmap(
+  matrix = mat,
+  clustering_method_columns = "ward.D2",
   col = col_fun,
   cluster_rows = F,
   show_row_names = F,
   show_column_names = F,
   name = "Gene expression",
   row_split = kmeans.new,
+  column_split = factor(data$pData$Group, levels = rev(c("PND15", "PND8", "Adult"))),
+  cluster_column_slices = TRUE,
   row_title = NULL,
+  column_title = NULL,
+  column_dend_height = unit(0.5, "cm"),
   use_raster = FALSE,
-  top_annotation = HeatmapAnnotation(
-    df = data$pData[, 1, drop = FALSE],
-    col = list(Group = cols),
-    simple_anno_size = unit(5, "mm"), 
-    show_annotation_name = TRUE, 
-    annotation_name_side = "right", 
-    annotation_legend_param = gpar(fontsize = 3), 
-    annotation_name_rot = 0, 
-    annotation_name_gp = gpar(fontsize = 10)
-  ),
-  left_annotation = HeatmapAnnotation(
-    Cluster = kmeans.new, which = "row",
-    col = list(Cluster = kmeans_cols),
-    simple_anno_size = unit(5, "mm"), 
-    show_annotation_name = TRUE, 
-    annotation_name_side = "bottom", 
-    annotation_legend_param = gpar(fontsize = 3), 
-    annotation_name_rot = 0, 
-    annotation_name_gp = gpar(fontsize = 10)
-  ), 
-  height = unit(x = 5, units = "in"), width = unit(x = 5, units = "in"),
+  show_parent_dend_line = FALSE,
+  top_annotation = ha,
+  left_annotation = ra,
   heatmap_legend_param = list(
-    title = expression(bold("Gene expression (" ~ log[2] ~ "CPM)")),
-    legend_height = unit(5, "cm"),
-    title_position = "leftcenter-rot"
+    at = c(-5, -2.5, 0, 2.5, 5),
+    title = expression(bold(~ Log[2] ~ "fold-change")),
+    legend_height = unit(3.5, "cm"),
+    title_position = "leftcenter-rot",
+    title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+  ),
+  height = unit(x = 7.66, units = "cm"), width = unit(x = 6.32, units = "cm")
 )
+
+
+# png(filename = "output/b.png", width = 7, height = 7, units = "in", res = 320)
+draw(
+  object = b,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE
 )
 
+bg <- grid.grabExpr(
+  draw(
+    object = b,
+    heatmap_legend_side = "right",
+    annotation_legend_side = "right",
+    merge_legends = TRUE
+  )
+)
 
-png(filename = "output/b.png", width = 7, height = 7, units = "in", res = 320)
-draw(object = b, 
-     heatmap_legend_side = "right", 
-     annotation_legend_side = "right",
-     merge_legends = TRUE,
-     align_annotation_legend = "")
+ggsave(plot = bg, filename = "output/b.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 2000)
 
-dev.off()
+# dev.off()
 
-pdf(file = "output/b.pdf", width = 7, height = 7)
-draw(object = b, 
-     heatmap_legend_side = "right", 
-     annotation_legend_side = "right",
-     merge_legends = TRUE,
-     align_annotation_legend = "")
+pdf(file = "output/b.pdf", width = 8.5, height = 11)
+draw(
+  object = b,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE,
+  align_annotation_legend = ""
+)
 
 dev.off()
 ```
@@ -255,7 +300,7 @@ names(go_files) <- c("cluster 3", "cluster 4", "cluster 2", "cluster 5", "cluste
 
 go_clusters <- lapply(go_files, function(x) {
   df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
-  df <- df[df$p.adjust <= 0.05 & df$Count > 10, ]
+  df <- df[df$p.adjust <= 0.05 & df$Count >= 10 & df$Count <= 1000, ]
   df <- df[order(df$p.adjust), ][1:10, ]
   return(df[complete.cases(df), ])
 })
@@ -263,39 +308,44 @@ go_clusters <- lapply(go_files, function(x) {
 go_df <- ldply(go_clusters, data.frame)
 colnames(go_df)[1] <- "Cluster"
 
-go_df$GeneRatio <- round(as.numeric(gsub(pattern = "/.*", replacement = "", x = go_df$GeneRatio))/
-        as.numeric(gsub(pattern = "*./", replacement = "", x = go_df$GeneRatio)), digits = 2)
+go_df$GeneRatio <- round(as.numeric(gsub(pattern = "/.*", replacement = "", x = go_df$GeneRatio)) /
+  as.numeric(gsub(pattern = "*./", replacement = "", x = go_df$GeneRatio)), digits = 2)
 
 kc <- data.frame(Cluster = names(kmeans_cols), cc = kmeans_cols)
 go_df <- merge(go_df, kc)
 go_df$cc <- as.character(go_df$cc)
 
 go_df <- go_df %>% map_df(rev)
-  
+go_df <- data.frame(go_df)
+# go_df$cc <- as.character(go_df$cc)
+
+go_df$Description[9] <- "mitochondrion organisation"
+
 c <- ggplot(data = go_df, mapping = aes(
-  x = Description,
+  x = fct_inorder(Description),
   y = -log10(p.adjust), color = Count
-  # ,
-  # size = GeneRatio
 )) +
-  geom_point(show.legend = T) +
+  geom_point(show.legend = T, size = 2, alpha = 0.6) +
   coord_flip(expand = T) +
-  # scale_y_reverse() +
-  scale_colour_gradientn(colors = viridis(n = 200), limits=c(25, 125), breaks = c(25,75,125)) +
+  scale_colour_gradientn(colors = myPalette(n = nrow(go_df)), limits = c(25, 125), breaks = c(25, 75, 125)) +
   xlab("") +
-  ylab(expression(adjusted ~ -Log[10] ~ italic(P))) +
+  ylab(expression(-Log[10] ~ adjusted ~ italic(P))) +
+  theme_bw(base_family = "Helvetica") +
   th +
-  theme(axis.text.y = element_text(size = 10, colour = go_df$cc),
-        legend.title=element_text(size=14),
-          legend.text = element_text(size = 12, angle = 0),
-          legend.justification="bottom",
-          legend.margin=margin(0,0,0,0),
-          legend.box.margin=margin(0,0,-20,0),
-          plot.margin=grid::unit(c(1,5,1,1), "mm")) + 
+  theme(axis.text.y = element_text(colour = go_df$cc)) +
+  guides(
+    size = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 1, size = 8),
+    colour = guide_colorbar(
+      title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 1, size = 8
+    )
+  ) +
   labs(color = "Gene counts")
 
-c
+cg <- egg::set_panel_size(p = c, width = unit(3.5, "cm"), height = unit(10.5, "cm"))
 
+ggsave(plot = cg, filename = "output/c.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 ## D
@@ -344,53 +394,43 @@ median.melt <- melt(data = median.df, id.vars = c("Categories", "Genes"))
 xs <- split(median.melt, f = median.melt$Categories)
 
 p1 <- ggplot(data = xs$`Maintenance & self-renewal genes`, aes(x = variable, y = value, group = Genes)) +
-  geom_line(aes(color = Genes), size = 1, alpha  = 0.7) +
-  geom_point(aes(color = Genes), size = 2, alpha  = 0.7) +
+  geom_line(aes(color = Genes), size = 1, alpha = 0.7) +
+  geom_point(aes(color = Genes), size = 2, alpha = 0.7) +
   scale_color_brewer(palette = "Paired") +
   labs(x = "", y = "") +
   scale_y_continuous(limits = c(-3.5, 8.5), breaks = c(-3, 0, 3, 6, 9)) +
   scale_x_discrete(expand = waiver()) +
   facet_wrap(~Categories, ncol = 1) +
+  theme_bw(base_family = "Helvetica") +
   th +
-  theme(legend.title=element_text(size=14),
-        legend.position = "right",
-        legend.text = element_text(size = 14, angle = 0),
-        legend.justification="top",
-        legend.margin=margin(0,0,0,0),
-        legend.box.margin=margin(0,0,0,0),
-        plot.margin=grid::unit(c(1,1,1,1), "mm"))
+  theme(
+    legend.position = "right",
+    legend.justification = "top"
+  )
 
-p2 <- p1 %+% xs$`Melanoma antigen genes`+ theme(legend.title=element_blank()) 
-p3 <- p1 %+% xs$`Signalling factors`+ theme(legend.title=element_blank())
+p2 <- p1 %+% xs$`Melanoma antigen genes` + theme(legend.title = element_blank())
+p3 <- p1 %+% xs$`Signalling factors` + theme(legend.title = element_blank())
 
-p <- ggarrange(p1,p2,p3, ncol = 1, align = "hv")
+p <- ggarrange(p1, p2, p3, ncol = 1, align = "hv")
 
-d <- annotate_figure(p,
-                     left = text_grob(expression("Median gene expression (" ~log[2]~"CPM )"), 
-                                      color = "black", 
-                                      rot = 90, 
-                                      size = 18, 
-                                      face = "bold",
-                                      just = "top"))
+d <- annotate_figure(p, left = text_grob(expression("Median gene expression (" ~ log[2] ~ "CPM )"),
+  color = "black",
+  rot = 90,
+  size = 8,
+  face = "plain",
+  just = "top"
+))
+dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(8.31, "cm"), height = unit(13.6, "cm")))
+
+ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 
-# Figure 1
-```{r}
-ggarrange(a, grid.grabExpr(draw(b)), c, d,align = "none", widths = c(2, 2, 3,2), heights = c(1, 1.5, 3,2.5))
-ggsave(filename = "figure1.pdf", device = "pdf", width = 8.5, height = 11, units = "in")
-ggsave(filename = "output/a.pdf", plot = a, width = 4, height = 4)
-ggsave(filename = "output/c.pdf", plot = c, width = 5, height = 6)
-ggsave(filename = "output/d.pdf", plot = d, width = 4, height = 8)
-pdf(file = "output/b.pdf", width = 7, height = 5)
-b
-dev.off()
-```
 
-```{r}
-ggsave(filename = "output/c.svg", plot = c, width = 5, height = 6, dpi = 320)
-ggsave(filename = "output/d.svg", plot = d, width = 4, height = 8, dpi = 320)
-```
+
+
+
+
 
 # References
 ```{r overlap-matrix-rGREAT-43 }
@@ -402,105 +442,3 @@ report::cite_packages(session = sessionInfo())
 devtools::session_info() %>%
   details::details()
 ```
-
-
-<!-- ```{r eval=FALSE} -->
-<!-- pa <- ggplot(schz, aes(year, month, fill = SczBroad)) + -->
-<!--   geom_tile(colour = "gray20", size = 1.5, stat = "identity") + -->
-<!--   scale_fill_viridis(option = "A") + -->
-<!--   scale_y_continuous(breaks = 1:12, labels = month.abb[1:12]) + -->
-<!--   xlab("") + -->
-<!--   ylab("") + -->
-<!--   ggtitle("Total Australian Schizophrenics Born By Month and Year") + -->
-<!--   theme( -->
-<!--     plot.title = element_text(color = "white", hjust = 0, vjust = 1, size = rel(2)), -->
-<!--     plot.background = element_rect(fill = "gray20"), -->
-<!--     panel.background = element_rect(fill = "gray20"), -->
-<!--     panel.border = element_rect(fill = NA, color = "gray20", size = 0.5, linetype = "solid"), -->
-<!--     panel.grid.major = element_blank(), -->
-<!--     panel.grid.minor = element_blank(), -->
-<!--     axis.line = element_blank(), -->
-<!--     axis.ticks = element_blank(), -->
-<!--     axis.text = element_text(color = "white", size = rel(1.5)), -->
-<!--     axis.text.y = element_text(hjust = 1), -->
-<!--     legend.text = element_text(color = "white", size = rel(1.3)), -->
-<!--     legend.background = element_rect(fill = "gray20"), -->
-<!--     legend.position = "bottom", -->
-<!--     legend.title = element_blank() -->
-<!--   ) -->
-
-
-<!-- pb <- ggplot(schz, aes(year, month, fill = SczBroad)) + -->
-<!--   geom_tile(colour = "gray20", size = 1.5, stat = "identity") + -->
-<!--   scale_fill_viridis(option = "B") + -->
-<!--   scale_y_continuous(breaks = 1:12, labels = month.abb[1:12]) + -->
-<!--   xlab("") + -->
-<!--   ylab("") + -->
-<!--   ggtitle("Total Australian Schizophrenics Born By Month and Year") + -->
-<!--   theme( -->
-<!--     plot.title = element_text(color = "white", hjust = 0, vjust = 1, size = rel(2)), -->
-<!--     plot.background = element_rect(fill = "gray20"), -->
-<!--     panel.background = element_rect(fill = "gray20"), -->
-<!--     panel.border = element_rect(fill = NA, color = "gray20", size = 0.5, linetype = "solid"), -->
-<!--     panel.grid.major = element_blank(), -->
-<!--     panel.grid.minor = element_blank(), -->
-<!--     axis.line = element_blank(), -->
-<!--     axis.ticks = element_blank(), -->
-<!--     axis.text = element_text(color = "white", size = rel(1.5)), -->
-<!--     axis.text.y = element_text(hjust = 1), -->
-<!--     legend.text = element_text(color = "white", size = rel(1.3)), -->
-<!--     legend.background = element_rect(fill = "gray20"), -->
-<!--     legend.position = "bottom", -->
-<!--     legend.title = element_blank() -->
-<!--   ) -->
-
-
-<!-- pc <- ggplot(schz, aes(year, month, fill = SczBroad)) + -->
-<!--   geom_tile(colour = "gray20", size = 1.5, stat = "identity") + -->
-<!--   scale_fill_viridis(option = "C") + -->
-<!--   scale_y_continuous(breaks = 1:12, labels = month.abb[1:12]) + -->
-<!--   xlab("") + -->
-<!--   ylab("") + -->
-<!--   ggtitle("Total Australian Schizophrenics Born By Month and Year") + -->
-<!--   theme( -->
-<!--     plot.title = element_text(color = "white", hjust = 0, vjust = 1, size = rel(2)), -->
-<!--     plot.background = element_rect(fill = "gray20"), -->
-<!--     panel.background = element_rect(fill = "gray20"), -->
-<!--     panel.border = element_rect(fill = NA, color = "gray20", size = 0.5, linetype = "solid"), -->
-<!--     panel.grid.major = element_blank(), -->
-<!--     panel.grid.minor = element_blank(), -->
-<!--     axis.line = element_blank(), -->
-<!--     axis.ticks = element_blank(), -->
-<!--     axis.text = element_text(color = "white", size = rel(1.5)), -->
-<!--     axis.text.y = element_text(hjust = 1), -->
-<!--     legend.text = element_text(color = "white", size = rel(1.3)), -->
-<!--     legend.background = element_rect(fill = "gray20"), -->
-<!--     legend.position = "bottom", -->
-<!--     legend.title = element_blank() -->
-<!--   ) -->
-
-
-<!-- pd <- ggplot(schz, aes(year, month, fill = SczBroad)) + -->
-<!--   geom_tile(colour = "gray20", size = 1.5, stat = "identity") + -->
-<!--   scale_fill_viridis(option = "D") + -->
-<!--   scale_y_continuous(breaks = 1:12, labels = month.abb[1:12]) + -->
-<!--   xlab("") + -->
-<!--   ylab("") + -->
-<!--   ggtitle("Total Australian Schizophrenics Born By Month and Year") + -->
-<!--   theme( -->
-<!--     plot.title = element_text(color = "white", hjust = 0, vjust = 1, size = rel(2)), -->
-<!--     plot.background = element_rect(fill = "gray20"), -->
-<!--     panel.background = element_rect(fill = "gray20"), -->
-<!--     panel.border = element_rect(fill = NA, color = "gray20", size = 0.5, linetype = "solid"), -->
-<!--     panel.grid.major = element_blank(), -->
-<!--     panel.grid.minor = element_blank(), -->
-<!--     axis.line = element_blank(), -->
-<!--     axis.ticks = element_blank(), -->
-<!--     axis.text = element_text(color = "white", size = rel(1.5)), -->
-<!--     axis.text.y = element_text(hjust = 1), -->
-<!--     legend.text = element_text(color = "white", size = rel(1.3)), -->
-<!--     legend.background = element_rect(fill = "gray20"), -->
-<!--     legend.position = "bottom", -->
-<!--     legend.title = element_blank() -->
-<!--   ) -->
-<!-- ``` -->
