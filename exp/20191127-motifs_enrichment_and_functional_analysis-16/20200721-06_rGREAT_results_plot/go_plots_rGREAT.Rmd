@@ -1,0 +1,95 @@
+---
+title: "ATAC-Seq: GO plots from rGREAT"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-07-21 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r go-plots-rGREAT-1, message=FALSE, warning=FALSE}
+library(simplifyEnrichment)
+library(readxl)
+library(parallel)
+library(report)
+library(dplyr)
+```
+
+# Results
+```{r go-plots-rGREAT-2 }
+files <- list.files(path = "input", pattern = "xlsx", full.names = T)
+names(files) <- gsub(pattern = "input/|.xlsx", replacement = "", x = files)
+res <- mclapply(files, function(x) {
+  a <- data.frame(read_xlsx(x), stringsAsFactors = F)
+  a <- a[a$Hyper_Adjp_BH <= 0.05, 1]
+  return(a)
+}, mc.preschedule = F, mc.cores = detectCores())
+
+res <- res[which(lapply(res, length) > 10)]
+```
+
+# Plot Heatmaps
+## Function
+```{r go-plots-rGREAT-3 }
+make_heatmap <- function(id, ont = "BP", DB = "org.Mm.eg.db",
+                         method = list("Wang", "Resnik", "Rel", "Jiang", "Lin"), n = "GO similarity") {
+  set.seed(1111)
+  go_id <- id
+
+  r <- mclapply(method, function(x) {
+    dir <- paste0("output/", x)
+    system(paste("mkdir -p", dir))
+    pdf_file <- paste0(dir, "/", n, ".pdf")
+    if (!file.exists(pdf_file)) {
+      cat(pdf_file)
+      mat <- GO_similarity(go_id = id, db = DB, ont = ont, measure = x)
+      pdf(file = pdf_file, onefile = F, width = 11, height = 8.5)
+      df <- try(simplifyGO(mat = mat, column_title = n, min_term = 10, order_by_size = T))
+      dev.off()
+    }
+    return(df)
+  }, mc.preschedule = FALSE, mc.cores = length(methods))
+
+  return(r)
+}
+```
+
+## Heatmaps
+```{r go-plots-rGREAT-4, warning=FALSE, message=FALSE}
+df <- NULL
+
+for (i in 1:length(res)) {
+  n <- names(res)[i]
+  sp <- strsplit(x = n, split = "_")[[1]]
+  df[[n]] <- make_heatmap(id = res[[i]], ont = sp[length(sp)], DB = "org.Mm.eg.db", n = n)
+}
+```
+
+
+# References
+```{r go-plots-rGREAT-5 }
+cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r go-plots-rGREAT-6 }
+devtools::session_info() %>%
+  details()
+```
