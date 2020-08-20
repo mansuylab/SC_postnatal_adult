@@ -7,4 +7,4 @@
 
 all: task1
 task1:
-	Rscript -e 'rmarkdown::render("20200213-homer_RE.Rmd")' 2> log >> log
+	Rscript -e 'rmarkdown::render("20200213-homer_RE.Rmd")' 2> STDERR > STDOUT
