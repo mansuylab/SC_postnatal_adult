@@ -1,0 +1,31 @@
+---
+title: "AtacSeqQC"
+author: "Deepak Tanwar"
+date: "23/10/2019"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Library
+```{r}
+library(ATACseqQC)
+```
+
+# Estimate the library complexity
+
+```{r}
+bamFile <- "../20191008-07_filter_mapq30/output/PND_Adult.bam"
+
+estimateLibComplexity(readsDupFreq(bamFile))
+```
+
+# Fragment size distribution
+```{r}
+fragSize <- fragSizeDist(bamFile, "PND_Adult")
+
+```

@@ -1,0 +1,57 @@
+---
+title: "RNA-Seq: Merde files from different runs"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-08-16 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# FastQ files
+```{r}
+fastq <- list.files(path = "input", full.names = T)
+```
+
+# Samples table
+```{r}
+data <- readr::read_tsv(file = "input/dataset_pnd_adult.tsv", col_names = T)
+```
+
+# Merging FastQ
+```{r}
+for (i in 1:nrow(data)) {
+  cmd <- NULL
+  files <- grep(pattern = data$Samples[i], x = fastq, value = T)
+  if (length(files) > 1) {
+    cmd <- paste0("cat ", paste(files, collapse = " "), " > ./output/", data$Samples[i], ".fq.gz")
+  } else {
+    cmd <- paste0("ln -sr ", files, " ./output/", data$Samples[i], ".fq.gz")
+  }
+  system(cmd)
+}
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
