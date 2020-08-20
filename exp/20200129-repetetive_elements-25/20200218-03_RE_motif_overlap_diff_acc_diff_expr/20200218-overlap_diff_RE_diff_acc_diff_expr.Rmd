@@ -1,5 +1,5 @@
 ---
-title: "ATAC-Seq: RE HOMER overlap diff acc peaks"
+title: "ATAC-Seq: RE HOMER overlap diff acc peaks and diff expr genes"
 author: "Deepak Tanwar"
 date: "<b>Created on:</b> 2020-02-18 <br> <b>Updated on:</b> `r Sys.Date()`"
 output:
@@ -43,16 +43,17 @@ colnames(da_f)[1:5] <- gsub(pattern = "Peak-", replacement = "", x = colnames(da
 da_f_GR <- GRanges(da_f)
 
 
-files <- list.files(path = "input/hocomocoDB", pattern = "_sig.txt.gz", full.names = T, recursive = T)
+files <- list.files(path = "input/motif_homer", pattern = "knownResults.txt$", full.names = T, recursive = T)
+files <- files[grep(pattern = "E_C|E_L", x = files, invert = T)]
 
-names(files) <- gsub(pattern = ".*DB/|/Ad.*|/PN.*", replacement = "", x = files)
+names(files) <- gsub(pattern = ".*ive/|\\/.*", replacement = "", x = files)
 
 read_files <- mclapply(files, function(x) {
   fread(
     input = x, sep = "\t",
     header = T, stringsAsFactors = F,
     check.names = F, data.table = F,
-    nThread = detectCores()
+    nThread = 2
   )
 },
 mc.preschedule = F, mc.cores = length(files)
