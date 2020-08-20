@@ -175,7 +175,7 @@ dge <- calcNormFactors(object = dge, method = "TMM")
 cpm <- cpm(dge, log = T)
 cpm <- removeBatchEffect(x = cpm, covariates = design[, 1:3], design = design[, 4:6])
 
-data <- list(cpm = cpm, vstSV = sv.pl@assays[[2]], voomE = v$E, pData = salmon@phenoData)
+data <- list(cpm = cpm, vstSV = assay(x = sv.pl, i = 2), voomE = v$E, pData = salmon@phenoData)
 
 save(data,
   file = "./output/data_pData.RData", compress = T,
@@ -237,7 +237,7 @@ plPCA(x = counts.filt, samples_data = salmon@phenoData, colorBy = "Group", add.l
 
 ## SVA (VST)
 ```{r, fig.align='center', fig.height=7, fig.width=8, warning=F}
-plPCA(x = sv.pl@assays[[2]], samples_data = salmon@phenoData, colorBy = "Group", add.labels = FALSE)
+plPCA(x = assay(x = sv.pl, i = 2), samples_data = salmon@phenoData, colorBy = "Group", add.labels = FALSE)
 ```
 
 ## CPM

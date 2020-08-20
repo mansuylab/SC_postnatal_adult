@@ -1,0 +1,497 @@
+---
+title: "Integration on 1 chromosome"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-03-03 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r, warning = F, message = F}
+library(EnrichedHeatmap)
+library(circlize)
+library(data.table)
+library(tidyverse)
+library(plgINS)
+library(BSgenome.Mmusculus.UCSC.mm10)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(csaw)
+```
+
+# Function to subset data to one chromosome
+```{r }
+one_chr <- function(input, chr = "chr1") {
+  df <- data.frame(input)
+  df <- df[df$seqnames == chr, ]
+  df$seqnames <- as.character(df$seqnames)
+  df_GR <- GRanges(df)
+  return(df_GR)
+}
+```
+
+
+# Usage
+
+We would need following:
+
+1. CGI information for mm10
+2. Genes GRanges from gencode GTF file
+3. Methylation from RRBS and WGBS
+4. Gene expression values from RNA-Seq (named vector)
+
+# TSS
+Here, we extract the promoters for transcripts from RNA-Seq
+```{r }
+cgi_tss_file <- "./output/cgi_tss_mm10.RData"
+
+if (!file.exists(cgi_tss_file)) {
+  cgi_mm10 <- find_CpG(Genome = BSgenome.Mmusculus.UCSC.mm10, Cores = 16)
+  names(cgi_mm10) <- paste("CpG", 1:length(cgi_mm10), sep = ":_")
+  tss_mm10 <- promoters(TxDb.Mmusculus.UCSC.mm10.knownGene, upstream = 0, downstream = 1)
+  save(cgi_mm10, tss_mm10, file = cgi_tss_file)
+} else {
+  load(cgi_tss_file)
+}
+
+tss_mm10 <- one_chr(tss_mm10)
+names(tss_mm10) <- tss_mm10$tx_name
+
+# TSS +/- 5000
+tss_5k <- promoters(TxDb.Mmusculus.UCSC.mm10.knownGene, upstream = 5000, downstream = 5000)
+tss_5k <- one_chr(tss_5k)
+names(tss_5k) <- tss_5k$tx_name
+tss_5k <- slidingWindows(x = tss_5k, width = 50, step = 50)
+tss_5k <- unlist(tss_5k)
+names(tss_5k) <- gsub(pattern = "\\.EN.*" , replacement = "" , x = names(tss_5k))
+tss_5k$tx_name <- names(tss_5k)
+```
+
+The task of visualization are separated into two steps:
+
+1. To get association between genomic signals and targets by normalizing into a matrix.
+2. To visualize the matrix by heatmap.
+
+
+# Normalize signal to tss
+
+`normalizeToMatrix()` converts the association between genomic signals (H3K4me3) and targets(tss) into a matrix (actually mat1 is just a normal matrix with several additional attributes). It first splits the extended targets regions (the extension to upstream and downstream is controlled by extend argument) into a list of small windows (the width of the windows is controlled by w), then overlaps genomic signals to these small windows and calculates the value for every small window, which is the mean value of genomic signals that intersects with the window (the value corresponds to genomic signals are controlled by value_column and how to calcualte the mean value is controlled by mean_mode).
+
+
+## ATAC-Seq
+```{r }
+nm_atac <- "./output/subset/mat_atac.RData"
+
+if (!file.exists(nm_atac)) {
+
+  # Adult
+  
+  # adult_AS <- GRanges(read.table("input/atacseq/Adult_NF_peaks.narrowPeak",
+  #   header = F,
+  #   col.names = c(
+  #     "Chr", "Start", "End", "Name", "Score", "Strand",
+  #     "FoldChange", "negLog10pvalue", "negLog10qvalue",
+  #     "Summit"
+  #   ), stringsAsFactors = F
+  # ))
+  # 
+  # adult_AS <- one_chr(adult_AS)
+  
+  
+  # Reading counts from the peak regions
+  counts_adult_AS <- regionCounts("input/atacseq/Adult_NF.bam",
+    regions = tss_5k,
+    param = readParam(pe = "both"),
+    BPPARAM = MulticoreParam(4)
+  )
+  
+  adult_AS <- tss_5k
+  adult_AS$Score <- assay(counts_adult_AS)[,1]
+  
+  mat_adult_AS <- normalizeToMatrix(adult_AS, tss_mm10,
+    value_column = "Score",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+
+  # PND15
+
+  # pnd15_AS <- GRanges(read.table("input/atacseq/PND15_NF_peaks.narrowPeak",
+  #   header = F,
+  #   col.names = c(
+  #     "Chr", "Start", "End", "Name", "Score", "Strand",
+  #     "FoldChange", "negLog10pvalue", "negLog10qvalue",
+  #     "Summit"
+  #   ), stringsAsFactors = F
+  # ))
+  # 
+  # pnd15_AS <- one_chr(pnd15_AS)
+
+  # Reading counts from the peak regions
+  counts_PND15_AS <- regionCounts("input/atacseq/PND15_NF.bam",
+    regions = tss_5k,
+    param = readParam(pe = "both"),
+    BPPARAM = MulticoreParam(4)
+  )
+  
+  pnd15_AS <- tss_5k
+  pnd15_AS$Score <- assay(counts_PND15_AS)[,1]
+  
+  mat_pnd15_AS <- normalizeToMatrix(pnd15_AS, tss_mm10,
+    value_column = "Score",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+  save(mat_adult_AS, mat_pnd15_AS, file = nm_atac)
+} else {
+  load(nm_atac)
+}
+```
+
+
+## ChIP-Seq
+```{r }
+nm_chip <- "./output/subset/mat_chip.RData"
+
+if (!file.exists(nm_chip)) {
+
+  # Adult H3K27ac
+
+  # adult_CS_H3K27ac <- GRanges(
+  #   read.table("input/chipseq/PNW8_H3K27ac_SRX332351_peaks.narrowPeak",
+  #     header = F,
+  #     col.names = c(
+  #       "Chr", "Start", "End", "Name", "Score", "Strand",
+  #       "FoldChange", "negLog10pvalue", "negLog10qvalue",
+  #       "Summit"
+  #     ), stringsAsFactors = F
+  #   )
+  # )
+  # 
+  # adult_CS_H3K27ac <- one_chr(adult_CS_H3K27ac)
+
+  counts_adult_CS_H3K27ac <- regionCounts("input/chipseq/PNW8_H3K27ac_SRX332351.bam",
+    regions = tss_5k,
+    param = readParam(pe = "both"),
+    BPPARAM = MulticoreParam(4)
+  )
+  
+  adult_CS_H3K27ac <- tss_5k
+  adult_CS_H3K27ac$Score <- assay(counts_adult_CS_H3K27ac)[,1]
+  
+  mat_adult_CS_H3K27ac <- normalizeToMatrix(adult_CS_H3K27ac, tss_mm10,
+    value_column = "Score",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+
+  # Adult H3K27me3
+
+  # adult_CS_H3K27me3 <- GRanges(
+  #   read.table("input/chipseq/PNW8_H3K27me3_SRX332346_peaks.narrowPeak",
+  #     header = F,
+  #     col.names = c(
+  #       "Chr", "Start", "End", "Name", "Score", "Strand",
+  #       "FoldChange", "negLog10pvalue", "negLog10qvalue",
+  #       "Summit"
+  #     ), stringsAsFactors = F
+  #   )
+  # )
+  # 
+  # adult_CS_H3K27me3 <- one_chr(adult_CS_H3K27me3)
+
+  counts_adult_CS_H3K27me3 <- regionCounts("input/chipseq/PNW8_H3K27me3_SRX332346.bam",
+    regions = tss_5k,
+    param = readParam(pe = "both"),
+    BPPARAM = MulticoreParam(4)
+  )
+  
+  adult_CS_H3K27me3 <- tss_5k
+  adult_CS_H3K27me3$Score <- assay(counts_adult_CS_H3K27me3)[,1]
+  
+  mat_adult_CS_H3K27me3 <- normalizeToMatrix(adult_CS_H3K27me3, tss_mm10,
+    value_column = "Score",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+
+  # Adult H3K4me3
+
+  # adult_CS_H3K4me3 <- GRanges(
+  #   read.table("input/chipseq/PNW8_H3K4me3_SRX332343_peaks.narrowPeak",
+  #     header = F,
+  #     col.names = c(
+  #       "Chr", "Start", "End", "Name", "Score", "Strand",
+  #       "FoldChange", "negLog10pvalue", "negLog10qvalue",
+  #       "Summit"
+  #     ), stringsAsFactors = F
+  #   )
+  # )
+  # 
+  # adult_CS_H3K4me3 <- one_chr(adult_CS_H3K4me3)
+  
+  counts_adult_CS_H3K4me3 <- regionCounts("input/chipseq/PNW8_H3K4me3_SRX332343.bam",
+    regions = tss_5k,
+    param = readParam(pe = "both"),
+    BPPARAM = MulticoreParam(4)
+  )
+  
+  adult_CS_H3K4me3 <- tss_5k
+  adult_CS_H3K4me3$Score <- assay(counts_adult_CS_H3K4me3)[,1]
+
+  mat_adult_CS_H3K4me3 <- normalizeToMatrix(adult_CS_H3K4me3, tss_mm10,
+    value_column = "Score",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+  save(mat_adult_CS_H3K4me3, mat_adult_CS_H3K27me3, mat_adult_CS_H3K27ac, file = nm_chip)
+} else {
+  load(nm_chip)
+}
+```
+
+
+## Bisulphite-Seq
+```{r }
+nm_bs <- "./output/subset/mat_bs.RData"
+
+if (!file.exists(nm_bs)) {
+
+  # PND7
+
+  pnd7_BS_df <- fread(
+    input = "input/bsseq/PND7_SRX749887_1_val_1_bismark_bt2_pe.bismark.cov.gz",
+    sep = "\t", quote = F, stringsAsFactors = F, data.table = FALSE, nThread = 16,
+    col.names = c("seqnames", "start", "end", "percent", "Me", "Un")
+  )
+  pnd7_BS_df$meth <- pnd7_BS_df$percent / 100
+  pnd7_BS <- GRanges(pnd7_BS_df[, c(1:3, 7)])
+
+  pnd7_BS <- one_chr(pnd7_BS)
+
+  mat_pnd7_BS <- normalizeToMatrix(pnd7_BS, tss_mm10,
+    value_column = "meth",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+
+  # PND14
+
+  pnd14_BS_df <- fread(
+    input = "input/bsseq/PND14_SRX749892_1_val_1_bismark_bt2_pe.bismark.cov.gz",
+    sep = "\t", quote = F, stringsAsFactors = F, data.table = FALSE, nThread = 16,
+    col.names = c("seqnames", "start", "end", "percent", "Me", "Un")
+  )
+  pnd14_BS_df$meth <- pnd14_BS_df$percent / 100
+  pnd14_BS <- GRanges(pnd14_BS_df[, c(1:3, 7)])
+
+  pnd14_BS <- one_chr(pnd14_BS)
+
+  mat_pnd14_BS <- normalizeToMatrix(pnd14_BS, tss_mm10,
+    value_column = "meth",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+
+  # PNW8
+
+  pnw8_1_BS_df <- fread(
+    input = "input/bsseq/PNW8_SRX688595_1_val_1_bismark_bt2_pe.bismark.cov.gz",
+    sep = "\t", quote = F, stringsAsFactors = F, data.table = FALSE, nThread = 16,
+    col.names = c("seqnames", "start", "end", "percent_1", "Me_1", "Un_1")
+  )
+
+  pnw8_2_BS_df <- fread(
+    input = "input/bsseq/PNW8_SRX688596_1_val_1_bismark_bt2_pe.bismark.cov.gz",
+    sep = "\t", quote = F, stringsAsFactors = F, data.table = FALSE, nThread = 16,
+    col.names = c("seqnames", "start", "end", "percent_2", "Me_2", "Un_2")
+  )
+
+  pnw8_BS_tmp <- full_join(x = pnw8_1_BS_df, y = pnw8_2_BS_df)
+  pnw8_BS_tmp <- pnw8_BS_tmp %>% replace(is.na(.), 0)
+  pnw8_BS_tmp$Me <- rowMeans(pnw8_BS_tmp[, c(5, 8)])
+  pnw8_BS_tmp$Un <- rowMeans(pnw8_BS_tmp[, c(6, 9)])
+  pnw8_BS_tmp$percent <- (pnw8_BS_tmp$Me / (pnw8_BS_tmp$Me + pnw8_BS_tmp$Un)) * 100
+  pnw8_BS_df <- pnw8_BS_tmp[, c(1:3, 10:12)]
+  pnw8_BS_df$meth <- pnw8_BS_df$percent / 100
+  pnw8_BS <- GRanges(pnw8_BS_df[, c(1:3, 7)])
+
+  pnw8_BS <- one_chr(pnw8_BS)
+
+  mat_pnw8_BS <- normalizeToMatrix(pnw8_BS, tss_mm10,
+    value_column = "meth",
+    extend = 1000, mean_mode = "w0", w = 10
+  )
+
+  save(mat_pnd7_BS, mat_pnd14_BS, mat_pnw8_BS, file = nm_bs)
+} else {
+  load(nm_bs)
+}
+```
+
+## RRBS
+```{r }
+nm_rrbs <- "./output/subset/mat_rrbs.RData"
+
+if (!file.exists(nm_rrbs)) {
+  rrbs_files <- list.files("input/rrbs", pattern = ".gz", full.names = T)
+  # PND8
+  rrbs_list <- lapply(rrbs_files, function(x) {
+    fread(
+      input = x, sep = "\t", quote = F, stringsAsFactors = F,
+      data.table = FALSE, nThread = 16,
+      col.names = c("seqnames", "start", "end", "percent", "Me", "Un")
+    )[, -4]
+  })
+  Reduce(
+    function(x, y) {
+      full_join(x, y, by = c("seqnames", "start", "end"))
+    },
+    rrbs_list
+  ) %>% replace(is.na(.), 0) -> pnd8_rrbs_tmp
+  pnd8_rrbs_tmp$Me <- rowMeans(
+    pnd8_rrbs_tmp[, grep(pattern = "Me", x = colnames(pnd8_rrbs_tmp), value = T)]
+  )
+  pnd8_rrbs_tmp$Un <- rowMeans(
+    pnd8_rrbs_tmp[, grep(pattern = "Un", x = colnames(pnd8_rrbs_tmp), value = T)]
+  )
+  pnd8_rrbs_tmp$percent <- (pnd8_rrbs_tmp$Me / (pnd8_rrbs_tmp$Me + pnd8_rrbs_tmp$Un)) * 100
+  pnd8_rrbs_df <- pnd8_rrbs_tmp[, c(1:3, 16:18)]
+  pnd8_rrbs_df$meth <- pnd8_rrbs_df$percent / 100
+  pnd8_rrbs <- GRanges(pnd8_rrbs_df[, c(1:3, 7)])
+
+  pnd8_rrbs <- one_chr(pnd8_rrbs)
+
+  mat_pnd8_rrbs <- normalizeToMatrix(pnd8_rrbs, tss_mm10,
+    value_column = "meth",
+    extend = 1000, mean_mode = "w0", w = 10, include_target = TRUE
+  )
+
+  save(mat_pnd8_rrbs, file = nm_rrbs)
+} else {
+  load(nm_rrbs)
+}
+```
+
+
+
+# Heatmaps
+
+## Function
+```{r }
+create_heatmap <- function(nc = 4) {
+  pdf_file <- paste0("./output/subset/heatmap_atac_chip_cluster_", nc, ".pdf")
+
+  if (!file.exists(pdf_file)) {
+    partition <- paste0("cluster", kmeans(mat_adult_AS, centers = nc)$cluster)
+
+    lgd <- Legend(
+      at = paste0("cluster", 1:nc), title = "Clusters",
+      type = "lines", legend_gp = gpar(col = 2:(nc + 1))
+    )
+
+
+    hm_partition <- Heatmap(partition,
+      col = structure(2:(nc + 1), names = paste0("cluster", 1:nc)),
+      name = "partition", show_row_names = FALSE, width = unit(5, "mm")
+    )
+
+    hm_atac <- EnrichedHeatmap(mat_adult_AS,
+      name = "Adult ATAC",
+      # col = c("white", "#ba1168"),
+      column_title = "Adult ATAC",
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+    ) +
+      EnrichedHeatmap(mat_pnd15_AS,
+        name = "PND15 ATAC",
+        # col = c("white", "#2e7310"),
+        column_title = "PND15 ATAC",
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+      )
+
+    hm_chip <- EnrichedHeatmap(mat_adult_CS_H3K4me3,
+      name = "Adult H3K4me3",
+      # col = c("white", "#0f456e"),
+      column_title = "Adult H3K4me3",
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+    ) +
+      EnrichedHeatmap(mat_adult_CS_H3K27me3,
+        name = "Adult H3K27me3",
+        # col = c("white", "#671787"),
+        column_title = "Adult H3K27me3",
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+      ) +
+      EnrichedHeatmap(mat_adult_CS_H3K27ac,
+        name = "Adult H3K27ac",
+        # col = c("white", "#b83018"),
+        column_title = "Adult H3K27ac",
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+      )
+
+    hm_bs <- EnrichedHeatmap(mat_pnd7_BS,
+      name = "PND7 BS",
+      # col = c("white", "#ba1168"),
+      column_title = "PND7 BS",
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+    ) +
+      EnrichedHeatmap(mat_pnd14_BS,
+        name = "PND14 BS",
+        # col = c("white", "#ba1168"),
+        column_title = "PND14 BS",
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+      ) +
+      EnrichedHeatmap(mat_pnw8_BS,
+        name = "PNW8 BS",
+        # col = c("white", "#ba1168"),
+        column_title = "PNW8 BS",
+        top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+      )
+
+    hm_rrbs <- EnrichedHeatmap(mat_pnd8_rrbs,
+      name = "PND8 RRBS",
+      # col = c("white", "#ba1168"),
+      column_title = "PND8 RRBS",
+      top_annotation = HeatmapAnnotation(lines = anno_enriched(gp = gpar(col = 2:(nc + 1))))
+    )
+
+    # ht_list <- hm_partition + hm_atac + hm_chip + hm_bs + hm_rrbs
+    ht_list <- hm_partition + hm_atac + hm_bs + hm_rrbs
+
+
+    pdf(file = pdf_file, width = 22, height = 17)
+
+    draw(ht_list,
+      split = partition, annotation_legend_list = list(lgd),
+      ht_gap = unit(2, "mm")
+    )
+
+    dev.off()
+  }
+}
+```
+
+## Make heatmaps
+```{r }
+mylapply(2:10, create_heatmap)
+```
+
+# SessionInfo
+```{r }
+devtools::session_info()
+```

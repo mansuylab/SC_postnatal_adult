@@ -1,0 +1,250 @@
+---
+title: "short RNA-Seq: differential expression analysis of controls"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-03-03 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(limma)
+library(edgeR)
+# library(plgINS)
+# library(sva)
+library(ggplot2)
+library(SummarizedExperiment)
+```
+
+# Read data
+
+```{r}
+files <- list.files(path = "input", pattern = ".data", full.names = T)
+n <- gsub(pattern = "input/|_all.*|_miRNA.*", replacement = "", x = files)
+n[2:3] <- paste(n[2:3], "miRNA", sep = "_")
+names(files) <- n
+
+data <- lapply(files, function(x) {
+  a <- read.table(x,
+    header = T, sep = "\t", stringsAsFactors = F,
+    check.names = F, row.names = 1
+  )
+  a <- a[, grep(pattern = "C[0-9]", x = colnames(a), value = T)]
+  n <- gsub(pattern = ".*/|-p.*", replacement = "", x = colnames(a))
+  n <- gsub(pattern = "PND14", replacement = "PND15", x = n)
+  n <- gsub(pattern = "PND7", replacement = "PND8", x = n)
+  n <- gsub(pattern = "-", replacement = "_", x = n)
+  colnames(a) <- n
+  return(a)
+})
+```
+
+<!-- ## Data -->
+<!-- ```{r} -->
+<!-- allRNA <- list.files(path = "input/allRNA", pattern = ".txt", full.names = T) -->
+<!-- mmRNA <- list.files(path = "input/mature_miRNA/", pattern = ".txt", full.names = T) -->
+<!-- pmRNA <- list.files(path = "input/precursor_miRNA/", pattern = ".txt", full.names = T) -->
+<!-- ``` -->
+
+<!-- ## Function -->
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- read_files <- function(files){ -->
+<!--   files <- files[grep(pattern = "-C[0-9]-", x = files)] -->
+<!--   read <- lapply(files, function(x){ -->
+<!--     a <- read.table(x, header = T, sep = "\t", stringsAsFactors = F) -->
+<!--     n <- gsub(pattern = ".*/|-p.*",replacement = "",  x = x) -->
+<!--     n <- gsub(pattern = "14", replacement = "15", x = n) -->
+<!--     n <- gsub(pattern = "7", replacement = "8", x = n) -->
+<!--     n <- gsub(pattern = "-", replacement = "_", x = n) -->
+<!--     colnames(a)[2] <- n -->
+<!--     return(a) -->
+<!--   }) -->
+
+<!--   df <- Reduce(function(x, y) merge(x, y), read) -->
+<!--   rownames(df) <- df[,1] -->
+<!--   df <- df[,-1] -->
+<!--   return(df) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ## Reead data -->
+<!-- ```{r} -->
+<!-- all <- read_files(allRNA) -->
+<!-- mm <- read_files(mmRNA) -->
+<!-- pm <- read_files(pmRNA) -->
+<!-- ``` -->
+
+
+# Filtering counts
+
+## Function
+```{r}
+counts_filter <- function(counts, nReads = 5, nSamplesPercent = 0.4) {
+  counts2 <- counts[apply(counts, 1, FUN = function(x) {
+    sum(x >= nReads) >= floor(length(x) * 0.4)
+  }), ]
+  return(counts2)
+}
+```
+
+## Filter data
+```{r}
+counts <- lapply(data, counts_filter)
+
+meta <- data.frame(Samples = colnames(counts[[1]]))
+meta$Group <- gsub(pattern = "_.*", replacement = "", x = meta$Samples)
+rownames(meta) <- meta$Samples
+```
+
+
+# Differeitial analysis using `limma`
+## limma fit
+```{r}
+design <- model.matrix(~ 0 + Group, data = meta)
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+dea_analysis <- function(counts, design) {
+  dds <- calcNormFactors(DGEList(counts = counts))
+  v <- voom(dds, design = design)
+
+  contrast.matrix <- makeContrasts(PND15 - PND8, levels = design)
+  fit <- lmFit(v)
+
+  fit2 <- contrasts.fit(fit, contrast.matrix)
+  fit2 <- eBayes(fit2)
+  tb <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+  tb <- data.frame(ID = rownames(tb), tb)
+  return(tb)
+}
+
+
+dea_res <- lapply(counts, function(x) try(dea_analysis(counts = x, design = design)))
+```
+
+# Counts data and pData
+
+```{r}
+dge <- lapply(counts, function(x) {
+  try(
+    cpm(
+      calcNormFactors(
+        DGEList(counts = x, group = meta$Group),
+        method = "TMM"
+      ),
+      log = T
+    )
+  )
+})
+
+dge <- dge[-2]
+
+data_s <- lapply(dge, function(x) list(cpm = x, pData = meta))
+
+save(data_s,
+  file = "./output/data_pData.RData", compress = T,
+  compression_level = 3
+)
+```
+
+
+# Results
+```{r}
+writexl::write_xlsx(x = dea_res[-2], path = "output/dea_short_RNA.xlsx", col_names = T, format_headers = T)
+```
+
+# Heatmaps {.tabset .tabset-pills}
+
+```{r, results='asis'}
+for (i in 1:length(data_s)) {
+  n <- names(data_s)[i]
+
+  cat("##", n, "\n\n\n")
+
+  mat <- data_s[[i]][[1]]
+  pData <- data_s[[i]][[2]]
+  dea <- dea_res[[n]]
+  if (!is.null(nrow(dea))) {
+    d <- dea[order(dea$adj.P.Val), ]
+    ge <- as.character(d$ID[1:30])
+    ge <- ge[!is.na(ge)]
+    pheatmap::pheatmap(
+      mat = mat[ge, ], color = viridis::viridis(100),
+      scale = "row", border_color = NA,
+      annotation_col = pData[, 2, drop = F],
+      annotation_row = dea[, c(2, 3, 6)],
+      main = n
+    )
+  }
+  cat("\n\n\n")
+}
+```
+
+# MA plots  {.tabset .tabset-pills}
+
+```{r, echo=FALSE,include = FALSE}
+# dependencies attaching...
+ggplot()
+```
+
+```{r, results='asis'}
+for (i in 1:length(dea_res)) {
+  n <- names(dea_res)[i]
+  dea <- dea_res[[n]]
+  if (!is.null(nrow(dea))) {
+    cat("##", n, "\n\n\n")
+    
+    res <- dea
+    res$threshold <- as.factor(res$adj.P.Val < 0.05)
+
+    p <- ggplot(data = res, aes(x = AveExpr, y = logFC, colour = threshold)) +
+      geom_point(alpha = 0.7, size = 1.8) +
+      geom_hline(aes(yintercept = 0), colour = "blue", size = 1) +
+      ylim(c(min(res$logFC), max(res$logFC))) +
+      xlab("Mean expression") +
+      ylab("Log2 Fold Change") +
+      ggtitle(n) +
+      theme(plot.title = element_text(face = "bold", size = 20, hjust = 0.5)) +
+      theme(
+        axis.title.x = element_text(face = "bold", size = 15),
+        axis.text.x = element_text(face = "bold", size = 12)
+      ) +
+      theme(
+        axis.title.y = element_text(face = "bold", size = 15),
+        axis.text.y = element_text(face = "bold", size = 12)
+      ) +
+      scale_colour_discrete(name = "p.adjusted < 0.05") +
+      theme(legend.title = element_text(face = "bold", size = 15)) +
+      theme(legend.text = element_text(size = 14))
+    plot(p)
+    cat("\n\n\n")
+  }
+}
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

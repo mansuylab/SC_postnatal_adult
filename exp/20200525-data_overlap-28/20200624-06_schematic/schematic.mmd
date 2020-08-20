@@ -1,0 +1,149 @@
+graph LR
+
+subgraph Data
+AS[ATAC-Seq]-->om(overlapMatrix)
+RS[RNA-Seq]-->om
+CS[ChIP-Seq]-->om
+WS[WGBS]-->om
+end
+
+style om fill:#6FC3A1,stroke:black
+  
+  subgraph Level 1
+om-->distal[Distal<br>>2.5kb TSS]
+om-->pa[Proximal active<br><2.5kb TSS of active genes]
+om-->pia[Proximal inactive<br><2.5kb TSS of inactive genes]
+end
+
+subgraph Level 2
+distal-->au2[Accessibility up]
+distal-->ad2[Accessibility down]
+pa-->au[Accessibility up]
+pa-->ad[Accessibility down]
+pia-->au1[Accessibility up]
+pia-->ad1[Accessibility down]
+end
+
+
+subgraph Split RNAe
+e1-->r1[promoter]
+e1-->r2[intergenic]
+e1-->r3[intronic]
+end
+
+subgraph RNAe
+au2-->e1[RNAe]
+e1-->t[true]
+e1-->nd1[not-detected]
+end
+
+
+subgraph Split
+au2-->s1[annotation]
+end
+
+
+style distal fill:MistyRose,stroke:black
+style pa fill:MistyRose,stroke:black
+style pia fill:MistyRose,stroke:black
+
+subgraph Level 3
+au2-->ra4[RNA expression up]
+ad2-->rd4[RNA expression Down]
+au-->ra[RNA expression up]
+au-->rd[RNA expression Down]
+ad-->ra1[RNA expression up]
+ad-->rd1[RNA expression Down]
+au1-->ra2[RNA expression up]
+au1-->rd2[RNA expression Down]
+ad1-->ra3[RNA expression up]
+ad1-->rd3[RNA expression Down]
+end
+
+style au fill:PaleTurquoise,stroke:black
+style ad fill:PaleTurquoise,stroke:black
+style au1 fill:PaleTurquoise,stroke:black
+style ad1 fill:PaleTurquoise,stroke:black
+style au2 fill:PaleTurquoise,stroke:black
+style ad2 fill:PaleTurquoise,stroke:black
+
+style ra fill:HoneyDew,stroke:black
+style rd fill:HoneyDew,stroke:black
+style ra1 fill:HoneyDew,stroke:black
+style rd1 fill:HoneyDew,stroke:black
+style ra2 fill:HoneyDew,stroke:black
+style rd2 fill:HoneyDew,stroke:black
+style ra3 fill:HoneyDew,stroke:black
+style rd3 fill:HoneyDew,stroke:black
+style ra4 fill:HoneyDew,stroke:black
+style rd4 fill:HoneyDew,stroke:black
+
+subgraph Level 4
+ra-->c1[H3K4me3]
+rd-->c2[H3K4me3]
+ra1-->c3[H3K4me3]
+rd1-->c4[H3K4me3]
+ra2-->c5[H3K4me3]
+rd2-->c6[H3K4me3]
+ra3-->c7[H3K4me3]
+rd3-->c8[H3K4me3]
+ra4-->c9[H3K4me3]
+rd4-->c10[H3K4me3]
+
+
+c1-->ac1[H3K27ac]
+c2-->ac2[H3K27ac]
+c3-->ac3[H3K27ac]
+c4-->ac4[H3K27ac]
+c5-->ac5[H3K27ac]
+c6-->ac6[H3K27ac]
+c7-->ac7[H3K27ac]
+c8-->ac8[H3K27ac]
+c9-->ac9[H3K27ac]
+c10-->ac10[H3K27ac]
+
+ac1-->acm1[H3K27me3]
+ac2-->acm2[H3K27me3]
+ac3-->acm3[H3K27me3]
+ac4-->acm4[H3K27me3]
+ac5-->acm5[H3K27me3]
+ac6-->acm6[H3K27me3]
+ac7-->acm7[H3K27me3]
+ac8-->acm8[H3K27me3]
+ac9-->acm9[H3K27me3]
+ac10-->acm10[H3K27me3]
+end
+
+style c1 fill:PeachPuff,stroke:black
+style c2 fill:PeachPuff,stroke:black
+style c3 fill:PeachPuff,stroke:black
+style c4 fill:PeachPuff,stroke:black
+style c5 fill:PeachPuff,stroke:black
+style c6 fill:PeachPuff,stroke:black
+style c7 fill:PeachPuff,stroke:black
+style c8 fill:PeachPuff,stroke:black
+style c9 fill:PeachPuff,stroke:black
+style c10 fill:PeachPuff,stroke:black
+
+
+style ac1 fill:PeachPuff,stroke:black
+style ac2 fill:PeachPuff,stroke:black
+style ac3 fill:PeachPuff,stroke:black
+style ac4 fill:PeachPuff,stroke:black
+style ac5 fill:PeachPuff,stroke:black
+style ac6 fill:PeachPuff,stroke:black
+style ac7 fill:PeachPuff,stroke:black
+style ac8 fill:PeachPuff,stroke:black
+style ac9 fill:PeachPuff,stroke:black
+style ac10 fill:PeachPuff,stroke:black
+
+style acm1 fill:PeachPuff,stroke:black
+style acm2 fill:PeachPuff,stroke:black
+style acm3 fill:PeachPuff,stroke:black
+style acm4 fill:PeachPuff,stroke:black
+style acm5 fill:PeachPuff,stroke:black
+style acm6 fill:PeachPuff,stroke:black
+style acm7 fill:PeachPuff,stroke:black
+style acm8 fill:PeachPuff,stroke:black
+style acm9 fill:PeachPuff,stroke:black
+style acm10 fill:PeachPuff,stroke:black

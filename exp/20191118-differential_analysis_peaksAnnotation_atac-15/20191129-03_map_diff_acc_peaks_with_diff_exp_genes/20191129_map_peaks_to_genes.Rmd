@@ -38,40 +38,43 @@ load("./input/atac_diff_chromatin_accessibility.RData")
 load("./input/limma_SC_Controls.RData")
 
 dea <- dea.limma$`PND15 vs Adult`
-anno <- data.frame(data@metadata$annotation@anno, stringsAsFactors = F)
-dar <- data.frame(rowData(data), stringsAsFactors = F)[, -c(2:6)]
-dar <- merge(anno, dar, all.y = TRUE)
+dar <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
 ```
 
 
 # Map with Genes
 ```{r}
 dea.map <- dea[abs(dea$logFC) >= 1 & dea$adj.P.Val <= 0.05, ]
-colnames(dea.map)[2:ncol(dea.map)] <- paste("DEA", colnames(dea.map)[2:ncol(dea.map)], sep = "_")
+colnames(dea.map)[2:ncol(dea.map)] <- paste("DEA", 
+                                            colnames(dea.map)[2:ncol(dea.map)], 
+                                            sep = "_")
 
-dar.map <- dar[abs(dar$logFC) >= 1 & dar$qvalue <= 0.05, ]
+dar.map <- dar[abs(dar$`diffAccessibility-logFC`) >= 1 &
+                 dar$`diffAccessibility-qvalue` <= 0.05, ]
 
-tab <- merge(dar.map, dea.map, by.x = "SYMBOL", by.y = "Genes")
-tab.promoter <- tab[tab$annotation == "Promoter", ]
+tab <- merge(dar.map, dea.map, by.x = "Peak-SYMBOL", by.y = "Genes")
+tab.promoter <- tab[tab$`Peak-annotation` == "Promoter", ]
 ```
 
 # Save table
 ```{r}
-writexl::write_xlsx(tab, "./output/dea_genes_mapped_to_diff_acc.xlsx", col_names = T, format_headers = T)
+writexl::write_xlsx(tab, "./output/dea_genes_mapped_to_diff_acc.xlsx", 
+                    col_names = T, format_headers = T)
 ```
 
 # Plot for promoters
 ```{r, fig.align='center', fig.height=7, fig.width=8, warning=FALSE, message=FALSE}
 plot_ly(
-  data = tab.promoter, x = ~DEA_logFC, y = ~logFC,
+  data = tab.promoter, x = tab.promoter$DEA_logFC, 
+  y = tab.promoter$`diffAccessibility-logFC`,
   marker = list(size = 5, color = "blue"),
   text = ~ paste(
-    "Gene: ", SYMBOL,
-    "<br>Name: ", GENENAME,
-    "<br>DA logFC: ", logFC,
-    "<br>DA FDR: ", qvalue,
-    "<br>DE logFC: ", DEA_logFC,
-    "<br>DE FDR: ", DEA_adj.P.Val
+    "Gene: ", tab.promoter$`Peak-SYMBOL`,
+    "<br>Name: ", tab.promoter$`Peak-GENENAME`,
+    "<br>DA logFC: ", tab.promoter$`Peak-logFC`,
+    "<br>DA FDR: ", tab.promoter$qvalue,
+    "<br>DE logFC: ", tab.promoter$DEA_logFC,
+    "<br>DE FDR: ", tab.promoter$DEA_adj.P.Val
   ),
   hoverinfo = "text"
 ) %>%

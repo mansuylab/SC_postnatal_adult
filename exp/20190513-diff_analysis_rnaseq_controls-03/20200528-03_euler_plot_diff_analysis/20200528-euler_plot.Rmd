@@ -1,0 +1,127 @@
+---
+title: "ATAC-Seq/ RNA-Seq (PND15 vs Adults): Diff accessible peaks and diff exp genes"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+# Library
+
+```{r 20200528-euler-plot-1, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggforce)
+library(venneuler)
+library(ComplexHeatmap)
+library(RColorBrewer)
+```
+
+# Differential analysis results
+```{r 20200528-euler-plot-2}
+load("input/limma_SC_Controls.RData")
+```
+
+
+# Data for plotting
+```{r 20200528-euler-plot-3}
+# all genes
+universal <- unique(c(dea.limma$`PND8 vs PND15`$Genes, dea.limma$`PND15 vs Adult`$Genes))
+
+# Differentially expressed genes
+sets <- list(
+  "PND8 vs PND15" = dea.limma$`PND8 vs PND15`$Genes[abs(dea.limma$`PND8 vs PND15`$logFC) >= 1 &
+    dea.limma$`PND8 vs PND15`$adj.P.Val <= 0.05],
+  "PND15 vs Adult" = dea.limma$`PND15 vs Adult`$Genes[abs(dea.limma$`PND15 vs Adult`$logFC) >= 1 &
+    dea.limma$`PND15 vs Adult`$adj.P.Val <= 0.05]
+)
+
+mat <- list_to_matrix(sets)
+
+# VennEuler
+y <- venneuler(mat)
+dat <- data.frame(y$centers, diameters = y$diameters, Groups = y$labels, stringsAsFactors = FALSE)
+dat$r <- dat$diameters / 2
+dat <- rbind(dat, NA)
+rownames(dat)[nrow(dat)] <- "Intersection"
+counts <- colSums(mat)
+both <- nrow(mat[apply(mat, 1, function(row) all(row != 0)), ])
+counts <- data.frame(c(counts - both, Intersection = both))
+dat$Counts <- counts[rownames(dat), ]
+
+dat$x[nrow(dat)] <- sum(dat$x[1:(nrow(dat) - 1)]) / (nrow(dat) - 1)
+dat$y[nrow(dat)] <- sum(dat$y[1:(nrow(dat) - 1)]) / (nrow(dat) - 1)
+
+anno <- data.frame(x = dat$x - c(0, 0.09, 0.13), y = dat$y, label = dat$Counts)
+
+dat <- dat[c(2, 1), ]
+dat$Groups <- as.factor(dat$Groups)
+dat$Groups <- factor(dat$Groups, levels = rev(levels(dat$Groups)))
+```
+
+# Euler plot
+```{r 20200528-euler-plot-4, }
+# Colors for plotting
+col <- brewer.pal(n = 3, name = "Dark2")[1:2]
+cols <- c("PND8 vs PND15" = col[1], "PND15 vs Adult" = col[2])
+
+
+p <- ggplot(dat) +
+  geom_circle(aes(x0 = x, y0 = y, r = r, fill = Groups), alpha = .5) +
+  coord_fixed() +
+  geom_label(
+    data = anno, aes(x = x, y = y, label = label),
+    color = "blue",
+    size = 5, angle = 45, fontface = "bold"
+  ) +
+  scale_fill_manual(name = "Comparisons", values = cols) +
+  ggtitle("RNA-Seq differential analysis Euler plot") +
+  labs(subtitle = expression(paste("|log-fold-change|" >= 1, "& FDR" <= 0.05))) +
+  xlab("") +
+  ylab("") +
+  theme_void() +
+  theme(
+    plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
+    plot.subtitle = element_text(size = 16, hjust = 0.5, face = "bold", color = "blue"),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 14)
+  )
+
+p
+
+sapply(c("pdf", "png"), function(x) {
+  ggsave(
+    filename = paste("output/euler_plot", x, sep = "."), plot = p, device = x,
+    dpi = "retina", height = 8.5, width = 11, units = "in"
+  )
+})
+```
+
+# SessionInfo
+```{r 20200528-euler-plot-5}
+devtools::session_info() %>% details::details()
+```

@@ -1,0 +1,115 @@
+---
+title: "ATAC-Seq: RE HOMER overlap diff acc peaks and diff expr genes"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-02-18 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r 20200218-overlap-diff-RE-diff-acc-1, message=FALSE, warning=FALSE}
+library(GenomicRanges)
+library(SummarizedExperiment)
+library(parallel)
+library(dplyr)
+library(data.table)
+library(plgINS)
+```
+
+# Data
+
+```{r 20200218-overlap-diff-RE-diff-acc-2 }
+load("./input/atac_diff_chromatin_accessibility.RData")
+da <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+da_f <- da[da$`diffAccessibility-qvalue` <= 0.05 & abs(da$`diffAccessibility-logFC`) >= 1, ]
+colnames(da_f)[1:5] <- gsub(pattern = "Peak-", replacement = "", x = colnames(da_f)[1:5])
+da_f_GR <- GRanges(da_f)
+
+
+files <- list.files(path = "input/motif_homer", pattern = "knownResults.txt$", full.names = T, recursive = T)
+files <- files[grep(pattern = "E_C|E_L", x = files, invert = T)]
+
+names(files) <- gsub(pattern = ".*ive/|\\/.*", replacement = "", x = files)
+
+read_files <- mclapply(files, function(x) {
+  fread(
+    input = x, sep = "\t",
+    header = T, stringsAsFactors = F,
+    check.names = F, data.table = F,
+    nThread = 2
+  )
+},
+mc.preschedule = F, mc.cores = length(files)
+)
+
+read_files_GR <- mclapply(read_files, GRanges,
+  mc.preschedule = F,
+  mc.cores = length(read_files)
+)
+```
+
+# Function
+```{r 20200218-overlap-diff-RE-diff-acc-3}
+metaGR <- function(gr1, gr2, minOverlap = 1) {
+  hits <- findOverlaps(gr1, gr2, minoverlap = minOverlap)
+  idx1 <- subjectHits(hits)
+  idx2 <- queryHits(hits)
+  r1 <- gr1[idx2]
+  values <- data.frame(gr2[idx1], check.names = F, stringsAsFactors = F)
+  colnames(values) <- c("GRanges", colnames(values)[2:ncol(values)])
+  mcols(r1) <- c(mcols(r1), values)
+  return(r1)
+}
+```
+
+# Overlap
+```{r 20200218-overlap-diff-RE-diff-acc-4}
+overlap <- mclapply(read_files_GR, function(x) {
+  a <- data.frame(metaGR(
+    gr1 = x,
+    gr2 = da_f_GR,
+    minOverlap = 5
+  ), stringsAsFactors = F, check.names = F)
+
+  colnames(a)[1:5] <- paste0("RE-", colnames(a)[1:5])
+  colnames(a) <- gsub(pattern = "\\.", replacement = "-", x = colnames(a))
+  colnames(a)[41:45] <- paste0("Peak-", c("seqnames", "start", "end", "width", "strand"))
+  colnames(a) <- gsub(pattern = "X-", replacement = "No", x = colnames(a))
+  return(a)
+},
+mc.preschedule = F, mc.cores = length(read_files_GR)
+)
+```
+
+# Save results
+```{r 20200218-overlap-diff-RE-diff-acc-5}
+for (i in 1:length(overlap)) {
+  n <- paste0("output/", names(overlap)[i], ".xlsx")
+  tmp <- overlap[[i]]
+  tmp <- tmp[,-c(24:27)]
+  tmp <- tmp[!duplicated(tmp),]
+  writexl::write_xlsx(x = tmp, path = n, col_names = T, format_headers = T)
+}
+```
+
+# SessionInfo
+```{r 20200218-overlap-diff-RE-diff-acc-6 }
+devtools::session_info()
+```

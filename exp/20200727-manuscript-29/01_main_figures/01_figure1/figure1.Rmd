@@ -1,0 +1,447 @@
+---
+title: "Figure1"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-07-27 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+# Library
+```{r overlap-matrix-rGREAT-1, warning = F, message = F}
+library(tidyverse)
+library(report)
+library(ggpubr)
+library(patchwork)
+library(viridis)
+library(ggfortify)
+library(pheatmap)
+library(ComplexHeatmap)
+library(circlize)
+library(readxl)
+library(plyr)
+library(reshape2)
+library(extrafont)
+library(ggthemes)
+```
+
+
+# Colors
+```{r}
+cols <- magma(n = 10)[c(3, 6, 9)]
+cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
+```
+
+# Colorbar
+```{r}
+myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2, 4, 6)])
+```
+
+# Theme
+```{r}
+th <- theme(
+  legend.background = element_rect(),
+
+  # title, subtitle, and caption
+  plot.title = element_text(
+    angle = 0,
+    size = 12,
+    face = "bold",
+    vjust = 1
+  ),
+  plot.subtitle = element_text(
+    angle = 0,
+    size = 10,
+    face = "plain",
+    vjust = 1
+  ),
+  plot.caption = element_text(
+    angle = 0,
+    size = 12,
+    face = "plain",
+    vjust = 1
+  ),
+
+  # axis text
+  axis.text.x = element_text(
+    angle = 0,
+    size = 6,
+    # vjust = 0.5,
+    # hjust = 0.5
+  ),
+  axis.text.y = element_text(
+    angle = 0,
+    size = 6,
+    # vjust = 0.5,
+    # hjust = 0.5
+  ),
+  axis.title = element_text(
+    size = 8,
+    face = "plain",
+  ),
+
+  # legend
+  legend.position = "top",
+  legend.key = element_blank(),
+  # legend.key.size = unit(0, "cm"),
+  legend.text = element_text(
+    size = 8,
+    margin = margin(r = 0, t = 0, b = 0, l = 0, unit = "pt"),
+    vjust = 0, hjust = 0
+  ),
+  legend.title = element_text(size = 8, face = "bold"),
+  legend.justification = "bottom",
+  legend.margin = margin(c(0, 0, 0, 0)),
+  legend.box.margin = margin(0, 0, -7, 0),
+  legend.key.height = unit(0, "cm"),
+  legend.key.width = unit(0, "cm"),
+  legend.spacing = unit(1, "mm"),
+  plot.margin = grid::unit(c(0, 0, 0, 0), "mm"),
+  strip.background = element_rect(fill = NA, colour = "black"),
+  strip.text.x = element_text(face = "bold", size = 8)
+)
+```
+
+
+# Data
+```{r}
+load("input/data_pData.RData")
+load("input/kmeans_sort_heatmaps_all_dge.RData")
+
+# changes <- c("5-a", "3-b", "1-c", "2-d", "4-e")
+```
+
+# Figures
+
+## A
+```{r, fig.align='center', fig.height=6, fig.width=8}
+data$pData$Group <- fct_rev(as.factor(data$pData$Group))
+
+p_data <- data$vstSV
+pCol <- data$pData
+
+dist_data <- dist(t(p_data))
+
+pca <- prcomp(x = t(p_data))
+
+a <- autoplot(pca,
+  data = pCol, colour = "Group",
+  frame = FALSE, frame.type = "norm", size = 5, alpha = 0.5
+) +
+  scale_color_manual(values = c(cols)) +
+  ggtitle("") +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(legend.title = element_blank()) +
+  guides(color = guide_legend(override.aes = list(size = 3.5, alpha = 1), label.hjust = -1, label.vjust = 0.3))
+
+ag <- egg::set_panel_size(p = a, width = unit(6.67, "cm"), height = unit(6.62, "cm"))
+
+ggsave(filename = "output/a.pdf", plot = ag, width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+## B
+
+```{r}
+annCol <- data$pData[, 1, drop = FALSE]
+
+mat <- mat.sort.clust[[4]]
+kmeans.new <- kmeans[[4]]$cluster
+kmeans.new <- kmeans.new[rownames(mat)]
+kmeans.new <- c(
+  kmeans.new[kmeans.new == 5],
+  kmeans.new[kmeans.new == 3],
+  kmeans.new[kmeans.new == 1],
+  kmeans.new[kmeans.new == 2],
+  kmeans.new[kmeans.new == 4]
+)
+
+kmeans.new[kmeans.new == 5] <- "a"
+kmeans.new[kmeans.new == 3] <- "b"
+kmeans.new[kmeans.new == 1] <- "c"
+kmeans.new[kmeans.new == 2] <- "d"
+kmeans.new[kmeans.new == 4] <- "e"
+
+kmeans.new[kmeans.new == "a"] <- "cluster 1"
+kmeans.new[kmeans.new == "b"] <- "cluster 2"
+kmeans.new[kmeans.new == "c"] <- "cluster 3"
+kmeans.new[kmeans.new == "d"] <- "cluster 4"
+kmeans.new[kmeans.new == "e"] <- "cluster 5"
+
+kmeans_cols <- RColorBrewer::brewer.pal(n = 6, name = "Dark2")[-5]
+# names(kmeans_cols) <- letters[1:5]
+names(kmeans_cols) <- paste("cluster", 1:5)
+
+ht_opt$message <- FALSE
+
+mat <- mat[as.character(names(kmeans.new)), ]
+
+col_fun <- colorRamp2(c(-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5), viridis(n = 11))
+
+set.seed(100)
+
+ha <- HeatmapAnnotation(
+  Group = data$pData$Group,
+  col = list(Group = cols),
+  simple_anno_size = unit(3, "mm"),
+  show_annotation_name = TRUE,
+  annotation_name_side = "right",
+  annotation_name_rot = 0,
+  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+  annotation_legend_param = list(
+    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+  )
+)
+
+ra <- HeatmapAnnotation(
+  Cluster = kmeans.new,
+  which = "row",
+  col = list(Cluster = kmeans_cols),
+  simple_anno_size = unit(3, "mm"),
+  show_annotation_name = TRUE,
+  annotation_name_side = "bottom",
+  annotation_name_rot = 0,
+  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+  annotation_legend_param = list(
+    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+  )
+)
+
+b <- ha %v% Heatmap(
+  matrix = mat,
+  clustering_method_columns = "ward.D2",
+  col = col_fun,
+  cluster_rows = F,
+  show_row_names = F,
+  show_column_names = F,
+  name = "Gene expression",
+  row_split = kmeans.new,
+  column_split = factor(data$pData$Group, levels = rev(c("PND15", "PND8", "Adult"))),
+  cluster_column_slices = TRUE,
+  row_title = NULL,
+  column_title = NULL,
+  column_dend_height = unit(0.5, "cm"),
+  use_raster = FALSE,
+  show_parent_dend_line = FALSE,
+  top_annotation = ha,
+  left_annotation = ra,
+  heatmap_legend_param = list(
+    at = c(-5, -2.5, 0, 2.5, 5),
+    title = expression(bold(~ Log[2] ~ "fold-change")),
+    legend_height = unit(3.5, "cm"),
+    title_position = "leftcenter-rot",
+    title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+  ),
+  height = unit(x = 7.66, units = "cm"), width = unit(x = 6.32, units = "cm")
+)
+
+
+# png(filename = "output/b.png", width = 7, height = 7, units = "in", res = 320)
+draw(
+  object = b,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE
+)
+
+bg <- grid.grabExpr(
+  draw(
+    object = b,
+    heatmap_legend_side = "right",
+    annotation_legend_side = "right",
+    merge_legends = TRUE
+  )
+)
+
+ggsave(plot = bg, filename = "output/b.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 2000)
+
+# dev.off()
+
+pdf(file = "output/b.pdf", width = 8.5, height = 11)
+draw(
+  object = b,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE,
+  align_annotation_legend = ""
+)
+
+dev.off()
+```
+
+
+## C
+
+```{r}
+go_files <- list.files(path = "input", pattern = "GO", full.names = T)
+names(go_files) <- gsub(pattern = "input/cluster|_GO.*", replacement = "", x = go_files)
+# names(go_files) <- c("c", "d", "b", "e", "a")
+names(go_files) <- c("cluster 3", "cluster 4", "cluster 2", "cluster 5", "cluster 1")
+
+go_clusters <- lapply(go_files, function(x) {
+  df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
+  df <- df[df$p.adjust <= 0.05 & df$Count >= 10 & df$Count <= 1000, ]
+  df <- df[order(df$p.adjust), ][1:10, ]
+  return(df[complete.cases(df), ])
+})
+
+go_df <- ldply(go_clusters, data.frame)
+colnames(go_df)[1] <- "Cluster"
+
+go_df$GeneRatio <- round(as.numeric(gsub(pattern = "/.*", replacement = "", x = go_df$GeneRatio)) /
+  as.numeric(gsub(pattern = "*./", replacement = "", x = go_df$GeneRatio)), digits = 2)
+
+kc <- data.frame(Cluster = names(kmeans_cols), cc = kmeans_cols)
+go_df <- merge(go_df, kc)
+go_df$cc <- as.character(go_df$cc)
+
+go_df <- go_df %>% map_df(rev)
+go_df <- data.frame(go_df)
+# go_df$cc <- as.character(go_df$cc)
+
+go_df$Description[9] <- "mitochondrion organisation"
+
+c <- ggplot(data = go_df, mapping = aes(
+  x = fct_inorder(Description),
+  y = -log10(p.adjust), color = Count
+)) +
+  geom_point(show.legend = T, size = 2, alpha = 0.6) +
+  coord_flip(expand = T) +
+  scale_colour_gradientn(colors = myPalette(n = nrow(go_df)), limits = c(25, 125), breaks = c(25, 75, 125)) +
+  xlab("") +
+  ylab(expression(-Log[10] ~ adjusted ~ italic(P))) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(axis.text.y = element_text(colour = go_df$cc)) +
+  guides(
+    size = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 1, size = 8),
+    colour = guide_colorbar(
+      title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 1, size = 8
+    )
+  ) +
+  labs(color = "Gene counts")
+
+cg <- egg::set_panel_size(p = c, width = unit(3.5, "cm"), height = unit(10.5, "cm"))
+
+ggsave(plot = cg, filename = "output/c.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+## D
+```{r}
+df1 <- data.frame(
+  Categories = "Maintenance & self-renewal genes",
+  Genes = c("Lhx1", "Etv5", "Id4", "Cxcr4", "Bcl6b", "Pou5f1", "Pax7", "Kit", "Lin28a", "Rarg"),
+  stringsAsFactors = F
+)
+
+df2 <- data.frame(
+  Categories = "Melanoma antigen genes",
+  Genes = c("Mageb4", "Mageb16", "Magea2", "Magea3", "Magea5", "Magea6", "Magea8", "Magea10"),
+  stringsAsFactors = F
+)
+
+df3 <- data.frame(
+  Categories = "Signalling factors",
+  Genes = c("Lifr", "Fgfr1", "Fgfr2", "Tgfb1", "Tgfb2", "Tgfb3"), stringsAsFactors = F
+)
+
+df <- rbind(df1, df2, df3)
+rownames(df) <- df$Genes
+
+t <- data$cpm[rownames(data$cpm) %in% df$Genes, ]
+tmp <- data.frame(data$pData, t(t))
+tmp <- tmp[order(tmp$Group, decreasing = T), ]
+
+mat <- data.matrix(t(tmp[, 3:ncol(tmp)]))
+mat[is.infinite(mat)] <- 0
+mat <- data.frame(mat)
+
+median.df <- data.frame(matrix(nrow = nrow(mat), ncol = 3))
+rownames(median.df) <- rownames(mat)
+colnames(median.df) <- c("PND8", "PND15", "Adult")
+
+median.df$PND8 <- apply(mat[, grep(pattern = "PND8", x = colnames(mat))], 1, median)
+median.df$PND15 <- apply(mat[, grep(pattern = "PND15", x = colnames(mat))], 1, median)
+median.df$Adult <- apply(mat[, grep(pattern = "Adult", x = colnames(mat))], 1, median)
+median.df$Genes <- rownames(median.df)
+
+median.df$Categories <- df[rownames(median.df), "Categories"]
+
+median.melt <- melt(data = median.df, id.vars = c("Categories", "Genes"))
+
+xs <- split(median.melt, f = median.melt$Categories)
+# xs <- xs[c(1,3,2)]
+
+
+p1 <- ggplot(data = xs$`Maintenance & self-renewal genes`, aes(x = variable, y = value, group = Genes)) +
+  geom_line(aes(color = Genes), size = 1, alpha = 0.7) +
+  geom_point(aes(color = Genes), size = 2, alpha = 0.7) +
+  scale_color_brewer(palette = "Paired") +
+  labs(x = "", y = "") +
+  scale_y_continuous(limits = c(-3.5, 8.5), breaks = c(-3, 0, 3, 6, 9)) +
+  scale_x_discrete(expand = waiver()) +
+  facet_wrap(~Categories, ncol = 1) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    legend.position = "right",
+    legend.justification = "top"
+  )
+
+p2 <- p1 %+% xs$`Signalling factors` + theme(legend.title = element_blank())
+p3 <- p1 %+% xs$`Melanoma antigen genes` + theme(legend.title = element_blank())
+
+
+p <- ggarrange(p1, p2, p3, ncol = 1, align = "hv")
+
+d <- annotate_figure(p, left = text_grob(expression("Median gene expression (" ~ log[2] ~ "CPM )"),
+  color = "black",
+  rot = 90,
+  size = 8,
+  face = "plain",
+  just = "top"
+))
+dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(8.31, "cm"), height = unit(13.6, "cm")))
+
+ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+
+
+
+
+
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```

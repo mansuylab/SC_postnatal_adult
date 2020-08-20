@@ -1,0 +1,627 @@
+---
+title: "ATAC-Seq: RE HOMER"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-02-13 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r 20200213-homer-RE-1, message=FALSE, warning=FALSE}
+library(marge)
+library(GenomicRanges)
+library(SummarizedExperiment)
+library(parallel)
+library(dplyr)
+library(report)
+library(foreach)
+library(doParallel)
+library(details)
+source("input/findMotif.R")
+```
+
+# Data
+
+```{r 20200213-homer-RE-2 }
+load("./input/repeat_elements_atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+res <- res[res$class_id == "LTR" | res$class_id == "LINE" | res$class_id == "SINE", ]
+res$class_family <- paste(res$class_id, res$family_id, sep = "_")
+res$genomeAnno_class <- paste(res$class_n, res$class_id, sep = "_")
+res$genomeAnno_class_family <- paste(res$class_n, res$class_family, sep = "_")
+colnames(res) <- gsub(pattern = "\\.", replacement = "-", x = colnames(res))
+
+res_f <- res[abs(res$`diffEnrichment-logFC`) >= 1 & res$`diffEnrichment-qvalue` <= 0.05, ]
+```
+
+# HOMER
+
+## Function
+
+```{r 20200213-homer-RE-3 }
+perform_homer <- function(df, FC, bg, out, fName,
+                          DB = NULL, anno = NULL,
+                          split = FALSE, sp_col = NULL,
+                          split_bg = FALSE) {
+  d <- NULL
+
+  if (FC == "pos") {
+    d <- df[df$`diffEnrichment-logFC` > 0, ]
+  } else if (FC == "neg") {
+    d <- df[df$`diffEnrichment-logFC` < 0, ]
+  } else {
+    d <- df
+  }
+
+  sp_d <- NULL
+  bg_n <- NULL
+
+  if (split) {
+    d[, sp_col] <- gsub(
+      pattern = " ", replacement = "_",
+      x = d[, sp_col]
+    )
+
+    d[, sp_col] <- gsub(
+      pattern = "<=", replacement = "",
+      x = d[, sp_col]
+    )
+
+    sp_d <- split(d, d[, sp_col])
+    sp_d <- sp_d[names(sp_d) != "no"]
+
+    names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+
+    bg[, sp_col] <- gsub(
+      pattern = " ", replacement = "_",
+      x = bg[, sp_col]
+    )
+
+    bg[, sp_col] <- gsub(
+      pattern = "<=", replacement = "",
+      x = bg[, sp_col]
+    )
+
+    bg_n <- split(bg, bg[, sp_col])
+    bg_n <- bg_n[names(bg_n) != "no"]
+
+    names(bg_n) <- paste(fName, names(bg_n), sep = "-")
+  } else {
+    sp_d <- list(d)
+    names(sp_d) <- paste(fName, sep = "/")
+
+    bg_n <- list(bg)
+    names(bg_n) <- paste(fName, sep = "/")
+  }
+
+
+
+  results_dir <- out
+
+
+  # nCl <- ifelse(length(sp_d) < 16, length(sp_d), 16)
+
+  # cl <- makeCluster(nCl)
+  # registerDoParallel(cl)
+
+  # foreach(i = 1:length(sp_d)) %dopar% {
+
+  for (i in 1:length(sp_d)) {
+
+    # library(marge)
+    # library(GenomicRanges)
+    # library(dplyr)
+    # source("input/findMotif.R")
+
+    x <- sp_d[[i]]
+    n <- names(sp_d)[i]
+    o <- paste0(results_dir, fName, "/", names(sp_d)[i])
+
+    if (split & !split_bg) {
+      o <- paste(o, "bg_all", sep = "_")
+    }
+
+    cat(o)
+
+    if (!dir.exists(o)) {
+      findMotifs(
+        x = x[, c(1:3, 11, 4:10, 12:ncol(x))],
+        path = o,
+        genome = "mm10",
+        motif_length = c(8, 10, 12),
+        scan_size = 100,
+        optimize_count = 8,
+        background = bg_n[[n]],
+        local_background = FALSE,
+        only_known = FALSE, only_denovo = FALSE,
+        fdr_num = 5,
+        cores = 10, cache = 1000,
+        overwrite = TRUE, keep_minimal = FALSE,
+        motif_file = DB
+      )
+
+      if (file.exists(paste(o, "knownResults.txt", sep = "/"))) {
+        find_motifs_instances(
+          x = x[, c(1:3, 11, 4:10, 12:ncol(x))],
+          path = paste(o, "motifInstances.txt", sep = "/"),
+          genome = "mm10",
+          motif_file = DB
+        )
+
+        # colnames(x)[1:13] <- paste("RE", colnames(x)[1:13], sep = "-")
+
+        # motifFind <- read.delim(
+        #   file = paste(o, "motifInstances.txt", sep = "/"),
+        #   header = T, sep = "\t",
+        #   stringsAsFactors = F, check.names = F
+        # )
+
+        motifFind <- data.table::fread(
+          file = paste(o, "motifInstances.txt", sep = "/"),
+          header = T, sep = "\t",
+          stringsAsFactors = F, check.names = F, data.table = F, nThread = 16
+        )
+
+        colnames(motifFind) <- gsub(pattern = " ", replacement = "", x = colnames(motifFind))
+        colnames(motifFind)[2:ncol(motifFind)] <- paste("MotifFind",
+          colnames(motifFind)[2:ncol(motifFind)],
+          sep = "-"
+        )
+
+        motifAnno <- read.delim(
+          file = anno,
+          header = T, sep = "\t",
+          stringsAsFactors = F, check.names = F
+        )
+
+        resultsFile <- read.delim(
+          file = paste(o, "knownResults.txt", sep = "/"),
+          header = T, sep = "\t",
+          stringsAsFactors = F, check.names = F
+        )
+
+        tab1 <- inner_join(motifFind, x, by = c("PositionID" = "transcript_id"))
+        tab2 <- merge(x = motifAnno, resultsFile, by.x = "Model", by.y = "Motif Name")
+
+        tab.m <- inner_join(
+          tab2, tab1,
+          by = c("Model" = "MotifFind-MotifName")
+        )
+
+        tab.m <- tab.m[, c(1:18, 20:23, 19, 24:ncol(tab.m))]
+        tab.m_sig <- tab.m[tab.m$`q-value (Benjamini)` <= 0.05, ]
+        colnames(tab.m)[23] <- "RE-TranscriptID"
+
+        n <- paste(o, "knownResults.txt.gz", sep = "/")
+        n_sig <- paste(o, "knownResults.xlsx", sep = "/")
+        n_sig_gz <- paste(o, "knownResults_sig.txt.gz", sep = "/")
+
+        tab_sp <- split(x = tab.m_sig, f = tab.m_sig[, 1])
+
+        write.table(x = tab.m, file = gzfile(n), quote = F, sep = "\t", row.names = F)
+        write.table(x = tab.m_sig, file = gzfile(n_sig_gz), quote = F, sep = "\t", row.names = F)
+        try(writexl::write_xlsx(x = tab.m_sig, path = n_sig, col_names = T, format_headers = T))
+      }
+    }
+  }
+  # stopCluster(cl)
+}
+```
+
+## Background and motif file
+```{r 20200213-homer-RE-4 }
+bg <- res[substr(x = res$seqnames, start = 1, stop = 3) == "chr", ]
+df <- res_f[substr(x = res_f$seqnames, start = 1, stop = 3) == "chr", ]
+motifFile <- "input/HOCOMOCOv11_core_MOUSE_mono_homer_format_0.001.motif"
+annoMotif <- "input/MOUSE_mono_motifs_HOCOMOCO.tsv"
+```
+
+
+## Analysis
+```{r 20200213-homer-RE-5, message=FALSE, warning=FALSE}
+all <- perform_homer(
+  df = df,
+  FC = "all",
+  bg = bg,
+  fName = "PND15_Adult",
+  split = F,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif,
+  sp_col = NULL,
+  split_bg = F
+)
+
+pnd15 <- perform_homer(
+  df = df,
+  FC = "neg",
+  bg = bg,
+  fName = "Adult_Negative",
+  split = F,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif,
+  sp_col = NULL,
+  split_bg = F
+)
+
+adult <- perform_homer(
+  df = df,
+  FC = "pos",
+  bg = bg,
+  fName = "Adult_Positive",
+  split = F,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif,
+  sp_col = NULL,
+  split_bg = F
+)
+```
+
+## Split RE Family
+```{r 20200213-homer-RE-6, message=FALSE, warning=FALSE}
+all_sp_fam <- perform_homer(
+  df = df,
+  FC = "all",
+  bg = bg,
+  fName = "PND15_Adult",
+  split = T,
+  sp_col = "class_id",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_fam <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_id",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_fam <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_id",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+## Split RE sub family
+```{r 20200213-homer-RE-7, message=FALSE, warning=FALSE}
+all_sp_subfam <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_family",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subfam <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_family",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subfam <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_family",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
+## Split RE genome annotation
+```{r 20200213-homer-RE-8, message=FALSE, warning=FALSE}
+all_sp_anno <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_n",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_n",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_n",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+## Split RE genome annotation + family
+```{r 20200213-homer-RE-9, message=FALSE, warning=FALSE}
+all_sp_anno_fam <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno_fam <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno_fam <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+## Split RE genome annotation + sub family
+```{r 20200213-homer-RE-10, message=FALSE, warning=FALSE}
+all_sp_anno_subfam <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno_subfam <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno_subfam <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = TRUE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
+## Split RE Family (all background)
+```{r 20200213-homer-RE-11, message=FALSE, warning=FALSE}
+all_sp_fam_bg_all <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_id",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_fam_bg_all <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_id",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_fam_bg_all <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_id",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+## Split RE sub family (all background)
+```{r 20200213-homer-RE-12, message=FALSE, warning=FALSE}
+all_sp_subfam_bg_all <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_family",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subfam_bg_all <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_family",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subfam_bg_all <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_family",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
+## Split RE genome annotation (all background)
+```{r 20200213-homer-RE-13, message=FALSE, warning=FALSE}
+all_sp_anno_bg_all <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_n",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno_bg_all <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_n",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno_bg_all <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_n",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+## Split RE genome annotation + family (all background)
+```{r 20200213-homer-RE-14, message=FALSE, warning=FALSE}
+all_sp_anno_fam_bg_all <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno_fam_bg_all <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno_fam_bg_all <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+## Split RE genome annotation + sub family (all background)
+```{r 20200213-homer-RE-15, message=FALSE, warning=FALSE}
+all_sp_anno_subfam_bg_all <- perform_homer(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno_subfam_bg_all <- perform_homer(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno_subfam_bg_all <- perform_homer(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = FALSE,
+  out = "output/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
+
+# References
+```{r re-rGREAT-16 }
+report::cite_packages(sessionInfo())
+```
+
+# SessionInfo
+```{r re-rGREAT-17 }
+devtools::session_info() %>%
+  details()
+```

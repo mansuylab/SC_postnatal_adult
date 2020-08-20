@@ -1,0 +1,371 @@
+---
+title: "Figure3"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-07-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+# Library
+```{r overlap-matrix-rGREAT-1, warning = F, message = F}
+library(tidyverse)
+library(report)
+library(ggpubr)
+library(patchwork)
+library(viridis)
+library(ggfortify)
+library(pheatmap)
+library(ComplexHeatmap)
+library(circlize)
+library(readxl)
+library(plyr)
+library(reshape2)
+library(extrafont)
+library(ggthemes)
+library(EnhancedVolcano)
+library(SummarizedExperiment)
+library(csaw)
+library(edgeR)
+library(seriation)
+library(ggsci)
+ht_opt$message <- FALSE
+```
+
+
+# Colors
+```{r}
+cols <- magma(n = 10)[c(3, 6, 9)]
+cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
+```
+
+
+# Colorbar
+```{r}
+myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2, 4, 6)])
+```
+
+
+# Theme
+```{r}
+th <- theme(
+  legend.background = element_rect(),
+
+  # title, subtitle, and caption
+  plot.title = element_text(
+    angle = 0,
+    size = 12,
+    face = "bold",
+    vjust = 1
+  ),
+  plot.subtitle = element_text(
+    angle = 0,
+    size = 10,
+    face = "plain",
+    vjust = 1
+  ),
+  plot.caption = element_text(
+    angle = 0,
+    size = 10,
+    face = "plain",
+    vjust = 1
+  ),
+
+  # axis text
+  axis.text.x = element_text(
+    angle = 0,
+    size = 6,
+    # vjust = 0.5
+  ),
+  axis.text.y = element_text(
+    angle = 0,
+    size = 6,
+    # vjust = 0.5
+  ),
+  axis.title = element_text(
+    size = 8,
+    face = "plain",
+  ),
+
+  # legend
+  legend.position = "top",
+  legend.key = element_blank(),
+  legend.key.size = unit(0, "cm"),
+  legend.text = element_text(
+    size = 8,
+    margin = margin(r = 0, t = 0, b = 0, l = 0, unit = "pt"),
+    vjust = 0.5, hjust = 0.5
+  ),
+  legend.title = element_text(size = 8, face = "bold", margin = margin(l = 0, unit = "pt")),
+  legend.justification = "center",
+  legend.margin = margin(c(0, 0, 0, 0)),
+  legend.box.margin = margin(0, 0, -7, 0),
+  legend.key.height = unit(0, "cm"),
+  legend.key.width = unit(0, "cm"),
+  legend.spacing = unit(1, "mm"),
+  plot.margin = grid::unit(c(1, 1, 1, 1), "mm"),
+  strip.background = element_rect(fill = NA, colour = "black"),
+  strip.text.x = element_text(face = "bold", size = 8)
+)
+```
+
+# Data
+```{r}
+tf_files <- list.files(path = "input", pattern = "ive_homer", full.names = T)
+names(tf_files) <- gsub(pattern = "input/|_homer.txt", replacement = "", x = tf_files)
+
+tf <- lapply(tf_files, function(x) {
+  a <- read.delim(file = x, header = T, check.names = F)
+  a <- a[a[, 5] <= 0.05, ]
+  return(a)
+})
+
+tf_df <- ldply(tf, data.frame)
+colnames(tf_df)[1] <- "Group"
+tf_df$Group <- gsub(pattern = "_", replacement = " ", x = tf_df$Group)
+
+tf_df$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_df$Motif.Name)))
+tf_df$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_df$Motif.Name)
+
+load("input/limma_SC_Controls.RData")
+dea <- dea.limma$`PND15 vs Adult`
+
+tf_dea <- merge(tf_df, dea)
+
+
+tf_files_s <- list.files(path = "input", pattern = "all_homer", full.names = T)
+names(tf_files_s) <- gsub(pattern = "input/|_bg_all_homer.txt", replacement = "", x = tf_files_s)
+names(tf_files_s) <- gsub(pattern = "intronic_exonic", replacement = "gene_body", x = names(tf_files_s))
+names(tf_files_s) <- gsub(pattern = "Proximal_1000_TSS", replacement = "tss_prox_1kbp", x = names(tf_files_s))
+
+tf_s <- lapply(tf_files_s, function(x) {
+  a <- read.delim(file = x, header = T, check.names = F)
+  a <- a[a[, 5] <= 0.05, ]
+  return(a)
+})
+
+tf_df_s <- ldply(tf_s, data.frame)
+colnames(tf_df_s)[1] <- "ID"
+tf_df_s$Group <- trimws(gsub(pattern = "_|-.*", replacement = " ", x = tf_df_s$ID))
+tf_df_s$SubGroup <- trimws(gsub(pattern = ".*-", replacement = " ", x = tf_df_s$ID))
+
+tf_df_s$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_df_s$Motif.Name)))
+tf_df_s$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_df_s$Motif.Name)
+
+tf_dea_s <- merge(tf_df_s, dea)
+tf_dea_s <- tf_dea_s %>% map_df(rev)
+tf_dea_s$Motif <- factor(tf_dea_s$Motif, levels = unique(tf_dea_s$Motif))
+```
+
+
+
+
+# Figures
+
+## A
+```{r, fig.align='center', fig.height=6, fig.width=8}
+tf_dea$Group[tf_dea$Group == "Adult Positive"] <- "More acc. in Adult"
+tf_dea$Group[tf_dea$Group == "Adult Negative"] <- "Less acc. in Adult"
+
+a <- ggplot(tf_dea, aes(x = Motif, y = Group)) +
+  geom_point(aes(size = -log10(adj.P.Val), color = logFC), alpha = 0.6) +
+  scale_colour_gradient2(low = "#BC3C29FF", mid = "grey", high = "#0072B5FF", limits = c(-5, 5), breaks = c(-5, 0, 5)) +
+  # scale_colour_gradientn(colors = c("#BC3C29FF","grey", "#0072B5FF"), guide=guide_colorbar(reverse=FALSE))+
+  xlab("") +
+  ylab("") +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90)
+  ) +
+  labs(color = expression(bold(~ Log[2] ~ fold - change)), size = expression(bold(-Log10 ~ adjusted ~ italic(P)))) +
+  guides(
+    size = guide_legend(title.position = "top", title.hjust = 0.5, title.vjust = 0.5, nrow = 1, size = 8),
+    colour = guide_colorbar(
+      nrow = 1,
+      title.position = "top", title.hjust = -2, title.vjust = 0.5,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 1, size = 8
+    )
+  )
+
+ag <- egg::set_panel_size(p = a, width = unit(17.25, "cm"), height = unit(2.5, "cm"))
+ggsave(plot = ag, filename = "output/a.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+## B
+
+```{r}
+tf_dea_s$Group[tf_dea_s$Group == "Adult Positive"] <- "More acc. in Adult"
+tf_dea_s$Group[tf_dea_s$Group == "Adult Negative"] <- "Less acc. in Adult"
+
+tf_dea_s$SubGroup[tf_dea_s$SubGroup == "gene_body"] <- "Gene body"
+tf_dea_s$SubGroup[tf_dea_s$SubGroup == "intergenic"] <- "Intergenic"
+tf_dea_s$SubGroup[tf_dea_s$SubGroup == "tss_prox_1kbp"] <- "TSS & proximal 1kbp"
+
+tf_dea_s$Group <- factor(x = tf_dea_s$Group, levels = rev(unique(tf_dea_s$Group)))
+
+
+b <- ggplot(tf_dea_s, aes(x = Motif, y = SubGroup)) +
+  geom_point(aes(size = -log10(adj.P.Val), color = logFC), alpha = 0.5) +
+  scale_colour_gradient2(low = "#BC3C29FF", mid = "grey", high = "#0072B5FF", limits = c(-5, 5), breaks = c(-5, 0, 5)) +
+  # scale_colour_gradientn(colors = c("#BC3C29FF","grey", "#0072B5FF"), guide=guide_colorbar(reverse=FALSE))+
+  xlab("") +
+  ylab("") +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  labs(color = expression(~ Log[2] ~ fold - change), size = expression(-Log10 ~ adjusted ~ italic(P))) +
+  facet_wrap(~Group, nrow = 1, scales = "free_y") +
+  coord_flip() +
+  guides(
+    size = guide_legend(title.position = "top", title.hjust = 0.5, title.vjust = 0.5, nrow = 1, size = 8),
+    colour = guide_colorbar(
+      nrow = 1,
+      title.position = "top", title.hjust = -1,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 0.5, size = 8
+    )
+  )
+
+bg <- egg::set_panel_size(p = b, width = unit(3.25, "cm"), height = unit(6.25, "cm"))
+ggsave(plot = bg, filename = "output/b.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+## D
+```{r}
+genes1 <- c("Gata1", "Psmd2", "Kit", "Chd2", "Frs2")
+genes2 <- c("Satb1", "Zeb1", "Safb", "Hdac4", "Eed", "Actn4")
+genes_df <- data.frame(
+  Group = c(rep("List1", length(genes1)), rep("List2", length(genes2))),
+  Genes = c(genes1, genes2), stringsAsFactors = F
+)
+genes_df$Genes <- factor(genes_df$Genes, levels = genes_df$Genes)
+dea_g <- merge(genes_df, dea)
+
+load("input/data_pData.RData")
+
+ge <- data$cpm[as.character(dea_g$Genes), ]
+
+ge <- data.frame(Genes = rownames(ge), ge)
+rownames(ge) <- as.character(ge$Genes)
+ge <- merge(genes_df, ge)
+
+rownames(ge) <- ge$Genes
+ge <- ge[, grep(pattern = "PND8", x = colnames(ge), invert = T)]
+
+mat <- ge[, 3:ncol(ge)]
+mat <- data.matrix(mat - rowMeans(mat[, grep(pattern = "PND15", x = colnames(mat), value = T)]))
+
+o <- seriate(max(mat) - mat)
+
+mat <- mat[get_order(o), ]
+
+ge <- ge[get_order(o), ]
+
+cd <- data$pData[colnames(mat), ]
+cd$Group <- factor(cd$Group, levels = rev(unique(cd$Group)))
+
+# cols <- magma(n = 10)[c(2, 5, 8)]
+# cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
+
+# col_fun <- colorRamp2(c(-2, 0, 2), viridis(n = 3))
+d <- Heatmap(
+  matrix = mat,
+  col = viridis(n = 100),
+  cluster_rows = F,
+  cluster_columns = T,
+  clustering_method_columns = "ward.D2",
+  show_row_names = T,
+  show_column_names = F,
+  name = "Enrichment (log)",
+  row_split = ge$Group,
+  column_split = cd[, 1, drop = FALSE],
+  cluster_column_slices = T,
+  show_parent_dend_line = FALSE,
+  row_title = NULL,
+  row_names_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
+  column_title = NULL,
+  column_dend_height = unit(0.5, "cm"),
+  use_raster = FALSE,
+  top_annotation = HeatmapAnnotation(
+    df = cd[, 1, drop = FALSE],
+    col = list(Group = cols[2:3]),
+    simple_anno_size = unit(3, "mm"),
+    show_annotation_name = TRUE,
+    annotation_name_side = "right",
+    annotation_name_rot = 0,
+    annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+    )
+  ),
+  height = unit(x = 6, units = "cm"), width = unit(x = 4, units = "cm"),
+  heatmap_legend_param = list(
+    title = expression(bold(~ Log[2] ~ "fold-change")),
+    legend_height = unit(3.5, "cm"),
+    title_position = "leftcenter-rot",
+    title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+  )
+)
+
+pdf(file = "output/d.pdf", width = 8.5, height = 11)
+draw(
+  object = d,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE,
+  align_annotation_legend = ""
+)
+dev.off()
+
+# dg <- grid.grabExpr(
+#  draw(
+#   object = d,
+#   heatmap_legend_side = "right",
+#   annotation_legend_side = "right",
+#   merge_legends = TRUE,
+#   align_annotation_legend = ""
+# )
+# )
+#
+# ggsave(plot = dg, filename = "output/d.png", width = unit(10.66, "cm"), height = unit(10.66, "cm"), dpi = 2000)
+```
+
+
+# PIWI
+```{r}
+
+```
+
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```
