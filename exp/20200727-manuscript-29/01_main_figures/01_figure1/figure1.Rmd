@@ -51,7 +51,7 @@ cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
 
 # Colorbar
 ```{r}
-myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2,4,6)])
+myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2, 4, 6)])
 ```
 
 # Theme
@@ -197,33 +197,33 @@ col_fun <- colorRamp2(c(-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5), viridis(n = 11))
 
 set.seed(100)
 
-ha <-  HeatmapAnnotation(
-    Group = data$pData$Group,
-    col = list(Group = cols),
-    simple_anno_size = unit(3, "mm"),
-    show_annotation_name = TRUE,
-    annotation_name_side = "right",
-    annotation_name_rot = 0,
-    annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
-    annotation_legend_param = list(
-      title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
-      labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-    )
+ha <- HeatmapAnnotation(
+  Group = data$pData$Group,
+  col = list(Group = cols),
+  simple_anno_size = unit(3, "mm"),
+  show_annotation_name = TRUE,
+  annotation_name_side = "right",
+  annotation_name_rot = 0,
+  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+  annotation_legend_param = list(
+    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
   )
+)
 
 ra <- HeatmapAnnotation(
-    Cluster = kmeans.new,
-    which = "row",
-    col = list(Cluster = kmeans_cols),
-    simple_anno_size = unit(3, "mm"),
-    show_annotation_name = TRUE,
-    annotation_name_side = "bottom",
-    annotation_name_rot = 0,
-    annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
-    annotation_legend_param = list(
-      title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
-      labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-    )
+  Cluster = kmeans.new,
+  which = "row",
+  col = list(Cluster = kmeans_cols),
+  simple_anno_size = unit(3, "mm"),
+  show_annotation_name = TRUE,
+  annotation_name_side = "bottom",
+  annotation_name_rot = 0,
+  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+  annotation_legend_param = list(
+    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
+  )
 )
 
 b <- ha %v% Heatmap(
@@ -392,6 +392,8 @@ median.df$Categories <- df[rownames(median.df), "Categories"]
 median.melt <- melt(data = median.df, id.vars = c("Categories", "Genes"))
 
 xs <- split(median.melt, f = median.melt$Categories)
+# xs <- xs[c(1,3,2)]
+
 
 p1 <- ggplot(data = xs$`Maintenance & self-renewal genes`, aes(x = variable, y = value, group = Genes)) +
   geom_line(aes(color = Genes), size = 1, alpha = 0.7) +
@@ -408,8 +410,9 @@ p1 <- ggplot(data = xs$`Maintenance & self-renewal genes`, aes(x = variable, y =
     legend.justification = "top"
   )
 
-p2 <- p1 %+% xs$`Melanoma antigen genes` + theme(legend.title = element_blank())
-p3 <- p1 %+% xs$`Signalling factors` + theme(legend.title = element_blank())
+p2 <- p1 %+% xs$`Signalling factors` + theme(legend.title = element_blank())
+p3 <- p1 %+% xs$`Melanoma antigen genes` + theme(legend.title = element_blank())
+
 
 p <- ggarrange(p1, p2, p3, ncol = 1, align = "hv")
 

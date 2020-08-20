@@ -200,8 +200,8 @@ a <- ggplot(subset(tab, class_id %in% c("LTR", "LINE", "SINE")), aes(x = diffEnr
   ylab(bquote(~ -Log[10] ~ adjusted ~ italic(P))) +
   labs(
     title = "",
-    subtitle = "", caption = paste0("Total = ", nrow(tab), " variables")
-  ) +
+    subtitle = "", caption = paste0("Total = ", scales::comma(nrow(tab)), " tested TEs")
+  ) + theme_bw(base_family = "Helvetica") +
   th +
   geom_vline(
     xintercept = c(-1, 1),
@@ -219,7 +219,7 @@ a <- ggplot(subset(tab, class_id %in% c("LTR", "LINE", "SINE")), aes(x = diffEnr
     colour = guide_legend(
       order = 1,
       override.aes = list(
-        size = 5
+        size = 4
       )
     )
   ) +
@@ -235,117 +235,64 @@ a <- ggplot(subset(tab, class_id %in% c("LTR", "LINE", "SINE")), aes(x = diffEnr
       Negative = "Less acc. in Adult"
     )
   ) +
-  facet_wrap(~class_id) +
-  theme_bw(base_family = "Helvetica") +
-  geom_label(
-    data = anno, aes(x = x, y = y, label = label),
-    color = rep(c("#BC3C29FF", "#0072B5FF"), 3),
-    size = 5, angle = 45, fontface = "bold"
-  )
+  facet_wrap(~class_id)
 
-ag <- gridExtra::grid.arrange(egg::set_panel_size(p = a, width = unit(5, "cm"), height = unit(7.39, "cm")))
-ggsave(plot = ag, filename = "output/a.pdf", width = unit(16, "cm"), height = unit(8, "cm"), dpi = 320)
+ag <- egg::set_panel_size(p = a, width = unit(5.5, "cm"), height = unit(6, "cm"))
+ggsave(plot = ag, filename = "output/a.png", width = unit(8.5, "in"), height = unit(11, "in"))
+ggsave(plot = ag, filename = "output/a.pdf", width = unit(8.5, "in"), height = unit(11, "in"))
 ```
+
+
 
 ## B
+
 ```{r}
-re_ele <- re_ele[grep(pattern = "\\?", x = re_ele$symbol, value = T, invert = T), ]
-mat <- re_ele[, 3:ncol(re_ele)]
-mat <- data.matrix(mat - rowMeans(mat[, grep(pattern = "PND15", x = colnames(mat), value = T)]))
+rd <- tab
+rownames(rd) <- rd$transcript_id
+rd <- rd[abs(rd$diffEnrichment.logFC) >= 1 & rd$diffEnrichment.qvalue <= 0.05, ]
+rd$Name <- "Adult Positive"
+rd$Name[rd$diffEnrichment.logFC < 0] <- "Adult Negative"
 
-o <- seriate(max(mat) - mat)
+rd$Name[rd$Name == "Adult Positive"] <- "More acc. in Adult"
+rd$Name[rd$Name == "Adult Negative"] <- "Less acc. in Adult"
 
-mat <- mat[get_order(o), ]
+rd$anno <- as.character(rd$class)
+# rd$anno[rd$anno == "intronic" | rd$anno == "exonic"] <- "gene_body"
+rd$anno[rd$anno == "TSS" | rd$anno == "proximal <=1000bp"] <- "tss_prox_1kbp"
 
-rd <- re_ele[rownames(mat), 1:2]
+rd$anno[rd$anno == "exonic"] <- "Exonic"
+rd$anno[rd$anno == "intronic"] <- "Intronic"
+rd$anno[rd$anno == "intergenic"] <- "Intergenic"
+rd$anno[rd$anno == "tss_prox_1kbp"] <- "TSS +/- 1kbp"
 
-cd <- pData[colnames(mat), ]
-cd$Group <- factor(cd$Group, levels = unique(cd$Group))
+b <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
+  geom_bar(position = "dodge", stat = "count") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, size = 3, fontface = "bold") +
+  scale_y_continuous(limits = c(0, 50000), breaks = c(0, 10000, 20000, 30000, 40000, 50000)) +
+  fill_palette(palet = "Dark2") +
+  # coord_flip() +
+  facet_wrap(~Name, nrow = 2) +
+  ggtitle("") +
+  xlab("") +
+  ylab("Number of regions") +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    legend.title = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.key.height = unit(0, "mm"),
+    legend.key.width = unit(3, "mm"),
+    plot.margin = grid::unit(c(0, 0, 0, 0), "mm"),
+      legend.text.align = 0
+  ) +
+  guides(fill = guide_legend(nrow = 2,  byrow = T))
 
-ele_cols <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
-names(ele_cols) <- c("LINE", "LTR", "SINE")
+bg <- egg::set_panel_size(p = b, width = unit(4, "cm"), height = unit(4, "cm"))
 
-la <- HeatmapAnnotation(
-  Category = rd$type, which = "row",
-  col = list(Category = ele_cols),
-  simple_anno_size = unit(3, "mm"),
-  show_annotation_name = TRUE,
-  annotation_name_side = "bottom",
-  annotation_legend_param = list(
-    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
-    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-  ),
-  annotation_name_rot = 0,
-  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica")
-)
-
-ha <- HeatmapAnnotation(
-  df = cd[, 1, drop = FALSE],
-  col = list(Group = cols[2:3]),
-  simple_anno_size = unit(3, "mm"),
-  show_annotation_name = TRUE,
-  annotation_name_side = "right",
-  annotation_name_rot = 0,
-  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
-  annotation_legend_param = list(
-    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
-    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-  )
-)
-
-# col_fun <- colorRamp2(c(-2, 0, 2), viridis(n = 3))
-b <- ha %v% Heatmap(
-  matrix = mat,
-  col = viridis(n = 100),
-  cluster_rows = F,
-  cluster_columns = T,
-  clustering_method_columns = "ward.D2",
-  show_row_names = T,
-  show_column_names = F,
-  name = "Enrichment (log)",
-  row_split = rd$type,
-  column_split = cd[, 1, drop = FALSE],
-  cluster_column_slices = TRUE,
-  column_dend_height = unit(0.5, "cm"),
-  show_parent_dend_line = FALSE,
-  row_title = NULL,
-  top_annotation = ha,
-  column_title = NULL,
-  row_names_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
-  use_raster = FALSE,
-  left_annotation = la,
-  height = unit(x = 5.5, units = "cm"), width = unit(x = 3.5, units = "cm"),
-  heatmap_legend_param = list(
-    title = expression(bold(~ Log[2] ~ "fold-change")),
-    legend_height = unit(2.5, "cm"),
-    title_position = "leftcenter-rot",
-    title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
-    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-  )
-)
-
-pdf(file = "output/b.pdf", width = 8.5, height = 11)
-draw(
-  object = b,
-  heatmap_legend_side = "right",
-  annotation_legend_side = "right",
-  merge_legends = TRUE,
-  align_annotation_legend = ""
-)
-dev.off()
-
-# bg <- grid.grabExpr(
-#  draw(
-#   object = b,
-#   heatmap_legend_side = "right",
-#   annotation_legend_side = "right",
-#   merge_legends = TRUE,
-#   align_annotation_legend = ""
-# )
-# )
-#
-# ggsave(plot = bg, filename = "output/b.png", width = unit(8, "cm"), height = unit(8, "cm"), dpi = 2000)
+ggsave(plot = bg, filename = "output/b.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
+
 
 
 # C
@@ -406,7 +353,7 @@ go <- lapply(go_files, function(x) {
 go_df <- ldply(go, data.frame, .id = "Group")
 go_df$Group <- trimws(gsub(pattern = ".*-", replacement = " ", x = go_df$Group))
 go_df %>% arrange(Group, Hyper_Fold_Enrichment) -> go_df
-go_df <- go_df[-c(10,30),]
+go_df <- go_df[-c(10, 30), ]
 
 
 d <- ggplot(data = go_df, mapping = aes(
@@ -438,11 +385,13 @@ d <- ggplot(data = go_df, mapping = aes(
   labs(
     color = expression(bold("adjusted" ~ italic(P) ~ " ")),
     size = "Annotated genes"
-  )
+  ) +
+  theme(legend.margin=margin(0,15,0,0),
+        legend.box.margin=margin(0,0,0,0))
 
 d
 
-dg <- egg::set_panel_size(p = d, width = unit(3.5, "cm"), height = unit(3, "cm"))
+dg <- egg::set_panel_size(p = d, width = unit(3, "cm"), height = unit(2.1, "cm"))
 
 ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
@@ -515,4 +464,105 @@ devtools::session_info() %>%
 
 <!-- plotAvgProf(tagMatrix = tagMatrix,xlim = c(-4999,5000), -->
 <!--             xlab="", ylab = "") -->
+<!-- ``` -->
+
+
+<!-- ## B -->
+<!-- ```{r} -->
+<!-- re_ele <- re_ele[grep(pattern = "\\?", x = re_ele$symbol, value = T, invert = T), ] -->
+<!-- mat <- re_ele[, 3:ncol(re_ele)] -->
+<!-- mat <- data.matrix(mat - rowMeans(mat[, grep(pattern = "PND15", x = colnames(mat), value = T)])) -->
+
+<!-- o <- seriate(max(mat) - mat) -->
+
+<!-- mat <- mat[get_order(o), ] -->
+
+<!-- rd <- re_ele[rownames(mat), 1:2] -->
+
+<!-- cd <- pData[colnames(mat), ] -->
+<!-- cd$Group <- factor(cd$Group, levels = unique(cd$Group)) -->
+
+<!-- ele_cols <- RColorBrewer::brewer.pal(n = 3, name = "Dark2") -->
+<!-- names(ele_cols) <- c("LINE", "LTR", "SINE") -->
+
+<!-- la <- HeatmapAnnotation( -->
+<!--   Category = rd$type, which = "row", -->
+<!--   col = list(Category = ele_cols), -->
+<!--   simple_anno_size = unit(3, "mm"), -->
+<!--   show_annotation_name = TRUE, -->
+<!--   annotation_name_side = "bottom", -->
+<!--   annotation_legend_param = list( -->
+<!--     title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"), -->
+<!--     labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica") -->
+<!--   ), -->
+<!--   annotation_name_rot = 0, -->
+<!--   annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica") -->
+<!-- ) -->
+
+<!-- ha <- HeatmapAnnotation( -->
+<!--   df = cd[, 1, drop = FALSE], -->
+<!--   col = list(Group = cols[2:3]), -->
+<!--   simple_anno_size = unit(3, "mm"), -->
+<!--   show_annotation_name = TRUE, -->
+<!--   annotation_name_side = "right", -->
+<!--   annotation_name_rot = 0, -->
+<!--   annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"), -->
+<!--   annotation_legend_param = list( -->
+<!--     title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"), -->
+<!--     labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica") -->
+<!--   ) -->
+<!-- ) -->
+
+<!-- # col_fun <- colorRamp2(c(-2, 0, 2), viridis(n = 3)) -->
+<!-- b <- ha %v% Heatmap( -->
+<!--   matrix = mat, -->
+<!--   col = viridis(n = 100), -->
+<!--   cluster_rows = F, -->
+<!--   cluster_columns = T, -->
+<!--   clustering_method_columns = "ward.D2", -->
+<!--   show_row_names = T, -->
+<!--   show_column_names = F, -->
+<!--   name = "Enrichment (log)", -->
+<!--   row_split = rd$type, -->
+<!--   column_split = cd[, 1, drop = FALSE], -->
+<!--   cluster_column_slices = TRUE, -->
+<!--   column_dend_height = unit(0.5, "cm"), -->
+<!--   show_parent_dend_line = FALSE, -->
+<!--   row_title = NULL, -->
+<!--   top_annotation = ha, -->
+<!--   column_title = NULL, -->
+<!--   row_names_gp = gpar(fontsize = 8, fontfamily = "Helvetica"), -->
+<!--   use_raster = FALSE, -->
+<!--   left_annotation = la, -->
+<!--   height = unit(x = 5.5, units = "cm"), width = unit(x = 3.5, units = "cm"), -->
+<!--   heatmap_legend_param = list( -->
+<!--     title = expression(bold(~ Log[2] ~ "fold-change")), -->
+<!--     legend_height = unit(2.5, "cm"), -->
+<!--     title_position = "leftcenter-rot", -->
+<!--     title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"), -->
+<!--     labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica") -->
+<!--   ) -->
+<!-- ) -->
+
+<!-- pdf(file = "output/b.pdf", width = 8.5, height = 11) -->
+<!-- draw( -->
+<!--   object = b, -->
+<!--   heatmap_legend_side = "right", -->
+<!--   annotation_legend_side = "right", -->
+<!--   merge_legends = TRUE, -->
+<!--   align_annotation_legend = "" -->
+<!-- ) -->
+<!-- dev.off() -->
+
+<!-- # bg <- grid.grabExpr( -->
+<!-- #  draw( -->
+<!-- #   object = b, -->
+<!-- #   heatmap_legend_side = "right", -->
+<!-- #   annotation_legend_side = "right", -->
+<!-- #   merge_legends = TRUE, -->
+<!-- #   align_annotation_legend = "" -->
+<!-- # ) -->
+<!-- # ) -->
+<!-- # -->
+<!-- # ggsave(plot = bg, filename = "output/b.png", width = unit(8, "cm"), height = unit(8, "cm"), dpi = 2000) -->
 <!-- ``` -->

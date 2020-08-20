@@ -59,7 +59,7 @@ cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
 
 # Colorbar
 ```{r}
-myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2,4,6)])
+myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2, 4, 6)])
 ```
 
 
@@ -318,7 +318,7 @@ d <- Heatmap(
       title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
       labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
     )
-  ), 
+  ),
   height = unit(x = 6, units = "cm"), width = unit(x = 4, units = "cm"),
   heatmap_legend_param = list(
     title = expression(bold(~ Log[2] ~ "fold-change")),
@@ -348,7 +348,7 @@ dev.off()
 #   align_annotation_legend = ""
 # )
 # )
-# 
+#
 # ggsave(plot = dg, filename = "output/d.png", width = unit(10.66, "cm"), height = unit(10.66, "cm"), dpi = 2000)
 ```
 

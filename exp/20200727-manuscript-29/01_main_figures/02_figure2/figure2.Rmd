@@ -58,7 +58,7 @@ cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
 
 # Colorbar
 ```{r}
-myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2,4,6)])
+myPalette <- colorRampPalette(colors = viridis::plasma(n = 7)[c(2, 4, 6)])
 ```
 
 # Theme
@@ -117,7 +117,7 @@ th <- theme(
   legend.box.margin = margin(0, 0, -7, 0),
   legend.key.height = unit(0, "cm"),
   legend.key.width = unit(0, "cm"),
-  legend.spacing = unit(1, "mm"), 
+  legend.spacing = unit(1, "mm"),
   plot.margin = grid::unit(c(1, 1, 1, 1), "mm"),
   strip.background = element_rect(fill = NA, colour = "black"),
   strip.text.x = element_text(face = "bold", size = 8)
@@ -206,7 +206,7 @@ a <- ggplot(tab, aes(x = `diffAccessibility-logFC`, y = -log10(`diffAccessibilit
     legend.margin = margin(0, 0, 0, 0),
     # legend.box.margin = margin(0, 0, -20, 0),
     plot.margin = grid::unit(c(1, 5, 1, 1), "mm"),
-    legend.key.size = unit(0, 'cm')
+    legend.key.size = unit(0, "cm")
   ) +
   geom_vline(
     xintercept = c(-1, 1),
@@ -242,10 +242,10 @@ a <- ggplot(tab, aes(x = `diffAccessibility-logFC`, y = -log10(`diffAccessibilit
   ) +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1), label.hjust = -1, label.vjust = 0.3)) +
   geom_label(
-  data = anno, aes(x = x, y = y, label = label),
-  color = c("#BC3C29FF", "#0072B5FF"),
-  size = 3.5, angle = 45, fontface = "bold"
-)
+    data = anno, aes(x = x, y = y, label = label),
+    color = c("#BC3C29FF", "#0072B5FF"),
+    size = 3.5, angle = 45, fontface = "bold"
+  )
 
 ag <- egg::set_panel_size(p = a, width = unit(7.2, "cm"), height = unit(6.62, "cm"))
 
@@ -272,7 +272,7 @@ rd$anno[rd$anno == "TSS" | rd$anno == "proximal <=1000bp"] <- "tss_prox_1kbp"
 
 rd$anno[rd$anno == "gene_body"] <- "Gene body"
 rd$anno[rd$anno == "intergenic"] <- "Intergenic"
-rd$anno[rd$anno == "tss_prox_1kbp"] <- "TSS & proximal 1kbp"
+rd$anno[rd$anno == "tss_prox_1kbp"] <- "TSS +/- 1kbp"
 
 b <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
   geom_bar(position = "dodge", stat = "count") +
@@ -311,7 +311,8 @@ go_df$Group[go_df$Group == "Adult Positive"] <- "More acc. in Adult"
 go_df$Group[go_df$Group == "Adult Negative"] <- "Less acc. in Adult"
 go_df <- arrange(go_df, Hyper_Fold_Enrichment)
 go_df$name <- factor(go_df$name, as.character(go_df$name))
-go_df <- go_df[-c(9,17),]
+go_df <- go_df[-c(9, 17), ]
+go_df$Group <- factor(go_df$Group, unique(go_df$Group))
 
 c <- ggplot(data = arrange(go_df, Hyper_Fold_Enrichment), mapping = aes(
   x = name,
@@ -334,7 +335,8 @@ c <- ggplot(data = arrange(go_df, Hyper_Fold_Enrichment), mapping = aes(
   th +
   guides(
     size = guide_legend(title.position = "top", title.hjust = 0.5, title.vjust = 0.5, nrow = 1, size = 8, order = 2),
-    colour = guide_colorbar(nrow = 1, order = 1,
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
       title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
       barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
       label.hjust = 0.5, label.vjust = 1, size = 8
@@ -357,16 +359,16 @@ go_df_s$name <- factor(go_df_s$name, levels = unique(go_df_s$name))
 
 go_df_s$Group <- gsub(pattern = "Adult Positive", replacement = "High acc. in Adult", x = go_df_s$Group)
 go_df_s$Group <- gsub(pattern = "Adult Negative", replacement = "Low acc. in Adult", x = go_df_s$Group)
-go_df_s$Group <- gsub(pattern = "gene_body", replacement = "gene body", x = go_df_s$Group)
-go_df_s$Group <- gsub(pattern = "tss prox 1kbp", replacement = "TSS & proximal 1kbp", x = go_df_s$Group)
+# go_df_s$Group <- gsub(pattern = "gene body", replacement = "gene body", x = go_df_s$Group)
+go_df_s$Group <- gsub(pattern = "tss prox 1kbp", replacement = "TSS +/- 1kbp", x = go_df_s$Group)
 go_df_s$Group <- gsub(pattern = "High", replacement = "More", x = go_df_s$Group)
 go_df_s$Group <- gsub(pattern = "Low", replacement = "Less", x = go_df_s$Group)
 
 go_df_s <- go_df_s %>%
   mutate(name = fct_reorder(name, Hyper_Fold_Enrichment))
-subset(go_df_s, Group %in% c("More acc. in Adult TSS & proximal 1kbp", "More acc. in Adult gene body")) -> go_df_s
+subset(go_df_s, Group %in% c("More acc. in Adult TSS +/- 1kbp", "More acc. in Adult gene body")) -> go_df_s
 
-go_df_s <- go_df_s[-c(13,30),]
+go_df_s <- go_df_s[-c(13, 30), ]
 
 
 d <- ggplot(data = go_df_s, mapping = aes(
@@ -383,15 +385,15 @@ d <- ggplot(data = go_df_s, mapping = aes(
   ) +
   xlab("") +
   ylab("Fold enrichment") +
-  facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width=20), nrow = 2) +
+  facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 20), nrow = 2) +
   theme_bw(base_family = "Helvetica") +
   th +
   guides(
-    size = guide_legend(title.position = "top", title.hjust = 0.5,title.vjust = 0.5, nrow = 1, size = 8, order = 2),
+    size = guide_legend(title.position = "top", title.hjust = 0.5, title.vjust = 0.5, nrow = 1, size = 8, order = 2),
     colour = guide_colorbar(
       title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
       barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
-      label.hjust = 0.5, label.vjust = 1, size = 8, order =1
+      label.hjust = 0.5, label.vjust = 1, size = 8, order = 1
     )
   ) +
   labs(

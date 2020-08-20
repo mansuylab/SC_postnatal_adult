@@ -115,12 +115,12 @@ generate_color_fun <- function(x, rows, col = "red") {
   return(col)
 }
 
-  get_at <- function(mm){
-    l <- length(mm@levels)
-    mm@colors <- c(mm@colors[1], mm@colors[median(1:l)], mm@colors[l])
-    mm@levels <- c(mm@levels[1], mm@levels[median(1:l)], mm@levels[l])
-    return(mm)
-  }
+get_at <- function(mm) {
+  l <- length(mm@levels)
+  mm@colors <- c(mm@colors[1], mm@colors[median(1:l)], mm@colors[l])
+  mm@levels <- c(mm@levels[1], mm@levels[median(1:l)], mm@levels[l])
+  return(mm)
+}
 ```
 
 
@@ -225,7 +225,7 @@ make_EH <- function(x, k, name, ht) {
     column_title_gp = gpar(
       fontfamily = "Helvetica",
       fontsize = 6,
-      
+
       fill = bg_col[1]
     ),
     axis_name_gp = gpar(
@@ -238,7 +238,7 @@ make_EH <- function(x, k, name, ht) {
     row_split = partition,
     row_gap = unit(0.5, "mm"),
     row_title = NULL,
-    axis_name = axis_name, 
+    axis_name = axis_name,
     width = unit(1.8, "cm"),
     height = unit(ht, "cm"),
     show_heatmap_legend = TRUE,
@@ -251,7 +251,7 @@ make_EH <- function(x, k, name, ht) {
       title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
       labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
     )
-  )  +
+  ) +
     EnrichedHeatmap(
       mat = mat_AS$Adult_NF[x, ],
       name = "Adult",
@@ -300,7 +300,7 @@ make_EH <- function(x, k, name, ht) {
       column_title_gp = gpar(
         fontfamily = "Helvetica",
         fontsize = 6,
-        
+
         fill = bg_col[1]
       ),
       axis_name_gp = gpar(
@@ -313,7 +313,7 @@ make_EH <- function(x, k, name, ht) {
       row_split = partition,
       row_gap = unit(0.5, "mm"),
       row_title = NULL,
-      axis_name = axis_name, 
+      axis_name = axis_name,
       width = unit(1.8, "cm"),
       height = unit(ht, "cm"),
       show_heatmap_legend = FALSE,
@@ -328,10 +328,10 @@ make_EH <- function(x, k, name, ht) {
       )
     )
 
-  
+
   hm_atac@ht_list$PND15@matrix_color_mapping <- get_at(mm = hm_atac@ht_list$PND15@matrix_color_mapping)
   hm_atac@ht_list$Adult@matrix_color_mapping <- get_at(mm = hm_atac@ht_list$Adult@matrix_color_mapping)
-  
+
 
   an_RNA <- data.frame(Group = gsub(pattern = "_.*", replacement = "", x = colnames(mat_RNA_counts)))
   an_RNA$Group <- factor(an_RNA$Group, levels = c("PND8", "PND15", "Adult"))
@@ -350,7 +350,7 @@ make_EH <- function(x, k, name, ht) {
   # rownames(an_RNA) <- colnames(mat_RNA_counts)
 
   ta <- HeatmapAnnotation(
-    df = an_RNA,
+    Group = an_RNA$Group,
     col = list(Group = cols_rna),
     simple_anno_size = unit(3, "mm"),
     show_annotation_name = TRUE,
@@ -390,7 +390,7 @@ make_EH <- function(x, k, name, ht) {
   )
 
   hm_rna_counts@matrix_color_mapping <- get_at(mm = hm_rna_counts@matrix_color_mapping)
-  
+
 
 
   pdf(file = pdf_file, width = 11, height = 8.5)
@@ -435,6 +435,7 @@ k_distal <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_distal)
 k_distal <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_distal)
 k_distal <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_distal)
 k_distal <- gsub(pattern = "\\.", replacement = " & ", x = k_distal)
+k_distal <- gsub(pattern = "Acc", replacement = "acc.", x = k_distal)
 
 make_EH(x = distal$Name, k = k_distal, name = "distal", ht = 6.5)
 ```
@@ -469,6 +470,12 @@ k_ac <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_ac)
 k_ac <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_ac)
 k_ac <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_ac)
 k_ac <- gsub(pattern = "\\.", replacement = " & ", x = k_ac)
+k_ac <- gsub(pattern = "More Acc & More Expr", replacement = "Category 1", x = k_ac)
+k_ac <- gsub(pattern = "More Acc & Less Expr", replacement = "Category 2", x = k_ac)
+k_ac <- gsub(pattern = "Less Acc & Less Expr", replacement = "Category 3", x = k_ac)
+k_ac <- gsub(pattern = "Less Acc & More Expr", replacement = "Category 4", x = k_ac)
+
+k_ac <- factor(k_ac, unique(k_ac)[c(4,3,1,2)])
 
 make_EH(x = proximal_active$Name, k = k_ac, name = "proximal_active", ht = 5.2)
 ```
