@@ -8,3 +8,11 @@
 \.~*
 \.log
 .Rproj.user
+exp/20200129-repetetive_elements-25/20200129-02_repetetive_elements_motif_homer/output
+exp/20200525-data_overlap-28/20200616-05_overlap_matrix_homer_TF/output
+attic/testing_homer/test2/homerResults
+exp/20190807-differential_transcript_and_exon_usage-11/20200708-03_isoformSwitch/output/results
+exp/20200525-data_overlap-28/20200615-04_overlap_matrix_GO_rGREAT/output
+exp/20200129-repetetive_elements-25/20200129-02_repetetive_elements_motif_homer/output
+exp/20200525-data_overlap-28/20200722-07_rGREAT_results_plot/output
+exp/20200129-repetetive_elements-25/20200805-04_rGREAT_analysis/output
