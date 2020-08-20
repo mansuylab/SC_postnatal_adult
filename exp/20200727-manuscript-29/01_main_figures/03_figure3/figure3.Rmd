@@ -276,6 +276,7 @@ mat <- ge[, 3:ncol(ge)]
 mat <- data.matrix(mat - rowMeans(mat[, grep(pattern = "PND15", x = colnames(mat), value = T)]))
 
 o <- seriate(max(mat) - mat)
+# o <- seriate(dist(mat), method = "MDS_angle")
 
 mat <- mat[get_order(o), ]
 
