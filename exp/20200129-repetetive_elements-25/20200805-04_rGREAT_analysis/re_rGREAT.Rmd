@@ -1,0 +1,471 @@
+---
+title: "ATAC-Seq: rGREAT"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r re-rGREAT-1, message=FALSE, warning=FALSE}
+library(rGREAT)
+library(parallel)
+library(SummarizedExperiment)
+library(details)
+library(dplyr)
+library(GenomicRanges)
+library(foreach)
+library(doParallel)
+```
+
+# Data
+
+```{r re-rGREAT-2 }
+load("./input/repeat_elements_atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+res <- res[res$class_id == "LTR" | res$class_id == "LINE" | res$class_id == "SINE", ]
+res$class_family <- paste(res$class_id, res$family_id, sep = "_")
+res$genomeAnno_class <- paste(res$class_n, res$class_id, sep = "_")
+res$genomeAnno_class_family <- paste(res$class_n, res$class_family, sep = "_")
+colnames(res) <- gsub(pattern = "\\.", replacement = "-", x = colnames(res))
+
+res_f <- res[abs(res$`diffEnrichment-logFC`) >= 1 & res$`diffEnrichment-qvalue` <= 0.05, ]
+```
+
+# rGREAT
+
+## Function
+```{r re-rGREAT-3 }
+perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL, split_bg = FALSE) {
+  d <- NULL
+
+  if (FC == "pos") {
+    d <- df[df$`diffEnrichment-logFC` > 0, ]
+  } else if (FC == "neg") {
+    d <- df[df$`diffEnrichment-logFC` < 0, ]
+  } else {
+    d <- df
+  }
+
+  sp_d <- NULL
+  bg_n <- NULL
+
+  if (split) {
+    d[, sp_col] <- gsub(
+      pattern = " ", replacement = "_",
+      x = d[, sp_col]
+    )
+
+    d[, sp_col] <- gsub(
+      pattern = "<=", replacement = "",
+      x = d[, sp_col]
+    )
+
+    sp_d <- split(d, d[, sp_col])
+    sp_d <- sp_d[names(sp_d) != "no"]
+
+    names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+
+    bg[, sp_col] <- gsub(
+      pattern = " ", replacement = "_",
+      x = bg[, sp_col]
+    )
+
+    bg[, sp_col] <- gsub(
+      pattern = "<=", replacement = "",
+      x = bg[, sp_col]
+    )
+
+    bg_n <- split(bg, bg[, sp_col])
+    bg_n <- bg_n[names(bg_n) != "no"]
+
+    names(bg_n) <- paste(fName, names(bg_n), sep = "-")
+  } else {
+    sp_d <- list(d)
+    names(sp_d) <- paste(fName, sep = "/")
+
+    bg_n <- list(bg)
+    names(bg_n) <- paste(fName, sep = "/")
+  }
+
+  nCl <- ifelse(length(sp_d) < 16, length(sp_d), 16)
+
+  cl <- makeCluster(nCl)
+  registerDoParallel(cl)
+
+
+  great <- foreach(i = 1:length(sp_d)) %dopar% {
+    library(GenomicRanges)
+    library(rGREAT)
+    n <- names(sp_d)[i]
+
+    if (split & !split_bg) {
+      n <- paste(n, "bg_all", sep = "_")
+    }
+
+
+    bp <- paste0("output/", n, "_GO_BP.xlsx")
+    mf <- paste0("output/", n, "_GO_MF.xlsx")
+    cc <- paste0("output/", n, "_GO_CC.xlsx")
+
+    if (!(file.exists(bp) & file.exists(cc) & file.exists(mf))) {
+      df_GR <- sp_d[[i]]
+
+      bgr <- NULL
+      if (split_bg) {
+        bgr <- bg_n[[n]]
+      } else {
+        bgr <- bg
+      }
+
+      if (nrow(bgr) > 1000000) {
+        t1 <- dplyr::setdiff(bgr, df_GR)
+        t2 <- dplyr::inner_join(bgr, df_GR)
+        bgr1 <- data.frame(reduce(x = GRanges(t1), drop.empty.ranges = T, min.gapwidth = 30))
+        bgr2 <- data.frame(reduce(x = GRanges(t2), drop.empty.ranges = T, min.gapwidth = 30))
+        bgr <- rbind(bgr1, bgr2)
+
+        df_GR <- reduce(x = GRanges(df_GR), drop.empty.ranges = T, min.gapwidth = 30)
+      } else {
+        df_GR <- GRanges(df_GR)
+      }
+
+      set.seed(123)
+      bed <- data.frame(df_GR, stringsAsFactors = F)
+      # bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
+      job <- submitGreatJob(gr = bed, bg = bgr, species = "mm10")
+      tb <- getEnrichmentTables(job)
+
+      list(table = tb, job = job)
+    } else {
+      list(table = NULL, job = NULL)
+    }
+  }
+
+  stopCluster(cl)
+
+  names(great) <- names(sp_d)
+
+  for (i in 1:length(great)) {
+    tb <- great[[i]]$table
+
+    n <- names(great)[i]
+
+    if (split & !split_bg) {
+      n <- paste(n, "bg_all", sep = "_")
+    }
+
+    bp <- paste0("output/", n, "_GO_BP.xlsx")
+    mf <- paste0("output/", n, "_GO_MF.xlsx")
+    cc <- paste0("output/", n, "_GO_CC.xlsx")
+
+    if (!(file.exists(bp) & file.exists(cc) & file.exists(mf))) {
+      writexl::write_xlsx(
+        x = tb$`GO Molecular Function`,
+        path = mf,
+        col_names = T, format_headers = T
+      )
+      writexl::write_xlsx(
+        x = tb$`GO Biological Process`,
+        path = bp,
+        col_names = T, format_headers = T
+      )
+      writexl::write_xlsx(
+        x = tb$`GO Cellular Component`,
+        path = cc,
+        col_names = T, format_headers = T
+      )
+    }
+  }
+  return(great)
+}
+```
+
+## Background
+```{r re-rGREAT-4 }
+bg <- res[substr(x = res$seqnames, start = 1, stop = 3) == "chr", ]
+df <- res_f[substr(x = res_f$seqnames, start = 1, stop = 3) == "chr", ]
+```
+
+
+## Analysis
+```{r re-rGREAT-5, message=FALSE, warning=FALSE}
+all <- perform_rGREAT(df = df, FC = "all", bg = bg, fName = "PND15_Adult", split = F)
+pnd15 <- perform_rGREAT(df = df, FC = "neg", bg = bg, fName = "Adult_Negative", split = F)
+adult <- perform_rGREAT(df = df, FC = "pos", bg = bg, fName = "Adult_Positive", split = F)
+```
+
+## Split RE Family
+```{r re-rGREAT-6, message=FALSE, warning=FALSE}
+all_sp_fam <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_id",
+  split_bg = TRUE
+)
+
+pnd15_sp_fam <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_id",
+  split_bg = TRUE
+)
+
+adult_sp_fam <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_id",
+  split_bg = TRUE
+)
+```
+
+## Split RE sub family
+```{r re-rGREAT-7, message=FALSE, warning=FALSE}
+all_sp_subfam <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_family",
+  split_bg = TRUE
+)
+
+pnd15_sp_subfam <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_family",
+  split_bg = TRUE
+)
+
+adult_sp_subfam <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_family",
+  split_bg = TRUE
+)
+```
+
+
+## Split RE genome annotation
+```{r re-rGREAT-8, message=FALSE, warning=FALSE}
+all_sp_anno <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_n",
+  split_bg = TRUE
+)
+
+pnd15_sp_anno <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_n",
+  split_bg = TRUE
+)
+
+adult_sp_anno <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_n",
+  split_bg = TRUE
+)
+```
+
+## Split RE genome annotation + family
+```{r re-rGREAT-9, message=FALSE, warning=FALSE}
+all_sp_anno_fam <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = TRUE
+)
+
+pnd15_sp_anno_fam <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = TRUE
+)
+
+adult_sp_anno_fam <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = TRUE
+)
+```
+
+## Split RE genome annotation + sub family
+```{r re-rGREAT-10, message=FALSE, warning=FALSE}
+all_sp_anno_subfam <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = TRUE
+)
+
+pnd15_sp_anno_subfam <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = TRUE
+)
+
+adult_sp_anno_subfam <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = TRUE
+)
+```
+
+
+## Split RE Family (all background)
+```{r re-rGREAT-11, message=FALSE, warning=FALSE}
+all_sp_fam_bg_all <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_id",
+  split_bg = FALSE
+)
+
+pnd15_sp_fam_bg_all <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_id",
+  split_bg = FALSE
+)
+
+adult_sp_fam_bg_all <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_id",
+  split_bg = FALSE
+)
+```
+
+## Split RE sub family (all background)
+```{r re-rGREAT-12, message=FALSE, warning=FALSE}
+all_sp_subfam_bg_all <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_family",
+  split_bg = FALSE
+)
+
+pnd15_sp_subfam_bg_all <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_family",
+  split_bg = FALSE
+)
+
+adult_sp_subfam_bg_all <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_family",
+  split_bg = FALSE
+)
+```
+
+
+## Split RE genome annotation (all background)
+```{r re-rGREAT-13, message=FALSE, warning=FALSE}
+all_sp_anno_bg_all <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "class_n",
+  split_bg = FALSE
+)
+
+pnd15_sp_anno_bg_all <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "class_n",
+  split_bg = FALSE
+)
+
+adult_sp_anno_bg_all <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "class_n",
+  split_bg = FALSE
+)
+```
+
+## Split RE genome annotation + family (all background)
+```{r re-rGREAT-14_NE, message=FALSE, warning=FALSE}
+all_sp_anno_fam_bg_all <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = FALSE
+)
+
+pnd15_sp_anno_fam_bg_all <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = FALSE
+)
+
+adult_sp_anno_fam_bg_all <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class",
+  split_bg = FALSE
+)
+```
+
+## Split RE genome annotation + sub family (all background)
+```{r re-rGREAT-15, message=FALSE, warning=FALSE}
+all_sp_anno_subfam_bg_all <- perform_rGREAT(
+  df = df, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = FALSE
+)
+
+pnd15_sp_anno_subfam_bg_all <- perform_rGREAT(
+  df = df, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = FALSE
+)
+
+adult_sp_anno_subfam_bg_all <- perform_rGREAT(
+  df = df, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class_family",
+  split_bg = FALSE
+)
+```
+
+
+
+
+# References
+```{r re-rGREAT-16 }
+report::cite_packages(sessionInfo())
+```
+
+# SessionInfo
+```{r re-rGREAT-17 }
+devtools::session_info() %>%
+  details()
+```
