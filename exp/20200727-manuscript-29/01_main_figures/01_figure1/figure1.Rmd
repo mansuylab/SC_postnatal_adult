@@ -273,7 +273,7 @@ bg <- grid.grabExpr(
   )
 )
 
-ggsave(plot = bg, filename = "output/b.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 2000)
+ggsave(plot = bg, filename = "output/b.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 330)
 
 # dev.off()
 

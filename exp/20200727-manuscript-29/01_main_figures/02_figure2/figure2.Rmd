@@ -250,6 +250,7 @@ a <- ggplot(tab, aes(x = `diffAccessibility-logFC`, y = -log10(`diffAccessibilit
 ag <- egg::set_panel_size(p = a, width = unit(7.2, "cm"), height = unit(6.62, "cm"))
 
 ggsave(plot = ag, filename = "output/a.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = ag, filename = "output/a.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 
