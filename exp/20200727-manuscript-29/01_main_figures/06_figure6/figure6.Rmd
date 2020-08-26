@@ -856,10 +856,6 @@ make_EH <- function(x, k, name, ht) {
 
   hm_rna_counts@matrix_color_mapping <- get_at(mm = hm_rna_counts@matrix_color_mapping)
 
-
-
-  pdf(file = pdf_file, width = 11, height = 8.5)
-
   if (all(is.na(mat_RNA_counts[x, ]))) {
     ht_list <- hm_an + hm_atac + hm_chip + hm_bs
   } else if (name == "distal" | name == "distal_accUp" | name == "distal_accDown") {
@@ -873,7 +869,9 @@ make_EH <- function(x, k, name, ht) {
   ht_opt$legend_grid_height <- unit(2, "mm")
   ht_opt$legend_grid_width <- unit(2, "mm")
   ht_opt$HEATMAP_LEGEND_PADDING <- unit(1, "mm")
-
+    
+  
+  pdf(file = pdf_file, width = 11, height = 8.5)
   grid.newpage()
   pushViewport(viewport(gp = gpar(lwd = 0.5)))
   draw(
@@ -885,8 +883,26 @@ make_EH <- function(x, k, name, ht) {
     newpage = FALSE
   )
   popViewport()
-
+  
   dev.off()
+  
+  png_file <- gsub(pattern = "pdf", replacement = "png", x = pdf_file)
+  
+  png(filename = png_file, width = 11, height = 8.5, units = "in", res = 330)
+  grid.newpage()
+  pushViewport(viewport(gp = gpar(lwd = 0.5)))
+  draw(
+    ht_list,
+    ht_gap = unit(1, "mm"),
+    merge_legends = TRUE,
+    # heatmap_legend_side = "bottom",
+    # annotation_legend_side = "right",
+    newpage = FALSE
+  )
+  popViewport()
+  
+  dev.off()
+  
   invisible(gc())
 }
 ```
