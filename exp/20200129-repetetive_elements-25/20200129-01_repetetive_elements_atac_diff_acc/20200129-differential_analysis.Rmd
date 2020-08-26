@@ -511,3 +511,42 @@ tab <- data.table::fread(input = "output/repeat_elements_atac_diff_chromatin_acc
 
 sum(tab$class_id == "SINE")
 ```
+
+
+
+
+
+
+```{r}
+nf <- data@colData$norm.factors
+names(nf) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+
+rd <- c(Adult_03 = 60657376, Adult_09 = 69162383, Adult_11 = 85219624, Adult_13 = 69260772, Adult_17 = 63491836, 
+  PND15_343 = 85833916, PND15_346 = 70049032, PND15_348 = 65804531, PND15_361 = 61231716, PND15_367 = 133311494, PND15_372 = 75217146)
+
+rc <- colSums(assay(counts))
+names(rc) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+
+rcf <- colSums(assay(data))
+names(rcf) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+
+cpm <- colSums(cpm(y, log = FALSE))
+names(cpm) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+
+par(mfrow=c(2,2))
+
+plot(x = rd, y = rc, main = "nReads vs RE counts", xlab = "Number of reads from bam file", ylab = "Counts of RE", 
+     col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
+abline(rlm(rc~rd))
+
+
+plot(x = rd, y = rcf, main = "nReads vs RE filtered counts", xlab = "Number of reads from bam file", ylab = "Filtered counts of RE", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
+abline(rlm(rcf~rd))
+
+plot(x = rd, y = cpm, main = "nReads vs normalization factor", xlab = "Number of reads from bam file", ylab = "Normalization factors", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
+abline(rlm(cpm~rd))
+
+plot(x = rd, y = nf, main = "nReads vs normalization factor", xlab = "Number of reads from bam file", ylab = "Normalization factors", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
+abline(rlm(nf~rd))
+```
+
