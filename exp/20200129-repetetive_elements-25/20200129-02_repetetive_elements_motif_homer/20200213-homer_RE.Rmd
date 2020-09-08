@@ -42,14 +42,22 @@ source("input/findMotif.R")
 ```{r 20200213-homer-RE-2 }
 load("./input/repeat_elements_atac_diff_chromatin_accessibility.RData")
 
-res <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+res <- data.frame(rowData(data_te), stringsAsFactors = F, check.names = F)
 res <- res[res$class_id == "LTR" | res$class_id == "LINE" | res$class_id == "SINE", ]
 res$class_family <- paste(res$class_id, res$family_id, sep = "_")
 res$genomeAnno_class <- paste(res$class_n, res$class_id, sep = "_")
 res$genomeAnno_class_family <- paste(res$class_n, res$class_family, sep = "_")
+res$genomeAnno_class_gene <- paste(res$class_n, res$gene_id, sep = "_")
 colnames(res) <- gsub(pattern = "\\.", replacement = "-", x = colnames(res))
+colnames(res) <- gsub(pattern = "X-", replacement = "", x = colnames(res))
 
-res_f <- res[abs(res$`diffEnrichment-logFC`) >= 1 & res$`diffEnrichment-qvalue` <= 0.05, ]
+res <- res[,-c(6:24)]
+
+res_f <- res[abs(res$logFC) >= 1 & res$qvalue <= 0.05, ]
+
+
+sc <- data.frame(readxl::read_xlsx("input/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx"))
+sc <- unique(sc[abs(sc$subtype_logFC) >= 0.5 & sc$subtype_qvalue <= 0.05, "gene_id"])
 ```
 
 # HOMER
@@ -64,9 +72,9 @@ perform_homer <- function(df, FC, bg, out, fName,
   d <- NULL
 
   if (FC == "pos") {
-    d <- df[df$`diffEnrichment-logFC` > 0, ]
+    d <- df[df$logFC > 0, ]
   } else if (FC == "neg") {
-    d <- df[df$`diffEnrichment-logFC` < 0, ]
+    d <- df[df$logFC < 0, ]
   } else {
     d <- df
   }
@@ -230,13 +238,43 @@ perform_homer <- function(df, FC, bg, out, fName,
 ```{r 20200213-homer-RE-4 }
 bg <- res[substr(x = res$seqnames, start = 1, stop = 3) == "chr", ]
 df <- res_f[substr(x = res_f$seqnames, start = 1, stop = 3) == "chr", ]
+
+df_sc <- df[df$gene_id %in%sc,]
+df_sc <- split(df_sc, df_sc$gene_id)
+df_sc <- df_sc[lapply(df_sc, nrow) > 10]
+df_sc <- plyr::ldply(df_sc, data.frame)[,-1]
+
+cat1 <- data.frame(readxl::read_xlsx("input/RE_DiffAccess_Gene ID_aggregate counts.xlsx", sheet = 4))
+
+cat2 <- data.frame(readxl::read_xlsx("input/RE_DiffAccess_Gene ID_aggregate counts.xlsx", sheet = 5))
+colnames(cat2)[4] <- "Category"
+cat2$Category[cat2$Family == "ERV1"] <- "Category 4"
+cat2$Category[cat2$Family == "ERVK"] <- "Category 5"
+cat2$Category[cat2$Family == "L1"] <- "Category 6"
+
+df_c <- rbind(cat1, cat2)
+df_ca <- rbind(cat1, cat2)[,c(1,4)]
+colnames(df_ca)[1] <- "gene_id"
+df_ca$Category <- gsub(pattern = " ", replacement = "_", x = df_ca$Category)
+
+d <- df_ca
+
+df_ca <- merge(df, df_ca)
+df_ca <- df_ca[,c(2:11, 1, 12:ncol(df_ca))]
+
+bg <- dplyr::left_join(bg, d)
+bg$Category[is.na(bg$Category)] <- "Category_0"
+
+bg_LTR <- bg[bg$class_id == "LTR",]
+bg_LINE <- bg[bg$class_id == "LINE",]
+
 motifFile <- "input/HOCOMOCOv11_core_MOUSE_mono_homer_format_0.001.motif"
 annoMotif <- "input/MOUSE_mono_motifs_HOCOMOCO.tsv"
 ```
 
 
 ## Analysis
-```{r 20200213-homer-RE-5, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-5, message=FALSE, warning=FALSE, eval = FALSE}
 all <- perform_homer(
   df = df,
   FC = "all",
@@ -278,7 +316,7 @@ adult <- perform_homer(
 ```
 
 ## Split RE Family
-```{r 20200213-homer-RE-6, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-6, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_fam <- perform_homer(
   df = df,
   FC = "all",
@@ -314,7 +352,7 @@ adult_sp_fam <- perform_homer(
 ```
 
 ## Split RE sub family
-```{r 20200213-homer-RE-7, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-7, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_subfam <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -346,9 +384,77 @@ adult_sp_subfam <- perform_homer(
 )
 ```
 
+## Split RE sub category
+```{r 20200213-homer-RE-8, message=FALSE, warning=FALSE, eval = FALSE}
+all_sp_subcat <- perform_homer(
+  df = df_sc, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "gene_id",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subcat <- perform_homer(
+  df = df_sc, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "gene_id",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subcat <- perform_homer(
+  df = df_sc, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "gene_id",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
+## Split Category
+```{r 20200213-homer-RE-9, message=FALSE, warning=FALSE}
+all_sp_subcat1 <- perform_homer(
+  df = df_ca, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "Category",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subcat1 <- perform_homer(
+  df = df_ca, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "Category",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subcat1 <- perform_homer(
+  df = df_ca, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "Category",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
 
 ## Split RE genome annotation
-```{r 20200213-homer-RE-8, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-10, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_anno <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -381,7 +487,7 @@ adult_sp_anno <- perform_homer(
 ```
 
 ## Split RE genome annotation + family
-```{r 20200213-homer-RE-9, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-11, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_anno_fam <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -414,7 +520,7 @@ adult_sp_anno_fam <- perform_homer(
 ```
 
 ## Split RE genome annotation + sub family
-```{r 20200213-homer-RE-10, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-12, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_anno_subfam <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -446,9 +552,42 @@ adult_sp_anno_subfam <- perform_homer(
 )
 ```
 
+## Split RE genome annotation + sub category
+```{r 20200213-homer-RE-13, message=FALSE, warning=FALSE, eval = FALSE}
+all_sp_anno_subcat <- perform_homer(
+  df = df_sc, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class_gene",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno_subcat <- perform_homer(
+  df = df_sc, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class_gene",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno_subcat <- perform_homer(
+  df = df_sc, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class_gene",
+  split_bg = TRUE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
 
 ## Split RE Family (all background)
-```{r 20200213-homer-RE-11, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-14, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_fam_bg_all <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -481,7 +620,7 @@ adult_sp_fam_bg_all <- perform_homer(
 ```
 
 ## Split RE sub family (all background)
-```{r 20200213-homer-RE-12, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-15, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_subfam_bg_all <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -513,9 +652,76 @@ adult_sp_subfam_bg_all <- perform_homer(
 )
 ```
 
+## Split RE sub category (all background)
+```{r 20200213-homer-RE-16, message=FALSE, warning=FALSE, eval = FALSE}
+all_sp_subcat_bg_all <- perform_homer(
+  df = df_sc, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "gene_id",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subcat_bg_all <- perform_homer(
+  df = df_sc, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "gene_id",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subcat_bg_all <- perform_homer(
+  df = df_sc, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "gene_id",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+## Split RE sub category (all background)
+```{r 20200213-homer-RE-17, message=FALSE, warning=FALSE}
+all_sp_subcat1_bg_all <- perform_homer(
+  df = df_ca, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subcat1_bg_all <- perform_homer(
+  df = df_ca, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subcat1_bg_all <- perform_homer(
+  df = df_ca, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
 
 ## Split RE genome annotation (all background)
-```{r 20200213-homer-RE-13, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-18, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_anno_bg_all <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -548,7 +754,7 @@ adult_sp_anno_bg_all <- perform_homer(
 ```
 
 ## Split RE genome annotation + family (all background)
-```{r 20200213-homer-RE-14, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-19, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_anno_fam_bg_all <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -581,7 +787,7 @@ adult_sp_anno_fam_bg_all <- perform_homer(
 ```
 
 ## Split RE genome annotation + sub family (all background)
-```{r 20200213-homer-RE-15, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-20, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_anno_subfam_bg_all <- perform_homer(
   df = df, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -613,15 +819,114 @@ adult_sp_anno_subfam_bg_all <- perform_homer(
 )
 ```
 
+## Split RE genome annotation + sub category (all background)
+```{r 20200213-homer-RE-21, message=FALSE, warning=FALSE, eval = FALSE}
+all_sp_anno_subcat_bg_all <- perform_homer(
+  df = df_sc, FC = "all", bg = bg,
+  fName = "PND15_Adult",
+  split = T, sp_col = "genomeAnno_class_gene",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_anno_subcat_bg_all <- perform_homer(
+  df = df_sc, FC = "neg",
+  bg = bg, fName = "Adult_Negative",
+  split = T, sp_col = "genomeAnno_class_gene",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_anno_subcat_bg_all <- perform_homer(
+  df = df_sc, FC = "pos",
+  bg = bg, fName = "Adult_Positive",
+  split = T, sp_col = "genomeAnno_class_gene",
+  split_bg = FALSE,
+  out = "output/subcategory/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
+## Split RE sub category (specific)
+```{r 20200213-homer-RE-22, message=FALSE, warning=FALSE}
+all_sp_subcat1_bg_LTR_cat_1_5 <- perform_homer(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T),], FC = "all", bg = bg_LTR,
+  fName = "PND15_Adult",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory_bg_LTR/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subcat1_bg_LTR_cat_1_5 <- perform_homer(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T),], FC = "neg",
+  bg = bg_LTR, fName = "Adult_Negative",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory_bg_LTR/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subcat1_bg_LTR_cat_1_5 <- perform_homer(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T),], FC = "pos",
+  bg = bg_LTR, fName = "Adult_Positive",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory_bg_LTR/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+
+all_sp_subcat1_bg_LINE_cat_6 <- perform_homer(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category),], FC = "all", bg = bg_LINE,
+  fName = "PND15_Adult",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory_bg_LINE/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+pnd15_sp_subcat1_bg_LINE_cat_6 <- perform_homer(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category),], FC = "neg",
+  bg = bg_LINE, fName = "Adult_Negative",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory_bg_LINE/",
+  DB = motifFile,
+  anno = annoMotif
+)
+
+adult_sp_subcat1_bg_LINE_cat_6 <- perform_homer(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category),], FC = "pos",
+  bg = bg_LINE, fName = "Adult_Positive",
+  split = T, sp_col = "Category",
+  split_bg = FALSE,
+  out = "output/subcategory_bg_LINE/",
+  DB = motifFile,
+  anno = annoMotif
+)
+```
+
+
 
 
 # References
-```{r re-rGREAT-16 }
+```{r 20200213-homer-RE-23 }
 report::cite_packages(sessionInfo())
 ```
 
 # SessionInfo
-```{r re-rGREAT-17 }
+```{r 20200213-homer-RE-24 }
 devtools::session_info() %>%
   details()
 ```
