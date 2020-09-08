@@ -28,147 +28,309 @@ link-citations: yes
 library(csaw)
 library(edgeR)
 library(Rsubread)
+library(ggplot2)
+library(plgINS)
 ```
 
-# Reading the counts
+# Data
 
 ```{r, message = F, warning = F}
-# BAM files
 bamFiles <- list.files(path = "input", pattern = "bam$", full.names = T)
 names(bamFiles) <- gsub(pattern = "\\.bam", replacement = "", basename(bamFiles))
+
 gtf <- data.frame(rtracklayer::import("input/mm10_rmsk_TE.gtf.gz"))
-
-rtracklayer::export(object = gtf[1:100,],con = "test.gtf", format = "gtf")
-
-# gtf$Derives_from <- paste(gtf$class_id, gtf$family_id, sep = "/")
-gtf1 <- data.frame(rtracklayer::import("/mnt/IM/anno/Mus_musculus.GRCm38.75.repeats.gtf"))
-# gtf_test <- gtf[sample(nrow(gtf), 1000), ]
 ```
 
-## Family
-```{r, warning=FALSE, message=FALSE}
-fc_family <- featureCounts(
-  files = bamFiles,
-  annot.ext = "input/mm10_rmsk_TE.gtf.gz",
-  isGTFAnnotationFile = T,
-  GTF.attrType = "class_id",
-  GTF.featureType = "exon",
-  allowMultiOverlap = T,
-  fraction = T,
-  countMultiMappingReads = T,
-  ignoreDup = T,
-  nthreads = 16
-)
+# Counts for RE
 
-saveRDS(object = fc_family, file = "./output/fc_Family.rds")
+## Transcript level
 
-rownames(fc_family$annotation) <- fc_family$annotation$GeneID
-counts_family <- SummarizedExperiment(list(counts = fc_family$counts))
-counts_family@metadata <- fc_family$annotation
-```
-
-
-## subFamily
-```{r, warning=FALSE, message=FALSE}
-fc_sub_family <- featureCounts(
-  isPairedEnd = TRUE,
-  files = bamFiles,
-  annot.ext = "input/mm10_rmsk_TE.gtf.gz",
-  isGTFAnnotationFile = T,
-  GTF.attrType = "class_id",
-  GTF.attrType.extra = "family_id",
-  GTF.featureType = "exon",
-  allowMultiOverlap = T,
-  fraction = T,
-  countMultiMappingReads = T,
-  ignoreDup = T,
-  nthreads = 16
-)
-
-
-saveRDS(object = fc_sub_family, file = "./output/fc_subFamily.rds")
-
-rownames(fc_sub_family$annotation) <- fc_sub_family$annotation$GeneID
-counts_sub_family <- SummarizedExperiment(list(counts = fc_sub_family$counts))
-counts_sub_family@metadata <- fc_sub_family$annotation
-```
-
-
-
-# Filtering counts
-
-## Function
+<!-- ### regions count -->
 ```{r}
-counts <- readRDS("output/counts.rds")
+counts_file <- "output/counts_te.rds"
+if(!file.exists(counts_file)){
+counts_te <- regionCounts(bamFiles,
+  regions = GRanges(gtf),
+  param = readParam(pe = "both"),
+  BPPARAM = MulticoreParam(16)
+)
+} else{
+counts_te <- readRDS(counts_file)
+}
+```
 
-counts_filter <- function(counts, nReads = 15, nSamplesPercent = 0.4) {
+
+<!-- ### FC -->
+<!-- ```{r} -->
+<!-- if (!file.exists("./output/fc_transcriptID.rds")) { -->
+<!--   fc_te <- featureCounts( -->
+<!--     isPairedEnd = TRUE, -->
+<!--     files = bamFiles, -->
+<!--     annot.ext = "input/mm10_rmsk_TE.gtf.gz", -->
+<!--     isGTFAnnotationFile = T, -->
+<!--     GTF.attrType = "transcript_id", -->
+<!--     GTF.attrType.extra = c("gene_id", "family_id", "class_id"), -->
+<!--     GTF.featureType = "exon", -->
+<!--     allowMultiOverlap = T, -->
+<!--     fraction = T, -->
+<!--     countMultiMappingReads = T, -->
+<!--     ignoreDup = T, -->
+<!--     nthreads = 22 -->
+<!--   ) -->
+
+<!--   saveRDS(object = fc_te, file = "./output/fc_transcriptID.rds") -->
+<!-- } else { -->
+<!--   fc_te <- readRDS("output/fc_transcriptID.rds") -->
+<!-- } -->
+
+<!-- rownames(fc_te$annotation) <- fc_te$annotation$GeneID -->
+<!-- counts_te <- SummarizedExperiment(list(counts = fc_te$counts)) -->
+<!-- counts_te@metadata <- fc_te$annotation -->
+<!-- ``` -->
+
+
+## Gene level
+```{r, warning=FALSE, message=FALSE}
+if (!file.exists("./output/fc_geneID.rds")) {
+  fc_gi <- featureCounts(
+    isPairedEnd = TRUE,
+    files = bamFiles,
+    annot.ext = "input/mm10_rmsk_TE.gtf.gz",
+    isGTFAnnotationFile = T,
+    GTF.attrType = "gene_id",
+    GTF.attrType.extra = c("family_id", "class_id"),
+    GTF.featureType = "exon",
+    allowMultiOverlap = T,
+    fraction = T,
+    countMultiMappingReads = T,
+    ignoreDup = T,
+    nthreads = 22
+  )
+
+  saveRDS(object = fc_gi, file = "./output/fc_geneID.rds")
+} else {
+  fc_gi <- readRDS("output/fc_geneID.rds")
+}
+
+rownames(fc_gi$annotation) <- fc_gi$annotation$GeneID
+counts_gi <- SummarizedExperiment(list(counts = fc_gi$counts))
+counts_gi@metadata <- fc_gi$annotation
+```
+
+
+# Differential accessibility analysis
+```{r}
+counts_filter <- function(counts, nReads = 5, nSamplesPercent = 0.4) {
   counts2 <- apply(counts, 1, FUN = function(x) {
-    sum(x >= 15) >= floor(length(x) * 0.4)
+    sum(x >= nReads) >= floor(length(x) * nSamplesPercent)
   })
   return(counts2)
 }
 ```
 
-## Filter counts
+
+## Transcripts level
 ```{r}
-keep <- counts_filter(counts = assay(counts))
-counts.filt <- counts[keep]
-counts.filt$totals <- colSums(assay(counts.filt))
+keep_te <- counts_filter(counts = assay(counts_te))
+counts_filt_te <- counts_te[keep_te]
+
+data_te <- normFactors(counts_filt_te)
+
+y_te <- asDGEList(data_te)
+colnames(y_te) <- gsub(".*/|\\..*", "", bamFiles)
+
+design_te <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(y_te))))
+colnames(design_te) <- gsub(".*)", "", colnames(design_te))
+
+contrast_matrix_te <- makeContrasts(Adult - PND15, levels = design_te)
+
+y_te <- estimateDisp(y_te, design_te)
+fit_te <- glmQLFit(y_te, design_te, robust = TRUE)
+results_te <- glmQLFTest(fit_te, contrast = contrast_matrix_te)
+results_te$table$qvalue <- p.adjust(p = results_te$table$PValue, method = "BH")
+rowData(data_te) <- cbind(rowData(data_te), results_te$table)
+
+anno_te <- data.frame(plgINS:::annoPeaks(
+  peaks = rowRanges(data_te),
+  gtf = "/mnt/IM/reference/annotation/gencodeM18/gencode.vM18.chr_patch_hapl_scaff.annotation.gtf.gz",
+  proximal = 1000
+))
+
+anno_te$class_n <- as.character(anno_te$class)
+anno_te$class_n[anno_te$class_n == "intronic"] <- "gene_body"
+anno_te$class_n[anno_te$class_n == "exonic"] <- "gene_body"
+anno_te$class_n[anno_te$class_n == "TSS"] <- "Tss_prox_1kbp"
+anno_te$class_n[anno_te$class_n == "proximal <=1000bp"] <- "Tss_prox_1kbp"
+
+
+anno_te <- anno_te[,c(1:13, 19:24, 14:18)]
+
+rowRanges(data_te) <- GRanges(anno_te)
+rowData(data_te) <- rowRanges(data_te)
+
+tab_te <- anno_te
+
+tab_s_te <- tab_te[abs(tab_te$logFC) >= 1 & tab_te$qvalue <= 0.05,]
 ```
 
 
-# Differential binding
+## Genes level
 ```{r}
-data <- normFactors(counts.filt)
-# colnames(rowData(data)) <- paste("Peak", colnames(rowData(data)), sep = "-")
+keep_ge <- counts_filter(counts = assay(counts_gi), nReads = 15)
+counts_filt_ge <- counts_gi[keep_ge]
+counts_filt_ge$totals <- colSums(assay(counts_filt_ge))
 
-y <- asDGEList(data)
-colnames(y) <- names(bamFiles)
+data_ge <- normFactors(counts_filt_ge)
 
-design <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(y))))
-colnames(design) <- gsub(".*)", "", colnames(design))
+y_ge <- asDGEList(data_ge)
+colnames(y_ge) <- gsub(pattern = "input/|\\.bam", replacement = "", x = rownames(counts_filt_ge@colData))
+colnames(y_ge) <- gsub(pattern = "\\.", replacement = "_", x = colnames(y_ge))
 
-contrast.matrix <- makeContrasts(Adult - PND15, levels = design)
+design_ge <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(y_ge))))
+colnames(design_ge) <- gsub(".*)", "", colnames(design_ge))
 
-y <- estimateDisp(y, design)
-fit <- glmQLFit(y, design, robust = TRUE)
-results <- glmQLFTest(fit, contrast = contrast.matrix)
-results$table$qvalue <- p.adjust(p = results$table$PValue, method = "BH")
-# colnames(results$table) <- paste("diffEnrichment", colnames(results$table), sep = "-")
-rowData(data) <- cbind(rowData(data), results$table)
+contrast_ge <- makeContrasts(Adult - PND15, levels = design_ge)
 
-tab <- data.frame(rowData(data))
-tab <- data.frame(Name = rownames(tab), tab)
-tab <- merge(gtf[,10:11], tab)
+y_ge <- estimateDisp(y_ge, design_ge)
+fit_ge <- glmQLFit(y_ge, design_ge, robust = TRUE)
+results_ge <- glmQLFTest(fit_ge, contrast = contrast_ge)
+results_ge$table$qvalue <- p.adjust(p = results_ge$table$PValue, method = "BH")
+rowData(data_ge) <- cbind(rowData(data_ge), results_ge$table)
+tab_ge <- data.frame(gene_id = rownames(rowData(data_ge)), rowData(data_ge))
 
-rowData(data) <- tab
+an_gi <- gtf[, c(10, 12, 13)]
+an_gi <- an_gi[!duplicated(an_gi), ]
+
+tab_ge <- merge(an_gi, tab_ge)
+colnames(tab_ge)[4:ncol(tab_ge)] <- paste("subtype", colnames(tab_ge)[4:ncol(tab_ge)], sep = "_")
+
+rowData(data_ge) <- tab_ge
+```
+
+## Aggregate trasncripts pval to gene level
+```{r}
+tab_te_sp <- split(tab_te, tab_te$gene_id)
+
+pval_tab_te_sp <- lapply(tab_te_sp, function(x) aggregation::lancaster(pvalues = x$PValue, weights = x$F))
+pval_tab_te_sp <- plyr::ldply(pval_tab_te_sp, data.frame, .id = "gene_id")
+
+colnames(pval_tab_te_sp)[2] <- "agg_pval"
+pval_tab_te_sp$agg_qval <- p.adjust(p = pval_tab_te_sp$agg_pval, method = "BH")
+```
+
+
+## Transcript based with norm factors as BAM counts (check)
+```{r}
+rd <- c(
+  Adult_03 = 60657376, Adult_09 = 69162383, Adult_11 = 85219624, Adult_13 = 69260772, Adult_17 = 63491836,
+  PND15_343 = 85833916, PND15_346 = 70049032, PND15_348 = 65804531, PND15_361 = 61231716, PND15_367 = 133311494, PND15_372 = 75217146
+)
+
+y_te_c <- y_te
+
+y_te_c$samples$norm.factors <- 1
+y_te_c$samples$lib.size <- rd
+
+y_te_c <- estimateDisp(y_te_c, design_te)
+fit_te_c <- glmQLFit(y_te_c, design_te, robust = TRUE)
+results_te_c <- glmQLFTest(fit_te_c, contrast = contrast_matrix_te)
+results_te_c$table$qvalue <- p.adjust(p = results_te_c$table$PValue, method = "BH")
+
+tab_te_c <- cbind(tab_te[,1:18], results_te_c$table)
+```
+
+# One table with results from gene and transcripts and agg
+```{r}
+tab <- dplyr::inner_join(x = tab_te, tab_ge)
+tab <- dplyr::inner_join(x = tab, pval_tab_te_sp)
+rownames(tab) <- tab$transcript_id
+```
+
+
+# Overlap with ATAC-Seq & ChIP-Seq data
+
+## ATAC-Seq data
+```{r}
+# Reading ATAC data
+atac_files <- list.files("input/atacseq", full.names = TRUE)
+names(atac_files) <- gsub(pattern = "_NF.*", replacement = "", x = basename(atac_files))
+atac_peaks <- lapply(atac_files, function(x) {
+  read.table(x,
+    header = F,
+    col.names = c(
+      "Chr", "Start", "End", "Name", "Score", "Strand",
+      "FoldChange", "negLog10pvalue", "negLog10qvalue",
+      "Summit"
+    ),
+    stringsAsFactors = F
+  )
+})
+
+
+# Overlap ATAC peaks with ATAC differential accessible peaks
+overlap_atac <- lapply(atac_peaks, function(x) metaGR(gr1 = GRanges(tab), gr2 = GRanges(x), minOverlap = 5)$transcript_id)
+
+# Adding logical values based on overlap to the main table
+tab$ATAC_PND15 <- tab$ATAC_Adult <- tab$ATAC_PND15_Adult <- FALSE
+tab[overlap_atac$PND15, "ATAC_PND15"] <- TRUE
+tab[overlap_atac$Adult, "ATAC_Adult"] <- TRUE
+tab[overlap_atac$PND_Adult, "ATAC_PND15_Adult"] <- TRUE
+```
+
+## ChIP-Seq data
+```{r}
+# Reading ChIP data
+chip_files <- list.files("input/chipseq", full.names = TRUE)
+names(chip_files) <- gsub(pattern = "_SRX.*", replacement = "", x = basename(chip_files))
+chip_peaks <- lapply(chip_files, function(x) {
+  read.table(x,
+    header = F,
+    col.names = c(
+      "Chr", "Start", "End", "Name", "Score", "Strand",
+      "FoldChange", "negLog10pvalue", "negLog10qvalue",
+      "Summit"
+    ),
+    stringsAsFactors = F
+  )
+})
+
+
+# Overlap ChIP peaks with ATAC differential accessible peaks
+overlap_chip <- lapply(chip_peaks, function(x) metaGR(gr1 = GRanges(tab), gr2 = GRanges(x), minOverlap = 5)$transcript_id)
+
+# Adding logical values based on overlap to the main table
+tab$ChIP_PNW8_H3K4me3 <- tab$ChIP_PNW8_H3K27me3 <- tab$ChIP_PNW8_H3K27ac <- FALSE
+tab[overlap_chip$PNW8_H3K4me3, "ChIP_PNW8_H3K4me3"] <- TRUE
+tab[overlap_chip$PNW8_H3K27me3, "ChIP_PNW8_H3K27me3"] <- TRUE
+tab[overlap_chip$PNW8_H3K27ac, "ChIP_PNW8_H3K27ac"] <- TRUE
 ```
 
 
 # Saving results
 ```{r}
-save(data, file = "output/repeat_elements_atac_diff_chromatin_accessibility.RData")
-
-tab <- data.frame(rowData(data), check.names = F, stringsAsFactors = F)
+save(data_te, file = "output/repeat_elements_atac_diff_chromatin_accessibility.RData")
+save(data_ge, file = "output/repeat_elements_atac_diff_chromatin_accessibility_gene_level.RData")
 
 data.table::fwrite(
-  x = tab,
+  x = tab_te,
   file = "./output/repeat_elements_atac_diff_chromatin_accessibility.txt.gz",
   sep = "\t", quote = F, row.names = F, nThread = 16
 )
 
-tab.sig <- tab[abs(tab$logFC) >= 0.5 & tab$qvalue <= 0.05, ]
+data.table::fwrite(
+  x = tab_ge,
+  file = "./output/repeat_elements_atac_diff_chromatin_accessibility_gene_level.txt.gz",
+  sep = "\t", quote = F, row.names = F, nThread = 16
+)
+
+tab_sig <- tab[abs(tab$logFC) >= 1 & tab$qvalue <= 0.05, ]
 
 writexl::write_xlsx(
-  x = tab.sig, path = "./output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx",
+  x = tab_sig, path = "./output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx",
   col_names = T, format_headers = T
 )
 ```
 
-
-```{r}
-t <- readxl::read_xlsx("output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx")
-```
 
 
 <!-- # Merging with diff Accessibility -->
@@ -197,267 +359,6 @@ t <- readxl::read_xlsx("output/repeat_elements_atac_diff_chromatin_accessibility
 <!-- ``` -->
 
 
-# Annotation
-```{r}
-load("output/repeat_elements_atac_diff_chromatin_accessibility.RData")
-
-rd <- GRanges(rowData(data))
-
-pa <- plgINS:::annoPeaks(
-  peaks = rd,
-  gtf = "/mnt/IM/reference/annotation/gencodeM18/gencode.vM18.chr_patch_hapl_scaff.annotation.gtf.gz", 
-  proximal = 1000)
-
-pa$class_n <- as.character(pa$class)
-pa$class_n[pa$class_n == "intronic"] <- "gene_body"
-pa$class_n[pa$class_n == "exonic"] <- "gene_body"
-pa$class_n[pa$class_n == "TSS"] <- "Tss_prox_1kbp"
-pa$class_n[pa$class_n == "proximal <=1000bp"] <- "Tss_prox_1kbp"
-
-pa <- data.frame(pa, check.names = F, stringsAsFactors = F)
-pa <- pa[, c(grep(pattern = "diffEnri", x = colnames(pa), invert = T), grep(pattern = "diffEnri", x = colnames(pa)))]
-
-colnames(pa) <- gsub(pattern = "\\.", replacement = "-", x = colnames(pa))
-
-rowRanges(data) <- GRanges(pa)
-rowData(data) <- DataFrame(pa)
-
-save(data, file = "output/repeat_elements_atac_diff_chromatin_accessibility.RData")
-
-tab <- data.frame(rowData(data), check.names = F, stringsAsFactors = F)
-
-data.table::fwrite(
-  x = tab,
-  file = "./output/repeat_elements_atac_diff_chromatin_accessibility.txt.gz",
-  sep = "\t", quote = F, row.names = F, nThread = 16
-)
-
-tab.sig <- tab[abs(tab$diffEnrichment.logFC) >= 1 & tab$diffEnrichment.qvalue <= 0.05, ]
-
-writexl::write_xlsx(
-  x = tab.sig, path = "./output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx",
-  col_names = T, format_headers = T
-)
-```
-
-# Adding RNA expression data
-```{r}
-re <- readxl::read_xlsx("output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx")
-
-load("input/limma_SC_Controls.RData")
-
-de <- dea.limma$`PND15 vs Adult`
-
-re_de <- data.frame(dplyr::left_join(x = re, y = de, by = c("nearestTSS.gene_name" = "Genes")))
-
-writexl::write_xlsx(
-  x = re_de, path = "./output/repeat_elements_atac_diff_chromatin_accessibility_sig_merge_diff_expression.xlsx",
-  col_names = T, format_headers = T
-)
-
-o <- re_de[!is.na(re_de$logFC),]
-
-plot(o$diffEnrichment.logFC, o$logFC)
-```
-
-
-#################################################################################################################
-
-# Perform DA at Family and SubFamily level
-
-```{r}
-tab <- assay(counts)
-colnames(tab) <- gsub(pattern = "input/|\\.bam", replacement = "", x = counts@colData$bam.files)
-
-rd <- data.frame(rowData(counts)[,10:13])
-rd$sf <- paste(rd$class_id, rd$family_id, sep = "/")
-
-rownames(rd) <- rd$transcript_id
-
-# t <- readxl::read_xlsx("output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx")
-# rd <- rd[t$transcript_id,]
-
-
-sf <- data.frame(cbind(ID = rd[,"sf"], tab), stringsAsFactors = F)
-
-
-
-sf <- plgINS::plag(x = data.matrix(sf[,2:ncol(sf)]), by = sf$ID)
-
-sf_se <- SummarizedExperiment(assays = list(counts = data.matrix(sf)), colData = counts@colData[,1, drop = FALSE])
-```
-
-```{r}
-# perform_da <- function(se){
-# # keep <- counts_filter(counts = assay(se))
-# # se_filt <- se[keep]
-
-se$totals <- colSums(assay(se))
-data <- normFactors(se)
-
-y <- asDGEList(data)
-# colnames(y) <- names(bamFiles)
-
-# design <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(y))))
-# colnames(design) <- gsub(".*)", "", colnames(design))
-# 
-# contrast.matrix <- makeContrasts(Adult - PND15, levels = design)
-# 
-# y <- estimateDisp(y, design)
-# fit <- glmQLFit(y, design, robust = TRUE)
-# results <- glmQLFTest(fit, contrast = contrast.matrix)
-# results$table$qvalue <- p.adjust(p = results$table$PValue, method = "BH")
-# # colnames(results$table) <- paste("diffEnrichment", colnames(results$table), sep = "-")
-# rowData(data) <- cbind(rowData(data), results$table)
-# 
-# tab <- data.frame(rowData(data))
-# tab <- data.frame(Name = rownames(tab), tab)
-# # tab <- merge(gtf[,10:11], tab)
-# 
-# rowData(data) <- tab
-# }
-```
-
-
-
-
-# Heatmap
-```{r}
-library(viridis)
-cols <- magma(n = 10)[c(3, 6, 9)]
-cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1])
-
-re_ele <- cpm(y, normalized.lib.sizes = T, log = T)
-
-re_ele <- data.frame(symbol = rownames(re_ele), re_ele)
-re_ele <- re_ele[grep(pattern = "\\?", x = re_ele$symbol, value = T, invert = T), ]
-re_ele <- re_ele[grep(pattern = "LTR|LINE|SINE", x = rownames(re_ele)), ]
-mat <- re_ele[,-1]
-mat <- data.matrix(mat - rowMeans(mat[, grep(pattern = "PND15", x = colnames(mat), value = T)]))
-
-library(ComplexHeatmap)
-library(seriation)
-
-o <- seriate(max(mat) - mat)
-
-mat <- mat[get_order(o), ]
-
-rd <- data.frame(ID = rownames(mat))
-rd$Category <- gsub(pattern = "\\/.*", replacement = "", x = rd$ID)
-rownames(rd) <- rd$ID
-
-rd <- rd[rownames(mat),]
-
-cd <- data.frame(ID = colnames(mat))
-cd$Group <- gsub(pattern = "_.*", replacement = "", x = cd$ID)
-
-cd$Group <- factor(cd$Group, levels = rev(unique(cd$Group)))
-rownames(cd) <- cd$ID
-
-ele_cols <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
-names(ele_cols) <- c("LINE", "LTR", "SINE")
-
-la <- HeatmapAnnotation(
-  Category = rd$Category, which = "row",
-  col = list(Category = ele_cols),
-  simple_anno_size = unit(3, "mm"),
-  show_annotation_name = TRUE,
-  annotation_name_side = "bottom",
-  annotation_legend_param = list(
-    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
-    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-  ),
-  annotation_name_rot = 0,
-  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica")
-)
-
-ha <- HeatmapAnnotation(
-  df = cd[, 2, drop = FALSE],
-  col = list(Group = cols[2:3]),
-  simple_anno_size = unit(3, "mm"),
-  show_annotation_name = TRUE,
-  annotation_name_side = "right",
-  annotation_name_rot = 0,
-  annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
-  annotation_legend_param = list(
-    title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"),
-    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-  )
-)
-
-# col_fun <- colorRamp2(c(-2, 0, 2), viridis(n = 3))
-b <- ha %v% Heatmap(
-  matrix = mat,
-  col = viridis(n = 100),
-  cluster_rows = F,
-  cluster_columns = T,
-  clustering_method_columns = "ward.D2",
-  show_row_names = T,
-  show_column_names = F,
-  name = "Enrichment (log)",
-  row_split = rd$Category,
-  column_split = cd[, 2, drop = FALSE],
-  cluster_column_slices = FALSE,
-  column_dend_height = unit(0.5, "cm"),
-  show_parent_dend_line = FALSE,
-  row_title = NULL,
-  top_annotation = ha,
-  column_title = NULL,
-  row_names_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
-  use_raster = FALSE,
-  left_annotation = la,
-  height = unit(x = 5.5, units = "cm"), width = unit(x = 3.5, units = "cm"),
-  heatmap_legend_param = list(
-    title = expression(bold(~ Log[2] ~ "fold-change")),
-    legend_height = unit(2.5, "cm"),
-    title_position = "leftcenter-rot",
-    title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
-    labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica")
-  )
-)
-
-# pdf(file = "output/b.pdf", width = 8.5, height = 11)
-draw(
-  object = b,
-  heatmap_legend_side = "right",
-  annotation_legend_side = "right",
-  merge_legends = TRUE,
-  align_annotation_legend = ""
-)
-# dev.off()
-
-```
-
-
-
-
-
-
-
-
-
-
-
-# Saving results
-```{r}
-save(data, file = "output/repeat_elements_atac_diff_chromatin_accessibility.RData")
-
-tab <- data.frame(rowData(data), check.names = F, stringsAsFactors = F)
-
-data.table::fwrite(
-  x = tab,
-  file = "./output/repeat_elements_atac_diff_chromatin_accessibility.txt.gz",
-  sep = "\t", quote = F, row.names = F, nThread = 16
-)
-
-tab.sig <- tab[abs(tab$logFC) >= 0.5 & tab$qvalue <= 0.05, ]
-
-writexl::write_xlsx(
-  x = tab.sig, path = "./output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx",
-  col_names = T, format_headers = T
-)
-```
-
 
 
 # SessionInfo
@@ -467,86 +368,344 @@ devtools::session_info()
 
 
 
-```{r}
-library(parallel)
-bamFiles <- list.files(path = "input", pattern = "bam$", full.names = T)
-names(bamFiles) <- gsub(pattern = "\\.bam", replacement = "", basename(bamFiles))
-
-gtf <- data.frame(rtracklayer::import("input/mm10_rmsk_TE.gtf.gz"))
-gtf <- gtf[gtf$class_id %in% c("LTR", "LINE", "SINE"),]
-
-gtf$ID <- paste(gtf$class_id, gtf$family_id, sep = "_")
-
-gtf_sp <- split(gtf, gtf$ID)
 
 
-for(i in 1:length(gtf_sp)){
-  rtracklayer::export(object = gtf_sp[[i]], con = paste0("./gtf/", names(gtf_sp)[i], ".gtf"), format = "gtf")
-}
-```
+<!-- ```{r} -->
+<!-- nf <- data@colData$norm.factors -->
+<!-- names(nf) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files) -->
 
-```{r}
-gtf_files <- data.frame(rtracklayer::import("input/mm10_rmsk_TE.gtf.gz"))
+<!-- rd <- c( -->
+<!--   Adult_03 = 60657376, Adult_09 = 69162383, Adult_11 = 85219624, Adult_13 = 69260772, Adult_17 = 63491836, -->
+<!--   PND15_343 = 85833916, PND15_346 = 70049032, PND15_348 = 65804531, PND15_361 = 61231716, PND15_367 = 133311494, PND15_372 = 75217146 -->
+<!-- ) -->
 
-fc_sub_family <- featureCounts(
-  isPairedEnd = TRUE,
-  files = bamFiles[1:2],
-  annot.ext = "test.gtf",
-  isGTFAnnotationFile = T,
-  GTF.attrType = "class_id",
-  GTF.attrType.extra = "family_id",
-  GTF.featureType = "exon",
-  allowMultiOverlap = T,
-  fraction = T,
-  countMultiMappingReads = T,
-  ignoreDup = T,
-  nthreads = 2
-)
-```
+<!-- rc <- colSums(assay(counts)) -->
+<!-- names(rc) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files) -->
 
+<!-- rcf <- colSums(assay(data)) -->
+<!-- names(rcf) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files) -->
 
-```{r}
-tab <- data.table::fread(input = "output/repeat_elements_atac_diff_chromatin_accessibility.txt.gz", 
-                         sep = "\t",stringsAsFactors = F)
+<!-- cpm <- colSums(cpm(y, log = FALSE)) -->
+<!-- names(cpm) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files) -->
 
-sum(tab$class_id == "SINE")
-```
+<!-- pdf("output/data_distr.pdf") -->
+<!-- par(mfrow = c(2, 2)) -->
+
+<!-- plot( -->
+<!--   x = rd, y = rc, main = "nReads vs RE counts", xlab = "Number of reads from bam file", ylab = "Counts of RE", -->
+<!--   col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16 -->
+<!-- ) -->
+<!-- abline(lm(rc ~ rd)) -->
 
 
+<!-- plot(x = rd, y = rcf, main = "nReads vs RE filtered counts", xlab = "Number of reads from bam file", ylab = "Filtered counts of RE", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16) -->
+<!-- abline(lm(rcf ~ rd)) -->
+
+<!-- plot(x = rd, y = cpm, main = "nReads vs CPM", xlab = "Number of reads from bam file", ylab = "CPM", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16) -->
+<!-- abline(lm(cpm ~ rd)) -->
+
+<!-- plot(x = rd, y = nf, main = "nReads vs normalization factor", xlab = "Number of reads from bam file", ylab = "Normalization factors", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16) -->
+<!-- abline(lm(nf ~ rd)) -->
+
+<!-- dev.off() -->
+<!-- ``` -->
+
+
+<!-- ## Loess-based normalization -->
+<!-- ```{r 20191118-differential-analysis-6 } -->
+<!-- offsets <- normOffsets(counts.filt) -->
+
+<!-- y1 <- asDGEList(offsets) -->
+<!-- colnames(y1) <- gsub(pattern = "input/|\\.bam", replacement = "", x = offsets@colData$bam.files) -->
+
+<!-- y1 <- estimateDisp(y1, design) -->
+<!-- fit1 <- glmQLFit(y1, design, robust = TRUE) -->
+<!-- results1 <- glmQLFTest(fit1, contrast = contrast.matrix) -->
+<!-- results1$table$qvalue <- p.adjust(p = results1$table$PValue, method = "BH") -->
+<!-- rowData(offsets) <- cbind(rowData(offsets), results1$table) -->
+<!-- ``` -->
+
+<!-- # MA plots -->
+
+<!-- ## TMM -->
+<!-- ```{r 20191118-differential-analysis-7 } -->
+<!-- library(ggplot2) -->
+<!-- library(gridExtra) -->
+<!-- library(patchwork) -->
+
+<!-- tmm <- rowData(data) -->
+<!-- # plot(tmp$`diffAccessibility-logCPM`, tmp$`diffAccessibility-logFC`) -->
+
+<!-- res_tmm <- data.frame(tmm) -->
+<!-- res_tmm$threshold <- as.factor(res_tmm$qvalue < 0.05) -->
+
+<!-- p1 <- ggplot(data = res_tmm, aes( -->
+<!--   x = logCPM, -->
+<!--   y = logFC, -->
+<!--   colour = threshold -->
+<!-- )) + -->
+<!--   geom_point(alpha = 0.5, size = 1) + -->
+<!--   geom_hline(aes(yintercept = 0), colour = "blue", size = 1) + -->
+<!--   ylim(c( -->
+<!--     -ceiling(max(abs(res_tmm$logFC))), -->
+<!--     ceiling(max(abs(res_tmm$logFC))) -->
+<!--   )) + -->
+<!--   ggtitle("TMM normalization") + -->
+<!--   labs(subtitle = "Loess fit") + -->
+<!--   xlab("Mean expression") + -->
+<!--   ylab("Log2 Fold Change") + -->
+<!--   theme( -->
+<!--     plot.title = element_text(face = "bold", size = 20, hjust = 0.5), -->
+<!--     plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"), -->
+<!--     axis.title.x = element_text(face = "bold", size = 15), -->
+<!--     axis.text.x = element_text(face = "bold", size = 12), -->
+<!--     legend.title = element_text(face = "bold", size = 15), -->
+<!--     legend.text = element_text(size = 14) -->
+<!--   ) + -->
+<!--   scale_colour_discrete(name = "p.adjusted < 0.05") + -->
+<!--   stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1) -->
+<!-- ``` -->
+
+<!-- ## Loess -->
+<!-- ```{r 20191118-differential-analysis-8, warning = FALSE, message = FALSE} -->
+<!-- loess <- rowData(offsets) -->
+
+<!-- res_loess <- data.frame(loess) -->
+<!-- res_loess$threshold <- as.factor(res_loess$qvalue < 0.05) -->
+
+<!-- p2 <- ggplot(data = res_loess, aes( -->
+<!--   x = logCPM, -->
+<!--   y = logFC, -->
+<!--   colour = threshold -->
+<!-- )) + -->
+<!--   geom_point(alpha = 0.5, size = 1) + -->
+<!--   geom_hline(aes(yintercept = 0), colour = "blue", size = 1) + -->
+<!--   ylim(c( -->
+<!--     -ceiling(max(abs(res_loess$logFC))), -->
+<!--     ceiling(max(abs(res_loess$logFC))) -->
+<!--   )) + -->
+<!--   ggtitle("Loess normalization") + -->
+<!--   labs(subtitle = "Loess fit") + -->
+<!--   xlab("Mean expression") + -->
+<!--   ylab("Log2 Fold Change") + -->
+<!--   theme( -->
+<!--     plot.title = element_text(face = "bold", size = 20, hjust = 0.5), -->
+<!--     plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"), -->
+<!--     axis.title.x = element_text(face = "bold", size = 15), -->
+<!--     axis.text.x = element_text(face = "bold", size = 12), -->
+<!--     legend.title = element_text(face = "bold", size = 15), -->
+<!--     legend.text = element_text(size = 14) -->
+<!--   ) + -->
+<!--   scale_colour_discrete(name = "p.adjusted < 0.05") + -->
+<!--   stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- p <- p1 | p2 -->
+
+<!-- ggsave(filename = "output/ma+plot.pdf", width = unit(11, "in"), height = unit(8.5, "in")) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- lfc_tmm <- res_tmm$logFC -->
+<!-- names(lfc_tmm) <- res_tmm$transcript_id -->
+<!-- lfc_tmm <- lfc_tmm[abs(lfc_tmm) > 1] -->
+
+<!-- lfc_loess <- res_loess$logFC -->
+<!-- names(lfc_loess) <- res_loess$transcript_id -->
+<!-- lfc_loess <- lfc_loess[abs(lfc_loess) > 1] -->
+
+<!-- g <- intersect(names(lfc_tmm), names(lfc_loess)) -->
+
+<!-- pdf("output/lfc_plot.pdf") -->
+<!-- plot(lfc_tmm[g], lfc_loess[g]) -->
+<!-- dev.off() -->
+<!-- ``` -->
+
+<!-- # Adding RNA expression data -->
+<!-- ```{r} -->
+<!-- re <- readxl::read_xlsx("output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx") -->
+
+<!-- load("input/limma_SC_Controls.RData") -->
+
+<!-- de <- dea.limma$`PND15 vs Adult` -->
+
+<!-- re_de <- data.frame(dplyr::left_join(x = re, y = de, by = c("nearestTSS.gene_name" = "Genes"))) -->
+
+<!-- writexl::write_xlsx( -->
+<!--   x = re_de, path = "./output/repeat_elements_atac_diff_chromatin_accessibility_sig_merge_diff_expression.xlsx", -->
+<!--   col_names = T, format_headers = T -->
+<!-- ) -->
+
+<!-- o <- re_de[!is.na(re_de$logFC),] -->
+
+<!-- plot(o$diffEnrichment.logFC, o$logFC) -->
+<!-- ``` -->
+
+
+
+<!-- # Perform DA at Family and SubFamily level -->
+
+<!-- ```{r} -->
+<!-- tab <- assay(counts) -->
+<!-- colnames(tab) <- gsub(pattern = "input/|\\.bam", replacement = "", x = counts@colData$bam.files) -->
+
+<!-- rd <- data.frame(rowData(counts)[,10:13]) -->
+<!-- rd$sf <- paste(rd$class_id, rd$family_id, sep = "/") -->
+
+<!-- rownames(rd) <- rd$transcript_id -->
+
+<!-- # t <- readxl::read_xlsx("output/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx") -->
+<!-- # rd <- rd[t$transcript_id,] -->
+
+
+<!-- sf <- data.frame(cbind(ID = rd[,"sf"], tab), stringsAsFactors = F) -->
+
+
+
+<!-- sf <- plgINS::plag(x = data.matrix(sf[,2:ncol(sf)]), by = sf$ID) -->
+
+<!-- sf_se <- SummarizedExperiment(assays = list(counts = data.matrix(sf)), colData = counts@colData[,1, drop = FALSE]) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # perform_da <- function(se){ -->
+<!-- # # keep <- counts_filter(counts = assay(se)) -->
+<!-- # # se_filt <- se[keep] -->
+
+<!-- se$totals <- colSums(assay(se)) -->
+<!-- data <- normFactors(se) -->
+
+<!-- y <- asDGEList(data) -->
+<!-- # colnames(y) <- names(bamFiles) -->
+
+<!-- # design <- model.matrix(~ 0 + factor(gsub("_.*", "", colnames(y)))) -->
+<!-- # colnames(design) <- gsub(".*)", "", colnames(design)) -->
+<!-- #  -->
+<!-- # contrast.matrix <- makeContrasts(Adult - PND15, levels = design) -->
+<!-- #  -->
+<!-- # y <- estimateDisp(y, design) -->
+<!-- # fit <- glmQLFit(y, design, robust = TRUE) -->
+<!-- # results <- glmQLFTest(fit, contrast = contrast.matrix) -->
+<!-- # results$table$qvalue <- p.adjust(p = results$table$PValue, method = "BH") -->
+<!-- # # colnames(results$table) <- paste("diffEnrichment", colnames(results$table), sep = "-") -->
+<!-- # rowData(data) <- cbind(rowData(data), results$table) -->
+<!-- #  -->
+<!-- # tab <- data.frame(rowData(data)) -->
+<!-- # tab <- data.frame(Name = rownames(tab), tab) -->
+<!-- # # tab <- merge(gtf[,10:11], tab) -->
+<!-- #  -->
+<!-- # rowData(data) <- tab -->
+<!-- # } -->
+<!-- ``` -->
 
 
 
 
-```{r}
-nf <- data@colData$norm.factors
-names(nf) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+<!-- # Heatmap -->
+<!-- ```{r} -->
+<!-- library(viridis) -->
+<!-- cols <- magma(n = 10)[c(3, 6, 9)] -->
+<!-- cols <- c(PND8 = cols[3], PND15 = cols[2], Adult = cols[1]) -->
 
-rd <- c(Adult_03 = 60657376, Adult_09 = 69162383, Adult_11 = 85219624, Adult_13 = 69260772, Adult_17 = 63491836, 
-  PND15_343 = 85833916, PND15_346 = 70049032, PND15_348 = 65804531, PND15_361 = 61231716, PND15_367 = 133311494, PND15_372 = 75217146)
+<!-- re_ele <- cpm(y, normalized.lib.sizes = T, log = T) -->
 
-rc <- colSums(assay(counts))
-names(rc) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+<!-- re_ele <- data.frame(symbol = rownames(re_ele), re_ele) -->
+<!-- re_ele <- re_ele[grep(pattern = "\\?", x = re_ele$symbol, value = T, invert = T), ] -->
+<!-- re_ele <- re_ele[grep(pattern = "LTR|LINE|SINE", x = rownames(re_ele)), ] -->
+<!-- mat <- re_ele[,-1] -->
+<!-- mat <- data.matrix(mat - rowMeans(mat[, grep(pattern = "PND15", x = colnames(mat), value = T)])) -->
 
-rcf <- colSums(assay(data))
-names(rcf) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+<!-- library(ComplexHeatmap) -->
+<!-- library(seriation) -->
 
-cpm <- colSums(cpm(y, log = FALSE))
-names(cpm) <- gsub(pattern = "input/|\\.bam", replacement = "", x = data@colData$bam.files)
+<!-- o <- seriate(max(mat) - mat) -->
 
-par(mfrow=c(2,2))
+<!-- mat <- mat[get_order(o), ] -->
 
-plot(x = rd, y = rc, main = "nReads vs RE counts", xlab = "Number of reads from bam file", ylab = "Counts of RE", 
-     col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
-abline(rlm(rc~rd))
+<!-- rd <- data.frame(ID = rownames(mat)) -->
+<!-- rd$Category <- gsub(pattern = "\\/.*", replacement = "", x = rd$ID) -->
+<!-- rownames(rd) <- rd$ID -->
 
+<!-- rd <- rd[rownames(mat),] -->
 
-plot(x = rd, y = rcf, main = "nReads vs RE filtered counts", xlab = "Number of reads from bam file", ylab = "Filtered counts of RE", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
-abline(rlm(rcf~rd))
+<!-- cd <- data.frame(ID = colnames(mat)) -->
+<!-- cd$Group <- gsub(pattern = "_.*", replacement = "", x = cd$ID) -->
 
-plot(x = rd, y = cpm, main = "nReads vs normalization factor", xlab = "Number of reads from bam file", ylab = "Normalization factors", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
-abline(rlm(cpm~rd))
+<!-- cd$Group <- factor(cd$Group, levels = rev(unique(cd$Group))) -->
+<!-- rownames(cd) <- cd$ID -->
 
-plot(x = rd, y = nf, main = "nReads vs normalization factor", xlab = "Number of reads from bam file", ylab = "Normalization factors", col = as.numeric(c(rep("1", 5), rep("2", 6))), pch = 16)
-abline(rlm(nf~rd))
-```
+<!-- ele_cols <- RColorBrewer::brewer.pal(n = 3, name = "Dark2") -->
+<!-- names(ele_cols) <- c("LINE", "LTR", "SINE") -->
 
+<!-- la <- HeatmapAnnotation( -->
+<!--   Category = rd$Category, which = "row", -->
+<!--   col = list(Category = ele_cols), -->
+<!--   simple_anno_size = unit(3, "mm"), -->
+<!--   show_annotation_name = TRUE, -->
+<!--   annotation_name_side = "bottom", -->
+<!--   annotation_legend_param = list( -->
+<!--     title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"), -->
+<!--     labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica") -->
+<!--   ), -->
+<!--   annotation_name_rot = 0, -->
+<!--   annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica") -->
+<!-- ) -->
+
+<!-- ha <- HeatmapAnnotation( -->
+<!--   df = cd[, 2, drop = FALSE], -->
+<!--   col = list(Group = cols[2:3]), -->
+<!--   simple_anno_size = unit(3, "mm"), -->
+<!--   show_annotation_name = TRUE, -->
+<!--   annotation_name_side = "right", -->
+<!--   annotation_name_rot = 0, -->
+<!--   annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"), -->
+<!--   annotation_legend_param = list( -->
+<!--     title_gp = gpar(fontsize = 8, fontface = "bold", fontfamily = "Helvetica"), -->
+<!--     labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica") -->
+<!--   ) -->
+<!-- ) -->
+
+<!-- # col_fun <- colorRamp2(c(-2, 0, 2), viridis(n = 3)) -->
+<!-- b <- ha %v% Heatmap( -->
+<!--   matrix = mat, -->
+<!--   col = viridis(n = 100), -->
+<!--   cluster_rows = F, -->
+<!--   cluster_columns = T, -->
+<!--   clustering_method_columns = "ward.D2", -->
+<!--   show_row_names = T, -->
+<!--   show_column_names = F, -->
+<!--   name = "Enrichment (log)", -->
+<!--   row_split = rd$Category, -->
+<!--   column_split = cd[, 2, drop = FALSE], -->
+<!--   cluster_column_slices = FALSE, -->
+<!--   column_dend_height = unit(0.5, "cm"), -->
+<!--   show_parent_dend_line = FALSE, -->
+<!--   row_title = NULL, -->
+<!--   top_annotation = ha, -->
+<!--   column_title = NULL, -->
+<!--   row_names_gp = gpar(fontsize = 8, fontfamily = "Helvetica"), -->
+<!--   use_raster = FALSE, -->
+<!--   left_annotation = la, -->
+<!--   height = unit(x = 5.5, units = "cm"), width = unit(x = 3.5, units = "cm"), -->
+<!--   heatmap_legend_param = list( -->
+<!--     title = expression(bold(~ Log[2] ~ "fold-change")), -->
+<!--     legend_height = unit(2.5, "cm"), -->
+<!--     title_position = "leftcenter-rot", -->
+<!--     title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"), -->
+<!--     labels_gp = gpar(fontsize = 8, fontfamily = "Helvetica") -->
+<!--   ) -->
+<!-- ) -->
+
+<!-- # pdf(file = "output/b.pdf", width = 8.5, height = 11) -->
+<!-- draw( -->
+<!--   object = b, -->
+<!--   heatmap_legend_side = "right", -->
+<!--   annotation_legend_side = "right", -->
+<!--   merge_legends = TRUE, -->
+<!--   align_annotation_legend = "" -->
+<!-- ) -->
+<!-- # dev.off() -->
+
+<!-- ``` -->
+<!--  -->
