@@ -2969,14 +2969,20 @@ window.onload = function() {
       <li><a href="#analysis">Analysis</a></li>
       <li><a href="#split-re-family">Split RE Family</a></li>
       <li><a href="#split-re-sub-family">Split RE sub family</a></li>
+      <li><a href="#split-re-sub-category">Split RE sub category</a></li>
+      <li><a href="#split-category">Split Category</a></li>
       <li><a href="#split-re-genome-annotation">Split RE genome annotation</a></li>
       <li><a href="#split-re-genome-annotation-family">Split RE genome annotation + family</a></li>
       <li><a href="#split-re-genome-annotation-sub-family">Split RE genome annotation + sub family</a></li>
+      <li><a href="#split-re-genome-annotation-sub-category">Split RE genome annotation + sub category</a></li>
       <li><a href="#split-re-family-all-background">Split RE Family (all background)</a></li>
       <li><a href="#split-re-sub-family-all-background">Split RE sub family (all background)</a></li>
+      <li><a href="#split-re-sub-category-all-background">Split RE sub category (all background)</a></li>
+      <li><a href="#split-category-all-background">Split Category (all background)</a></li>
       <li><a href="#split-re-genome-annotation-all-background">Split RE genome annotation (all background)</a></li>
       <li><a href="#split-re-genome-annotation-family-all-background">Split RE genome annotation + family (all background)</a></li>
       <li><a href="#split-re-genome-annotation-sub-family-all-background">Split RE genome annotation + sub family (all background)</a></li>
+      <li><a href="#split-re-genome-annotation-sub-category-all-background">Split RE genome annotation + sub category (all background)</a></li>
       </ul></li>
       <li><a href="#references">References</a></li>
       <li><a href="#sessioninfo">SessionInfo</a></li>
@@ -2984,7 +2990,7 @@ window.onload = function() {
     </div>
     <div id="postamble" data-toggle="wy-nav-shift" class="status">
                   <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> 2020-08-10</p>
+                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2019-11-27 <br> <b>Updated on:</b> 2020-09-02</p>
           </div>
    </div>
      
@@ -3009,14 +3015,22 @@ window.onload = function() {
 <h1>Data</h1>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="kw">load</span>(<span class="st">&quot;./input/repeat_elements_atac_diff_chromatin_accessibility.RData&quot;</span>)</span>
 <span id="cb2-2"><a href="#cb2-2"></a></span>
-<span id="cb2-3"><a href="#cb2-3"></a>res &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="kw">rowData</span>(data), <span class="dt">stringsAsFactors =</span> F, <span class="dt">check.names =</span> F)</span>
+<span id="cb2-3"><a href="#cb2-3"></a>res &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="kw">rowData</span>(data_te), <span class="dt">stringsAsFactors =</span> F, <span class="dt">check.names =</span> F)</span>
 <span id="cb2-4"><a href="#cb2-4"></a>res &lt;-<span class="st"> </span>res[res<span class="op">$</span>class_id <span class="op">==</span><span class="st"> &quot;LTR&quot;</span> <span class="op">|</span><span class="st"> </span>res<span class="op">$</span>class_id <span class="op">==</span><span class="st"> &quot;LINE&quot;</span> <span class="op">|</span><span class="st"> </span>res<span class="op">$</span>class_id <span class="op">==</span><span class="st"> &quot;SINE&quot;</span>, ]</span>
 <span id="cb2-5"><a href="#cb2-5"></a>res<span class="op">$</span>class_family &lt;-<span class="st"> </span><span class="kw">paste</span>(res<span class="op">$</span>class_id, res<span class="op">$</span>family_id, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
 <span id="cb2-6"><a href="#cb2-6"></a>res<span class="op">$</span>genomeAnno_class &lt;-<span class="st"> </span><span class="kw">paste</span>(res<span class="op">$</span>class_n, res<span class="op">$</span>class_id, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
 <span id="cb2-7"><a href="#cb2-7"></a>res<span class="op">$</span>genomeAnno_class_family &lt;-<span class="st"> </span><span class="kw">paste</span>(res<span class="op">$</span>class_n, res<span class="op">$</span>class_family, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
-<span id="cb2-8"><a href="#cb2-8"></a><span class="kw">colnames</span>(res) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;-&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(res))</span>
-<span id="cb2-9"><a href="#cb2-9"></a></span>
-<span id="cb2-10"><a href="#cb2-10"></a>res_f &lt;-<span class="st"> </span>res[<span class="kw">abs</span>(res<span class="op">$</span><span class="st">`</span><span class="dt">diffEnrichment-logFC</span><span class="st">`</span>) <span class="op">&gt;=</span><span class="st"> </span><span class="dv">1</span> <span class="op">&amp;</span><span class="st"> </span>res<span class="op">$</span><span class="st">`</span><span class="dt">diffEnrichment-qvalue</span><span class="st">`</span> <span class="op">&lt;=</span><span class="st"> </span><span class="fl">0.05</span>, ]</span></code></pre></div>
+<span id="cb2-8"><a href="#cb2-8"></a>res<span class="op">$</span>genomeAnno_class_gene &lt;-<span class="st"> </span><span class="kw">paste</span>(res<span class="op">$</span>class_n, res<span class="op">$</span>gene_id, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
+<span id="cb2-9"><a href="#cb2-9"></a><span class="kw">colnames</span>(res) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st">.&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;-&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(res))</span>
+<span id="cb2-10"><a href="#cb2-10"></a><span class="kw">colnames</span>(res) &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;X-&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> <span class="kw">colnames</span>(res))</span>
+<span id="cb2-11"><a href="#cb2-11"></a></span>
+<span id="cb2-12"><a href="#cb2-12"></a>res &lt;-<span class="st"> </span>res[,<span class="op">-</span><span class="kw">c</span>(<span class="dv">6</span><span class="op">:</span><span class="dv">24</span>)]</span>
+<span id="cb2-13"><a href="#cb2-13"></a></span>
+<span id="cb2-14"><a href="#cb2-14"></a>res_f &lt;-<span class="st"> </span>res[<span class="kw">abs</span>(res<span class="op">$</span>logFC) <span class="op">&gt;=</span><span class="st"> </span><span class="dv">1</span> <span class="op">&amp;</span><span class="st"> </span>res<span class="op">$</span>qvalue <span class="op">&lt;=</span><span class="st"> </span><span class="fl">0.05</span>, ]</span>
+<span id="cb2-15"><a href="#cb2-15"></a></span>
+<span id="cb2-16"><a href="#cb2-16"></a></span>
+<span id="cb2-17"><a href="#cb2-17"></a>sc &lt;-<span class="st"> </span><span class="kw">data.frame</span>(readxl<span class="op">::</span><span class="kw">read_xlsx</span>(<span class="st">&quot;input/repeat_elements_atac_diff_chromatin_accessibility_sig.xlsx&quot;</span>))</span>
+<span id="cb2-18"><a href="#cb2-18"></a>sc &lt;-<span class="st"> </span><span class="kw">unique</span>(sc[<span class="kw">abs</span>(sc<span class="op">$</span>subtype_logFC) <span class="op">&gt;=</span><span class="st"> </span><span class="fl">0.5</span> <span class="op">&amp;</span><span class="st"> </span>sc<span class="op">$</span>subtype_qvalue <span class="op">&lt;=</span><span class="st"> </span><span class="fl">0.05</span>, <span class="st">&quot;gene_id&quot;</span>])</span></code></pre></div>
 </div>
 <div id="rgreat" class="section level1">
 <h1>rGREAT</h1>
@@ -3026,9 +3040,9 @@ window.onload = function() {
 <span id="cb3-2"><a href="#cb3-2"></a>  d &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
 <span id="cb3-3"><a href="#cb3-3"></a></span>
 <span id="cb3-4"><a href="#cb3-4"></a>  <span class="cf">if</span> (FC <span class="op">==</span><span class="st"> &quot;pos&quot;</span>) {</span>
-<span id="cb3-5"><a href="#cb3-5"></a>    d &lt;-<span class="st"> </span>df[df<span class="op">$</span><span class="st">`</span><span class="dt">diffEnrichment-logFC</span><span class="st">`</span> <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, ]</span>
+<span id="cb3-5"><a href="#cb3-5"></a>    d &lt;-<span class="st"> </span>df[df<span class="op">$</span>logFC <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, ]</span>
 <span id="cb3-6"><a href="#cb3-6"></a>  } <span class="cf">else</span> <span class="cf">if</span> (FC <span class="op">==</span><span class="st"> &quot;neg&quot;</span>) {</span>
-<span id="cb3-7"><a href="#cb3-7"></a>    d &lt;-<span class="st"> </span>df[df<span class="op">$</span><span class="st">`</span><span class="dt">diffEnrichment-logFC</span><span class="st">`</span> <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, ]</span>
+<span id="cb3-7"><a href="#cb3-7"></a>    d &lt;-<span class="st"> </span>df[df<span class="op">$</span>logFC <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, ]</span>
 <span id="cb3-8"><a href="#cb3-8"></a>  } <span class="cf">else</span> {</span>
 <span id="cb3-9"><a href="#cb3-9"></a>    d &lt;-<span class="st"> </span>df</span>
 <span id="cb3-10"><a href="#cb3-10"></a>  }</span>
@@ -3089,9 +3103,9 @@ window.onload = function() {
 <span id="cb3-65"><a href="#cb3-65"></a>      n &lt;-<span class="st"> </span><span class="kw">paste</span>(n, <span class="st">&quot;bg_all&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
 <span id="cb3-66"><a href="#cb3-66"></a>    }</span>
 <span id="cb3-67"><a href="#cb3-67"></a></span>
-<span id="cb3-68"><a href="#cb3-68"></a>    bp &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_BP.xlsx&quot;</span>)</span>
-<span id="cb3-69"><a href="#cb3-69"></a>    mf &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_MF.xlsx&quot;</span>)</span>
-<span id="cb3-70"><a href="#cb3-70"></a>    cc &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_CC.xlsx&quot;</span>)</span>
+<span id="cb3-68"><a href="#cb3-68"></a>    bp &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/subcategory/&quot;</span>, n, <span class="st">&quot;_GO_BP.xlsx&quot;</span>)</span>
+<span id="cb3-69"><a href="#cb3-69"></a>    mf &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/subcategory/&quot;</span>, n, <span class="st">&quot;_GO_MF.xlsx&quot;</span>)</span>
+<span id="cb3-70"><a href="#cb3-70"></a>    cc &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/subcategory/&quot;</span>, n, <span class="st">&quot;_GO_CC.xlsx&quot;</span>)</span>
 <span id="cb3-71"><a href="#cb3-71"></a></span>
 <span id="cb3-72"><a href="#cb3-72"></a>    <span class="cf">if</span> (<span class="op">!</span>(<span class="kw">file.exists</span>(bp) <span class="op">&amp;</span><span class="st"> </span><span class="kw">file.exists</span>(cc) <span class="op">&amp;</span><span class="st"> </span><span class="kw">file.exists</span>(mf))) {</span>
 <span id="cb3-73"><a href="#cb3-73"></a>      df_GR &lt;-<span class="st"> </span>sp_d[[i]]</span>
@@ -3140,9 +3154,9 @@ window.onload = function() {
 <span id="cb3-116"><a href="#cb3-116"></a>      n &lt;-<span class="st"> </span><span class="kw">paste</span>(n, <span class="st">&quot;bg_all&quot;</span>, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
 <span id="cb3-117"><a href="#cb3-117"></a>    }</span>
 <span id="cb3-118"><a href="#cb3-118"></a></span>
-<span id="cb3-119"><a href="#cb3-119"></a>    bp &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_BP.xlsx&quot;</span>)</span>
-<span id="cb3-120"><a href="#cb3-120"></a>    mf &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_MF.xlsx&quot;</span>)</span>
-<span id="cb3-121"><a href="#cb3-121"></a>    cc &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/&quot;</span>, n, <span class="st">&quot;_GO_CC.xlsx&quot;</span>)</span>
+<span id="cb3-119"><a href="#cb3-119"></a>    bp &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/subcategory/&quot;</span>, n, <span class="st">&quot;_GO_BP.xlsx&quot;</span>)</span>
+<span id="cb3-120"><a href="#cb3-120"></a>    mf &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/subcategory/&quot;</span>, n, <span class="st">&quot;_GO_MF.xlsx&quot;</span>)</span>
+<span id="cb3-121"><a href="#cb3-121"></a>    cc &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;output/subcategory/&quot;</span>, n, <span class="st">&quot;_GO_CC.xlsx&quot;</span>)</span>
 <span id="cb3-122"><a href="#cb3-122"></a></span>
 <span id="cb3-123"><a href="#cb3-123"></a>    <span class="cf">if</span> (<span class="op">!</span>(<span class="kw">file.exists</span>(bp) <span class="op">&amp;</span><span class="st"> </span><span class="kw">file.exists</span>(cc) <span class="op">&amp;</span><span class="st"> </span><span class="kw">file.exists</span>(mf))) {</span>
 <span id="cb3-124"><a href="#cb3-124"></a>      writexl<span class="op">::</span><span class="kw">write_xlsx</span>(</span>
@@ -3168,438 +3182,613 @@ window.onload = function() {
 <div id="background" class="section level2">
 <h2>Background</h2>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>bg &lt;-<span class="st"> </span>res[<span class="kw">substr</span>(<span class="dt">x =</span> res<span class="op">$</span>seqnames, <span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">stop =</span> <span class="dv">3</span>) <span class="op">==</span><span class="st"> &quot;chr&quot;</span>, ]</span>
-<span id="cb4-2"><a href="#cb4-2"></a>df &lt;-<span class="st"> </span>res_f[<span class="kw">substr</span>(<span class="dt">x =</span> res_f<span class="op">$</span>seqnames, <span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">stop =</span> <span class="dv">3</span>) <span class="op">==</span><span class="st"> &quot;chr&quot;</span>, ]</span></code></pre></div>
+<span id="cb4-2"><a href="#cb4-2"></a>df &lt;-<span class="st"> </span>res_f[<span class="kw">substr</span>(<span class="dt">x =</span> res_f<span class="op">$</span>seqnames, <span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">stop =</span> <span class="dv">3</span>) <span class="op">==</span><span class="st"> &quot;chr&quot;</span>, ]</span>
+<span id="cb4-3"><a href="#cb4-3"></a></span>
+<span id="cb4-4"><a href="#cb4-4"></a>df_sc &lt;-<span class="st"> </span>df[df<span class="op">$</span>gene_id <span class="op">%in%</span>sc,]</span>
+<span id="cb4-5"><a href="#cb4-5"></a>df_sc &lt;-<span class="st"> </span><span class="kw">split</span>(df_sc, df_sc<span class="op">$</span>gene_id)</span>
+<span id="cb4-6"><a href="#cb4-6"></a>df_sc &lt;-<span class="st"> </span>df_sc[<span class="kw">lapply</span>(df_sc, nrow) <span class="op">&gt;</span><span class="st"> </span><span class="dv">10</span>]</span>
+<span id="cb4-7"><a href="#cb4-7"></a>df_sc &lt;-<span class="st"> </span>plyr<span class="op">::</span><span class="kw">ldply</span>(df_sc, data.frame)[,<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-8"><a href="#cb4-8"></a></span>
+<span id="cb4-9"><a href="#cb4-9"></a>cat1 &lt;-<span class="st"> </span><span class="kw">data.frame</span>(readxl<span class="op">::</span><span class="kw">read_xlsx</span>(<span class="st">&quot;input/RE_DiffAccess_Gene ID_aggregate counts.xlsx&quot;</span>, <span class="dt">sheet =</span> <span class="dv">4</span>))</span>
+<span id="cb4-10"><a href="#cb4-10"></a></span>
+<span id="cb4-11"><a href="#cb4-11"></a>cat2 &lt;-<span class="st"> </span><span class="kw">data.frame</span>(readxl<span class="op">::</span><span class="kw">read_xlsx</span>(<span class="st">&quot;input/RE_DiffAccess_Gene ID_aggregate counts.xlsx&quot;</span>, <span class="dt">sheet =</span> <span class="dv">5</span>))</span></code></pre></div>
+<pre><code>## New names:
+## * `` -&gt; ...4</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="kw">colnames</span>(cat2)[<span class="dv">4</span>] &lt;-<span class="st"> &quot;Category&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>cat2<span class="op">$</span>Category[cat2<span class="op">$</span>Family <span class="op">==</span><span class="st"> &quot;ERV1&quot;</span>] &lt;-<span class="st"> &quot;Category 4&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a>cat2<span class="op">$</span>Category[cat2<span class="op">$</span>Family <span class="op">==</span><span class="st"> &quot;ERVK&quot;</span>] &lt;-<span class="st"> &quot;Category 5&quot;</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a>cat2<span class="op">$</span>Category[cat2<span class="op">$</span>Family <span class="op">==</span><span class="st"> &quot;L1&quot;</span>] &lt;-<span class="st"> &quot;Category 6&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a></span>
+<span id="cb6-6"><a href="#cb6-6"></a>df_ca &lt;-<span class="st"> </span><span class="kw">rbind</span>(cat1, cat2)[,<span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">4</span>)]</span>
+<span id="cb6-7"><a href="#cb6-7"></a><span class="kw">colnames</span>(df_ca)[<span class="dv">1</span>] &lt;-<span class="st"> &quot;gene_id&quot;</span></span>
+<span id="cb6-8"><a href="#cb6-8"></a>df_ca<span class="op">$</span>Category &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot; &quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;_&quot;</span>, <span class="dt">x =</span> df_ca<span class="op">$</span>Category)</span>
+<span id="cb6-9"><a href="#cb6-9"></a></span>
+<span id="cb6-10"><a href="#cb6-10"></a>d &lt;-<span class="st"> </span>df_ca</span>
+<span id="cb6-11"><a href="#cb6-11"></a></span>
+<span id="cb6-12"><a href="#cb6-12"></a>df_ca &lt;-<span class="st"> </span><span class="kw">merge</span>(df, df_ca)</span>
+<span id="cb6-13"><a href="#cb6-13"></a></span>
+<span id="cb6-14"><a href="#cb6-14"></a>bg &lt;-<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">left_join</span>(bg, d)</span></code></pre></div>
+<pre><code>## Joining, by = &quot;gene_id&quot;</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>bg<span class="op">$</span>Category[<span class="kw">is.na</span>(bg<span class="op">$</span>Category)] &lt;-<span class="st"> &quot;Category_0&quot;</span></span></code></pre></div>
 </div>
 <div id="analysis" class="section level2">
 <h2>Analysis</h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>, <span class="dt">split =</span> F)</span>
-<span id="cb5-2"><a href="#cb5-2"></a>pnd15 &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>, <span class="dt">split =</span> F)</span>
-<span id="cb5-3"><a href="#cb5-3"></a>adult &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>, <span class="dt">split =</span> F)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a>all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>, <span class="dt">split =</span> F)</span>
+<span id="cb9-2"><a href="#cb9-2"></a>pnd15 &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>, <span class="dt">split =</span> F)</span>
+<span id="cb9-3"><a href="#cb9-3"></a>adult &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(<span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>, <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>, <span class="dt">split =</span> F)</span></code></pre></div>
 </div>
 <div id="split-re-family" class="section level2">
 <h2>Split RE Family</h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>all_sp_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb6-2"><a href="#cb6-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb6-3"><a href="#cb6-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb6-4"><a href="#cb6-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
-<span id="cb6-5"><a href="#cb6-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a>)</span>
-<span id="cb6-7"><a href="#cb6-7"></a></span>
-<span id="cb6-8"><a href="#cb6-8"></a>pnd15_sp_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb6-9"><a href="#cb6-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb6-10"><a href="#cb6-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb6-11"><a href="#cb6-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
-<span id="cb6-12"><a href="#cb6-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb6-13"><a href="#cb6-13"></a>)</span>
-<span id="cb6-14"><a href="#cb6-14"></a></span>
-<span id="cb6-15"><a href="#cb6-15"></a>adult_sp_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb6-16"><a href="#cb6-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb6-17"><a href="#cb6-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb6-18"><a href="#cb6-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
-<span id="cb6-19"><a href="#cb6-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb6-20"><a href="#cb6-20"></a>)</span></code></pre></div>
-</div>
-<div id="split-re-sub-family" class="section level2">
-<h2>Split RE sub family</h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a>all_sp_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb7-2"><a href="#cb7-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb7-3"><a href="#cb7-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb7-4"><a href="#cb7-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
-<span id="cb7-5"><a href="#cb7-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb7-6"><a href="#cb7-6"></a>)</span>
-<span id="cb7-7"><a href="#cb7-7"></a></span>
-<span id="cb7-8"><a href="#cb7-8"></a>pnd15_sp_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb7-9"><a href="#cb7-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb7-10"><a href="#cb7-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb7-11"><a href="#cb7-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
-<span id="cb7-12"><a href="#cb7-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb7-13"><a href="#cb7-13"></a>)</span>
-<span id="cb7-14"><a href="#cb7-14"></a></span>
-<span id="cb7-15"><a href="#cb7-15"></a>adult_sp_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb7-16"><a href="#cb7-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb7-17"><a href="#cb7-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb7-18"><a href="#cb7-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
-<span id="cb7-19"><a href="#cb7-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb7-20"><a href="#cb7-20"></a>)</span></code></pre></div>
-</div>
-<div id="split-re-genome-annotation" class="section level2">
-<h2>Split RE genome annotation</h2>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>all_sp_anno &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb8-2"><a href="#cb8-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb8-3"><a href="#cb8-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb8-4"><a href="#cb8-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
-<span id="cb8-5"><a href="#cb8-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb8-6"><a href="#cb8-6"></a>)</span>
-<span id="cb8-7"><a href="#cb8-7"></a></span>
-<span id="cb8-8"><a href="#cb8-8"></a>pnd15_sp_anno &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb8-9"><a href="#cb8-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb8-10"><a href="#cb8-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb8-11"><a href="#cb8-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
-<span id="cb8-12"><a href="#cb8-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb8-13"><a href="#cb8-13"></a>)</span>
-<span id="cb8-14"><a href="#cb8-14"></a></span>
-<span id="cb8-15"><a href="#cb8-15"></a>adult_sp_anno &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb8-16"><a href="#cb8-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb8-17"><a href="#cb8-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb8-18"><a href="#cb8-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
-<span id="cb8-19"><a href="#cb8-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb8-20"><a href="#cb8-20"></a>)</span></code></pre></div>
-</div>
-<div id="split-re-genome-annotation-family" class="section level2">
-<h2>Split RE genome annotation + family</h2>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a>all_sp_anno_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb9-2"><a href="#cb9-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb9-3"><a href="#cb9-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb9-4"><a href="#cb9-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
-<span id="cb9-5"><a href="#cb9-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb9-6"><a href="#cb9-6"></a>)</span>
-<span id="cb9-7"><a href="#cb9-7"></a></span>
-<span id="cb9-8"><a href="#cb9-8"></a>pnd15_sp_anno_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb9-9"><a href="#cb9-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb9-10"><a href="#cb9-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb9-11"><a href="#cb9-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
-<span id="cb9-12"><a href="#cb9-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb9-13"><a href="#cb9-13"></a>)</span>
-<span id="cb9-14"><a href="#cb9-14"></a></span>
-<span id="cb9-15"><a href="#cb9-15"></a>adult_sp_anno_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb9-16"><a href="#cb9-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb9-17"><a href="#cb9-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb9-18"><a href="#cb9-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
-<span id="cb9-19"><a href="#cb9-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
-<span id="cb9-20"><a href="#cb9-20"></a>)</span></code></pre></div>
-</div>
-<div id="split-re-genome-annotation-sub-family" class="section level2">
-<h2>Split RE genome annotation + sub family</h2>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>all_sp_anno_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>all_sp_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
 <span id="cb10-2"><a href="#cb10-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
 <span id="cb10-3"><a href="#cb10-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb10-4"><a href="#cb10-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb10-4"><a href="#cb10-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
 <span id="cb10-5"><a href="#cb10-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
 <span id="cb10-6"><a href="#cb10-6"></a>)</span>
 <span id="cb10-7"><a href="#cb10-7"></a></span>
-<span id="cb10-8"><a href="#cb10-8"></a>pnd15_sp_anno_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb10-8"><a href="#cb10-8"></a>pnd15_sp_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
 <span id="cb10-9"><a href="#cb10-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
 <span id="cb10-10"><a href="#cb10-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb10-11"><a href="#cb10-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb10-11"><a href="#cb10-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
 <span id="cb10-12"><a href="#cb10-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
 <span id="cb10-13"><a href="#cb10-13"></a>)</span>
 <span id="cb10-14"><a href="#cb10-14"></a></span>
-<span id="cb10-15"><a href="#cb10-15"></a>adult_sp_anno_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb10-15"><a href="#cb10-15"></a>adult_sp_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
 <span id="cb10-16"><a href="#cb10-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
 <span id="cb10-17"><a href="#cb10-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb10-18"><a href="#cb10-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb10-18"><a href="#cb10-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
 <span id="cb10-19"><a href="#cb10-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
 <span id="cb10-20"><a href="#cb10-20"></a>)</span></code></pre></div>
 </div>
-<div id="split-re-family-all-background" class="section level2">
-<h2>Split RE Family (all background)</h2>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>all_sp_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<div id="split-re-sub-family" class="section level2">
+<h2>Split RE sub family</h2>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>all_sp_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
 <span id="cb11-2"><a href="#cb11-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
 <span id="cb11-3"><a href="#cb11-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb11-4"><a href="#cb11-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
-<span id="cb11-5"><a href="#cb11-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
+<span id="cb11-5"><a href="#cb11-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
 <span id="cb11-6"><a href="#cb11-6"></a>)</span>
 <span id="cb11-7"><a href="#cb11-7"></a></span>
-<span id="cb11-8"><a href="#cb11-8"></a>pnd15_sp_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb11-8"><a href="#cb11-8"></a>pnd15_sp_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
 <span id="cb11-9"><a href="#cb11-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
 <span id="cb11-10"><a href="#cb11-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb11-11"><a href="#cb11-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
-<span id="cb11-12"><a href="#cb11-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb11-11"><a href="#cb11-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
+<span id="cb11-12"><a href="#cb11-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
 <span id="cb11-13"><a href="#cb11-13"></a>)</span>
 <span id="cb11-14"><a href="#cb11-14"></a></span>
-<span id="cb11-15"><a href="#cb11-15"></a>adult_sp_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb11-15"><a href="#cb11-15"></a>adult_sp_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
 <span id="cb11-16"><a href="#cb11-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
 <span id="cb11-17"><a href="#cb11-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb11-18"><a href="#cb11-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
-<span id="cb11-19"><a href="#cb11-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb11-18"><a href="#cb11-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
+<span id="cb11-19"><a href="#cb11-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
 <span id="cb11-20"><a href="#cb11-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-sub-category" class="section level2">
+<h2>Split RE sub category</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>all_sp_subcat &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb12-2"><a href="#cb12-2"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb12-3"><a href="#cb12-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;gene_id&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb12-6"><a href="#cb12-6"></a>)</span>
+<span id="cb12-7"><a href="#cb12-7"></a></span>
+<span id="cb12-8"><a href="#cb12-8"></a>pnd15_sp_subcat &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb12-9"><a href="#cb12-9"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb12-10"><a href="#cb12-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb12-11"><a href="#cb12-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;gene_id&quot;</span>,</span>
+<span id="cb12-12"><a href="#cb12-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb12-13"><a href="#cb12-13"></a>)</span>
+<span id="cb12-14"><a href="#cb12-14"></a></span>
+<span id="cb12-15"><a href="#cb12-15"></a>adult_sp_subcat &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb12-16"><a href="#cb12-16"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb12-17"><a href="#cb12-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb12-18"><a href="#cb12-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;gene_id&quot;</span>,</span>
+<span id="cb12-19"><a href="#cb12-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb12-20"><a href="#cb12-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-category" class="section level2">
+<h2>Split Category</h2>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>all_sp_subcat1 &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb13-2"><a href="#cb13-2"></a>  <span class="dt">df =</span> df_ca, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb13-3"><a href="#cb13-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb13-4"><a href="#cb13-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Category&quot;</span>,</span>
+<span id="cb13-5"><a href="#cb13-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb13-6"><a href="#cb13-6"></a>)</span>
+<span id="cb13-7"><a href="#cb13-7"></a></span>
+<span id="cb13-8"><a href="#cb13-8"></a>pnd15_sp_subcat1 &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb13-9"><a href="#cb13-9"></a>  <span class="dt">df =</span> df_ca, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb13-10"><a href="#cb13-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb13-11"><a href="#cb13-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Category&quot;</span>,</span>
+<span id="cb13-12"><a href="#cb13-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb13-13"><a href="#cb13-13"></a>)</span>
+<span id="cb13-14"><a href="#cb13-14"></a></span>
+<span id="cb13-15"><a href="#cb13-15"></a>adult_sp_subcat1 &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb13-16"><a href="#cb13-16"></a>  <span class="dt">df =</span> df_ca, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb13-17"><a href="#cb13-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb13-18"><a href="#cb13-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Category&quot;</span>,</span>
+<span id="cb13-19"><a href="#cb13-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb13-20"><a href="#cb13-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-genome-annotation" class="section level2">
+<h2>Split RE genome annotation</h2>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>all_sp_anno &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb14-2"><a href="#cb14-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb14-3"><a href="#cb14-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb14-4"><a href="#cb14-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
+<span id="cb14-5"><a href="#cb14-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb14-6"><a href="#cb14-6"></a>)</span>
+<span id="cb14-7"><a href="#cb14-7"></a></span>
+<span id="cb14-8"><a href="#cb14-8"></a>pnd15_sp_anno &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb14-9"><a href="#cb14-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb14-10"><a href="#cb14-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb14-11"><a href="#cb14-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
+<span id="cb14-12"><a href="#cb14-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb14-13"><a href="#cb14-13"></a>)</span>
+<span id="cb14-14"><a href="#cb14-14"></a></span>
+<span id="cb14-15"><a href="#cb14-15"></a>adult_sp_anno &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb14-16"><a href="#cb14-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb14-17"><a href="#cb14-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb14-18"><a href="#cb14-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
+<span id="cb14-19"><a href="#cb14-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb14-20"><a href="#cb14-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-genome-annotation-family" class="section level2">
+<h2>Split RE genome annotation + family</h2>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a>all_sp_anno_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb15-2"><a href="#cb15-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb15-3"><a href="#cb15-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb15-4"><a href="#cb15-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
+<span id="cb15-5"><a href="#cb15-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb15-6"><a href="#cb15-6"></a>)</span>
+<span id="cb15-7"><a href="#cb15-7"></a></span>
+<span id="cb15-8"><a href="#cb15-8"></a>pnd15_sp_anno_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb15-9"><a href="#cb15-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb15-10"><a href="#cb15-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb15-11"><a href="#cb15-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
+<span id="cb15-12"><a href="#cb15-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb15-13"><a href="#cb15-13"></a>)</span>
+<span id="cb15-14"><a href="#cb15-14"></a></span>
+<span id="cb15-15"><a href="#cb15-15"></a>adult_sp_anno_fam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb15-16"><a href="#cb15-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb15-17"><a href="#cb15-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb15-18"><a href="#cb15-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
+<span id="cb15-19"><a href="#cb15-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb15-20"><a href="#cb15-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-genome-annotation-sub-family" class="section level2">
+<h2>Split RE genome annotation + sub family</h2>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>all_sp_anno_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb16-2"><a href="#cb16-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb16-3"><a href="#cb16-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb16-4"><a href="#cb16-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb16-5"><a href="#cb16-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb16-6"><a href="#cb16-6"></a>)</span>
+<span id="cb16-7"><a href="#cb16-7"></a></span>
+<span id="cb16-8"><a href="#cb16-8"></a>pnd15_sp_anno_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb16-9"><a href="#cb16-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb16-10"><a href="#cb16-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb16-11"><a href="#cb16-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb16-12"><a href="#cb16-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb16-13"><a href="#cb16-13"></a>)</span>
+<span id="cb16-14"><a href="#cb16-14"></a></span>
+<span id="cb16-15"><a href="#cb16-15"></a>adult_sp_anno_subfam &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb16-16"><a href="#cb16-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb16-17"><a href="#cb16-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb16-18"><a href="#cb16-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb16-19"><a href="#cb16-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb16-20"><a href="#cb16-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-genome-annotation-sub-category" class="section level2">
+<h2>Split RE genome annotation + sub category</h2>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a>all_sp_anno_subcat &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb17-2"><a href="#cb17-2"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb17-3"><a href="#cb17-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb17-4"><a href="#cb17-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_gene&quot;</span>,</span>
+<span id="cb17-5"><a href="#cb17-5"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb17-6"><a href="#cb17-6"></a>)</span>
+<span id="cb17-7"><a href="#cb17-7"></a></span>
+<span id="cb17-8"><a href="#cb17-8"></a>pnd15_sp_anno_subcat &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb17-9"><a href="#cb17-9"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb17-10"><a href="#cb17-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb17-11"><a href="#cb17-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_gene&quot;</span>,</span>
+<span id="cb17-12"><a href="#cb17-12"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb17-13"><a href="#cb17-13"></a>)</span>
+<span id="cb17-14"><a href="#cb17-14"></a></span>
+<span id="cb17-15"><a href="#cb17-15"></a>adult_sp_anno_subcat &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb17-16"><a href="#cb17-16"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb17-17"><a href="#cb17-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb17-18"><a href="#cb17-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_gene&quot;</span>,</span>
+<span id="cb17-19"><a href="#cb17-19"></a>  <span class="dt">split_bg =</span> <span class="ot">TRUE</span></span>
+<span id="cb17-20"><a href="#cb17-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-family-all-background" class="section level2">
+<h2>Split RE Family (all background)</h2>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a>all_sp_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb18-2"><a href="#cb18-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb18-3"><a href="#cb18-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb18-4"><a href="#cb18-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
+<span id="cb18-5"><a href="#cb18-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb18-6"><a href="#cb18-6"></a>)</span>
+<span id="cb18-7"><a href="#cb18-7"></a></span>
+<span id="cb18-8"><a href="#cb18-8"></a>pnd15_sp_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb18-9"><a href="#cb18-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb18-10"><a href="#cb18-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb18-11"><a href="#cb18-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
+<span id="cb18-12"><a href="#cb18-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb18-13"><a href="#cb18-13"></a>)</span>
+<span id="cb18-14"><a href="#cb18-14"></a></span>
+<span id="cb18-15"><a href="#cb18-15"></a>adult_sp_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb18-16"><a href="#cb18-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb18-17"><a href="#cb18-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb18-18"><a href="#cb18-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_id&quot;</span>,</span>
+<span id="cb18-19"><a href="#cb18-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb18-20"><a href="#cb18-20"></a>)</span></code></pre></div>
 </div>
 <div id="split-re-sub-family-all-background" class="section level2">
 <h2>Split RE sub family (all background)</h2>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>all_sp_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb12-2"><a href="#cb12-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb12-3"><a href="#cb12-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb12-4"><a href="#cb12-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
-<span id="cb12-5"><a href="#cb12-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb12-6"><a href="#cb12-6"></a>)</span>
-<span id="cb12-7"><a href="#cb12-7"></a></span>
-<span id="cb12-8"><a href="#cb12-8"></a>pnd15_sp_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb12-9"><a href="#cb12-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb12-10"><a href="#cb12-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb12-11"><a href="#cb12-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
-<span id="cb12-12"><a href="#cb12-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb12-13"><a href="#cb12-13"></a>)</span>
-<span id="cb12-14"><a href="#cb12-14"></a></span>
-<span id="cb12-15"><a href="#cb12-15"></a>adult_sp_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb12-16"><a href="#cb12-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb12-17"><a href="#cb12-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb12-18"><a href="#cb12-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
-<span id="cb12-19"><a href="#cb12-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb12-20"><a href="#cb12-20"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1"></a>all_sp_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb19-2"><a href="#cb19-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb19-3"><a href="#cb19-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb19-4"><a href="#cb19-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
+<span id="cb19-5"><a href="#cb19-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb19-6"><a href="#cb19-6"></a>)</span>
+<span id="cb19-7"><a href="#cb19-7"></a></span>
+<span id="cb19-8"><a href="#cb19-8"></a>pnd15_sp_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb19-9"><a href="#cb19-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb19-10"><a href="#cb19-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb19-11"><a href="#cb19-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
+<span id="cb19-12"><a href="#cb19-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb19-13"><a href="#cb19-13"></a>)</span>
+<span id="cb19-14"><a href="#cb19-14"></a></span>
+<span id="cb19-15"><a href="#cb19-15"></a>adult_sp_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb19-16"><a href="#cb19-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb19-17"><a href="#cb19-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb19-18"><a href="#cb19-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_family&quot;</span>,</span>
+<span id="cb19-19"><a href="#cb19-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb19-20"><a href="#cb19-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-sub-category-all-background" class="section level2">
+<h2>Split RE sub category (all background)</h2>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a>all_sp_subcat_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb20-2"><a href="#cb20-2"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb20-3"><a href="#cb20-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb20-4"><a href="#cb20-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;gene_id&quot;</span>,</span>
+<span id="cb20-5"><a href="#cb20-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb20-6"><a href="#cb20-6"></a>)</span>
+<span id="cb20-7"><a href="#cb20-7"></a></span>
+<span id="cb20-8"><a href="#cb20-8"></a>pnd15_sp_subcat_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb20-9"><a href="#cb20-9"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb20-10"><a href="#cb20-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb20-11"><a href="#cb20-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;gene_id&quot;</span>,</span>
+<span id="cb20-12"><a href="#cb20-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb20-13"><a href="#cb20-13"></a>)</span>
+<span id="cb20-14"><a href="#cb20-14"></a></span>
+<span id="cb20-15"><a href="#cb20-15"></a>adult_sp_subcat_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb20-16"><a href="#cb20-16"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb20-17"><a href="#cb20-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb20-18"><a href="#cb20-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;gene_id&quot;</span>,</span>
+<span id="cb20-19"><a href="#cb20-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb20-20"><a href="#cb20-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-category-all-background" class="section level2">
+<h2>Split Category (all background)</h2>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a>all_sp_subcat1_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb21-2"><a href="#cb21-2"></a>  <span class="dt">df =</span> df_ca, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb21-3"><a href="#cb21-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb21-4"><a href="#cb21-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Category&quot;</span>,</span>
+<span id="cb21-5"><a href="#cb21-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb21-6"><a href="#cb21-6"></a>)</span>
+<span id="cb21-7"><a href="#cb21-7"></a></span>
+<span id="cb21-8"><a href="#cb21-8"></a>pnd15_sp_subcat1_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb21-9"><a href="#cb21-9"></a>  <span class="dt">df =</span> df_ca, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb21-10"><a href="#cb21-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb21-11"><a href="#cb21-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Category&quot;</span>,</span>
+<span id="cb21-12"><a href="#cb21-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb21-13"><a href="#cb21-13"></a>)</span>
+<span id="cb21-14"><a href="#cb21-14"></a></span>
+<span id="cb21-15"><a href="#cb21-15"></a>adult_sp_subcat1_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb21-16"><a href="#cb21-16"></a>  <span class="dt">df =</span> df_ca, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb21-17"><a href="#cb21-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb21-18"><a href="#cb21-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;Category&quot;</span>,</span>
+<span id="cb21-19"><a href="#cb21-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb21-20"><a href="#cb21-20"></a>)</span></code></pre></div>
 </div>
 <div id="split-re-genome-annotation-all-background" class="section level2">
 <h2>Split RE genome annotation (all background)</h2>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>all_sp_anno_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb13-2"><a href="#cb13-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb13-3"><a href="#cb13-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb13-4"><a href="#cb13-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
-<span id="cb13-5"><a href="#cb13-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb13-6"><a href="#cb13-6"></a>)</span>
-<span id="cb13-7"><a href="#cb13-7"></a></span>
-<span id="cb13-8"><a href="#cb13-8"></a>pnd15_sp_anno_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb13-9"><a href="#cb13-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb13-10"><a href="#cb13-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb13-11"><a href="#cb13-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
-<span id="cb13-12"><a href="#cb13-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb13-13"><a href="#cb13-13"></a>)</span>
-<span id="cb13-14"><a href="#cb13-14"></a></span>
-<span id="cb13-15"><a href="#cb13-15"></a>adult_sp_anno_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb13-16"><a href="#cb13-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb13-17"><a href="#cb13-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb13-18"><a href="#cb13-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
-<span id="cb13-19"><a href="#cb13-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb13-20"><a href="#cb13-20"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a>all_sp_anno_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb22-2"><a href="#cb22-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb22-3"><a href="#cb22-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb22-4"><a href="#cb22-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
+<span id="cb22-5"><a href="#cb22-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb22-6"><a href="#cb22-6"></a>)</span>
+<span id="cb22-7"><a href="#cb22-7"></a></span>
+<span id="cb22-8"><a href="#cb22-8"></a>pnd15_sp_anno_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb22-9"><a href="#cb22-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb22-10"><a href="#cb22-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb22-11"><a href="#cb22-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
+<span id="cb22-12"><a href="#cb22-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb22-13"><a href="#cb22-13"></a>)</span>
+<span id="cb22-14"><a href="#cb22-14"></a></span>
+<span id="cb22-15"><a href="#cb22-15"></a>adult_sp_anno_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb22-16"><a href="#cb22-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb22-17"><a href="#cb22-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb22-18"><a href="#cb22-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;class_n&quot;</span>,</span>
+<span id="cb22-19"><a href="#cb22-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb22-20"><a href="#cb22-20"></a>)</span></code></pre></div>
 </div>
 <div id="split-re-genome-annotation-family-all-background" class="section level2">
 <h2>Split RE genome annotation + family (all background)</h2>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>all_sp_anno_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb14-2"><a href="#cb14-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb14-3"><a href="#cb14-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb14-4"><a href="#cb14-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
-<span id="cb14-5"><a href="#cb14-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb14-6"><a href="#cb14-6"></a>)</span>
-<span id="cb14-7"><a href="#cb14-7"></a></span>
-<span id="cb14-8"><a href="#cb14-8"></a>pnd15_sp_anno_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb14-9"><a href="#cb14-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb14-10"><a href="#cb14-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb14-11"><a href="#cb14-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
-<span id="cb14-12"><a href="#cb14-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb14-13"><a href="#cb14-13"></a>)</span>
-<span id="cb14-14"><a href="#cb14-14"></a></span>
-<span id="cb14-15"><a href="#cb14-15"></a>adult_sp_anno_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb14-16"><a href="#cb14-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb14-17"><a href="#cb14-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb14-18"><a href="#cb14-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
-<span id="cb14-19"><a href="#cb14-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb14-20"><a href="#cb14-20"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1"></a>all_sp_anno_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb23-2"><a href="#cb23-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb23-3"><a href="#cb23-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb23-4"><a href="#cb23-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
+<span id="cb23-5"><a href="#cb23-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb23-6"><a href="#cb23-6"></a>)</span>
+<span id="cb23-7"><a href="#cb23-7"></a></span>
+<span id="cb23-8"><a href="#cb23-8"></a>pnd15_sp_anno_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb23-9"><a href="#cb23-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb23-10"><a href="#cb23-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb23-11"><a href="#cb23-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
+<span id="cb23-12"><a href="#cb23-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb23-13"><a href="#cb23-13"></a>)</span>
+<span id="cb23-14"><a href="#cb23-14"></a></span>
+<span id="cb23-15"><a href="#cb23-15"></a>adult_sp_anno_fam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb23-16"><a href="#cb23-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb23-17"><a href="#cb23-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb23-18"><a href="#cb23-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class&quot;</span>,</span>
+<span id="cb23-19"><a href="#cb23-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb23-20"><a href="#cb23-20"></a>)</span></code></pre></div>
 </div>
 <div id="split-re-genome-annotation-sub-family-all-background" class="section level2">
 <h2>Split RE genome annotation + sub family (all background)</h2>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a>all_sp_anno_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb15-2"><a href="#cb15-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
-<span id="cb15-3"><a href="#cb15-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
-<span id="cb15-4"><a href="#cb15-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
-<span id="cb15-5"><a href="#cb15-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb15-6"><a href="#cb15-6"></a>)</span>
-<span id="cb15-7"><a href="#cb15-7"></a></span>
-<span id="cb15-8"><a href="#cb15-8"></a>pnd15_sp_anno_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb15-9"><a href="#cb15-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
-<span id="cb15-10"><a href="#cb15-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
-<span id="cb15-11"><a href="#cb15-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
-<span id="cb15-12"><a href="#cb15-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb15-13"><a href="#cb15-13"></a>)</span>
-<span id="cb15-14"><a href="#cb15-14"></a></span>
-<span id="cb15-15"><a href="#cb15-15"></a>adult_sp_anno_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
-<span id="cb15-16"><a href="#cb15-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
-<span id="cb15-17"><a href="#cb15-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
-<span id="cb15-18"><a href="#cb15-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
-<span id="cb15-19"><a href="#cb15-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
-<span id="cb15-20"><a href="#cb15-20"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1"></a>all_sp_anno_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb24-2"><a href="#cb24-2"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb24-3"><a href="#cb24-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb24-4"><a href="#cb24-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb24-5"><a href="#cb24-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb24-6"><a href="#cb24-6"></a>)</span>
+<span id="cb24-7"><a href="#cb24-7"></a></span>
+<span id="cb24-8"><a href="#cb24-8"></a>pnd15_sp_anno_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb24-9"><a href="#cb24-9"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb24-10"><a href="#cb24-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb24-11"><a href="#cb24-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb24-12"><a href="#cb24-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb24-13"><a href="#cb24-13"></a>)</span>
+<span id="cb24-14"><a href="#cb24-14"></a></span>
+<span id="cb24-15"><a href="#cb24-15"></a>adult_sp_anno_subfam_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb24-16"><a href="#cb24-16"></a>  <span class="dt">df =</span> df, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb24-17"><a href="#cb24-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb24-18"><a href="#cb24-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_family&quot;</span>,</span>
+<span id="cb24-19"><a href="#cb24-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb24-20"><a href="#cb24-20"></a>)</span></code></pre></div>
+</div>
+<div id="split-re-genome-annotation-sub-category-all-background" class="section level2">
+<h2>Split RE genome annotation + sub category (all background)</h2>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1"></a>all_sp_anno_subcat_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb25-2"><a href="#cb25-2"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;all&quot;</span>, <span class="dt">bg =</span> bg,</span>
+<span id="cb25-3"><a href="#cb25-3"></a>  <span class="dt">fName =</span> <span class="st">&quot;PND15_Adult&quot;</span>,</span>
+<span id="cb25-4"><a href="#cb25-4"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_gene&quot;</span>,</span>
+<span id="cb25-5"><a href="#cb25-5"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb25-6"><a href="#cb25-6"></a>)</span>
+<span id="cb25-7"><a href="#cb25-7"></a></span>
+<span id="cb25-8"><a href="#cb25-8"></a>pnd15_sp_anno_subcat_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb25-9"><a href="#cb25-9"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;neg&quot;</span>,</span>
+<span id="cb25-10"><a href="#cb25-10"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Negative&quot;</span>,</span>
+<span id="cb25-11"><a href="#cb25-11"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_gene&quot;</span>,</span>
+<span id="cb25-12"><a href="#cb25-12"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb25-13"><a href="#cb25-13"></a>)</span>
+<span id="cb25-14"><a href="#cb25-14"></a></span>
+<span id="cb25-15"><a href="#cb25-15"></a>adult_sp_anno_subcat_bg_all &lt;-<span class="st"> </span><span class="kw">perform_rGREAT</span>(</span>
+<span id="cb25-16"><a href="#cb25-16"></a>  <span class="dt">df =</span> df_sc, <span class="dt">FC =</span> <span class="st">&quot;pos&quot;</span>,</span>
+<span id="cb25-17"><a href="#cb25-17"></a>  <span class="dt">bg =</span> bg, <span class="dt">fName =</span> <span class="st">&quot;Adult_Positive&quot;</span>,</span>
+<span id="cb25-18"><a href="#cb25-18"></a>  <span class="dt">split =</span> T, <span class="dt">sp_col =</span> <span class="st">&quot;genomeAnno_class_gene&quot;</span>,</span>
+<span id="cb25-19"><a href="#cb25-19"></a>  <span class="dt">split_bg =</span> <span class="ot">FALSE</span></span>
+<span id="cb25-20"><a href="#cb25-20"></a>)</span></code></pre></div>
 </div>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>report<span class="op">::</span><span class="kw">cite_packages</span>(<span class="kw">sessionInfo</span>())</span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1"></a>report<span class="op">::</span><span class="kw">cite_packages</span>(<span class="kw">sessionInfo</span>())</span></code></pre></div>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["References"],"name":[1],"type":["fctr"],"align":["left"]}],"data":[{"1":"Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2020). dplyr: A Grammar of Data Manipulation. R package version 1.0.0. https://CRAN.R-project.org/package=dplyr"},{"1":"Henrik Bengtsson (2020). matrixStats: Functions that Apply to Rows and Columns of Matrices (and to Vectors). R package version 0.56.0. https://CRAN.R-project.org/package=matrixStats"},{"1":"Hervé Pagès, with contributions from Peter Hickey and Aaron Lun (2020). DelayedArray: A unified framework for working transparently with on-disk and in-memory array-like datasets. R package version 0.12.3."},{"1":"H. Pagès, M. Lawrence and P. Aboyoun (2020). S4Vectors: Foundation of vector-like and list-like containers in Bioconductor. R package version 0.24.4."},{"1":"Jonathan Sidi (2020). details: Create Details HTML Tag for Markdown and Package Documentation. R package version 0.2.1. https://CRAN.R-project.org/package=details"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Martin Morgan, Valerie Obenchain, Jim Hester and Hervé Pagès (2019). SummarizedExperiment: SummarizedExperiment container. R package version 1.16.1."},{"1":"Martin Morgan, Valerie Obenchain, Michel Lang, Ryan Thompson and Nitesh Turaga (2019). BiocParallel: Bioconductor facilities for parallel evaluation. R package version 1.20.1. https://github.com/Bioconductor/BiocParallel"},{"1":"Microsoft and Steve Weston (2020). foreach: Provides Foreach Looping Construct. R package version 1.5.0. https://CRAN.R-project.org/package=foreach"},{"1":"Microsoft Corporation and Steve Weston (2019). doParallel: Foreach Parallel Adaptor for the 'parallel' Package. R package version 1.0.15. https://CRAN.R-project.org/package=doParallel"},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Revolution Analytics and Steve Weston (2019). iterators: Provides Iterator Construct. R package version 1.0.12. https://CRAN.R-project.org/package=iterators"},{"1":"Sonali Arora, Martin Morgan, Marc Carlson and H. Pagès (2020). GenomeInfoDb: Utilities for manipulating chromosome names, including modifying them to follow a particular naming style. R package version 1.22.1."},{"1":"Zuguang Gu (2019). rGREAT: Client for GREAT Analysis. https://github.com/jokergoo/rGREAT, http://great.stanford.edu/public/html/."}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["References"],"name":[1],"type":["fctr"],"align":["left"]}],"data":[{"1":"Hadley Wickham, Romain François, Lionel Henry and Kirill Müller (2020). dplyr: A Grammar of Data Manipulation. R package version 1.0.1. https://CRAN.R-project.org/package=dplyr"},{"1":"Henrik Bengtsson (2020). matrixStats: Functions that Apply to Rows and Columns of Matrices (and to Vectors). R package version 0.56.0. https://CRAN.R-project.org/package=matrixStats"},{"1":"Hervé Pagès, with contributions from Peter Hickey and Aaron Lun (2020). DelayedArray: A unified framework for working transparently with on-disk and in-memory array-like datasets. R package version 0.12.3."},{"1":"H. Pagès, M. Lawrence and P. Aboyoun (2020). S4Vectors: Foundation of vector-like and list-like containers in Bioconductor. R package version 0.24.4."},{"1":"Jonathan Sidi (2020). details: Create Details HTML Tag for Markdown and Package Documentation. R package version 0.2.1. https://CRAN.R-project.org/package=details"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Lawrence M, Huber W, Pag\\\\`es H, Aboyoun P, Carlson M, et al. (2013) Software for Computing and Annotating Genomic Ranges. PLoS Comput Biol 9(8): e1003118. doi:10.1371/journal.pcbi.1003118"},{"1":"Martin Morgan, Valerie Obenchain, Jim Hester and Hervé Pagès (2019). SummarizedExperiment: SummarizedExperiment container. R package version 1.16.1."},{"1":"Martin Morgan, Valerie Obenchain, Michel Lang, Ryan Thompson and Nitesh Turaga (2019). BiocParallel: Bioconductor facilities for parallel evaluation. R package version 1.20.1. https://github.com/Bioconductor/BiocParallel"},{"1":"Microsoft and Steve Weston (2020). foreach: Provides Foreach Looping Construct. R package version 1.5.0. https://CRAN.R-project.org/package=foreach"},{"1":"Microsoft Corporation and Steve Weston (2019). doParallel: Foreach Parallel Adaptor for the 'parallel' Package. R package version 1.0.15. https://CRAN.R-project.org/package=doParallel"},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Orchestrating high-throughput genomic analysis with Bioconductor. W. Huber, V.J. Carey, R. Gentleman, ..., M. Morgan Nature Methods, 2015:12, 115."},{"1":"Revolution Analytics and Steve Weston (2019). iterators: Provides Iterator Construct. R package version 1.0.12. https://CRAN.R-project.org/package=iterators"},{"1":"Sonali Arora, Martin Morgan, Marc Carlson and H. Pagès (2020). GenomeInfoDb: Utilities for manipulating chromosome names, including modifying them to follow a particular naming style. R package version 1.22.1."},{"1":"Zuguang Gu (2019). rGREAT: Client for GREAT Analysis. https://github.com/jokergoo/rGREAT, http://great.stanford.edu/public/html/."}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
 <div id="sessioninfo" class="section level1">
 <h1>SessionInfo</h1>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>() <span class="op">%&gt;%</span></span>
-<span id="cb17-2"><a href="#cb17-2"></a><span class="st">  </span><span class="kw">details</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1"></a>devtools<span class="op">::</span><span class="kw">session_info</span>() <span class="op">%&gt;%</span></span>
+<span id="cb27-2"><a href="#cb27-2"></a><span class="st">  </span><span class="kw">details</span>()</span></code></pre></div>
 <details closed>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a></span>
-<span id="cb18-2"><a href="#cb18-2"></a>─ Session info ───────────────────────────────────────────────────────────────</span>
-<span id="cb18-3"><a href="#cb18-3"></a> setting  value                       </span>
-<span id="cb18-4"><a href="#cb18-4"></a> version  R version <span class="dv">3</span>.<span class="fl">6.2</span> (<span class="dv">2019-12-12</span>)</span>
-<span id="cb18-5"><a href="#cb18-5"></a> os       Ubuntu <span class="dv">16</span>.<span class="fl">04.7</span> LTS          </span>
-<span id="cb18-6"><a href="#cb18-6"></a> system   x86_<span class="dv">64</span>, linux<span class="op">-</span>gnu           </span>
-<span id="cb18-7"><a href="#cb18-7"></a> ui       X11                         </span>
-<span id="cb18-8"><a href="#cb18-8"></a> <span class="kw">language</span> (EN)                        </span>
-<span id="cb18-9"><a href="#cb18-9"></a> collate  en_US.UTF<span class="dv">-8</span>                 </span>
-<span id="cb18-10"><a href="#cb18-10"></a> ctype    en_US.UTF<span class="dv">-8</span>                 </span>
-<span id="cb18-11"><a href="#cb18-11"></a> tz       Europe<span class="op">/</span>Zurich               </span>
-<span id="cb18-12"><a href="#cb18-12"></a> date     <span class="dv">2020-08-10</span>                  </span>
-<span id="cb18-13"><a href="#cb18-13"></a></span>
-<span id="cb18-14"><a href="#cb18-14"></a>─ Packages ───────────────────────────────────────────────────────────────────</span>
-<span id="cb18-15"><a href="#cb18-15"></a> package              <span class="op">*</span><span class="st"> </span>version    date       lib</span>
-<span id="cb18-16"><a href="#cb18-16"></a> assertthat             <span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2019-03-21</span> [<span class="dv">1</span>]</span>
-<span id="cb18-17"><a href="#cb18-17"></a> backports              <span class="dv">1</span>.<span class="fl">1.8</span>      <span class="dv">2020-06-17</span> [<span class="dv">1</span>]</span>
-<span id="cb18-18"><a href="#cb18-18"></a> Biobase              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-19"><a href="#cb18-19"></a> BiocGenerics         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-20"><a href="#cb18-20"></a> BiocParallel         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.1</span>     <span class="dv">2019-12-21</span> [<span class="dv">1</span>]</span>
-<span id="cb18-21"><a href="#cb18-21"></a> bitops                 <span class="fl">1.0</span><span class="dv">-6</span>      <span class="dv">2013-08-17</span> [<span class="dv">1</span>]</span>
-<span id="cb18-22"><a href="#cb18-22"></a> bookdown               <span class="fl">0.20</span>       <span class="dv">2020-06-23</span> [<span class="dv">1</span>]</span>
-<span id="cb18-23"><a href="#cb18-23"></a> callr                  <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-03-28</span> [<span class="dv">1</span>]</span>
-<span id="cb18-24"><a href="#cb18-24"></a> cli                    <span class="dv">2</span>.<span class="fl">0.2</span>      <span class="dv">2020-02-28</span> [<span class="dv">1</span>]</span>
-<span id="cb18-25"><a href="#cb18-25"></a> clipr                  <span class="dv">0</span>.<span class="fl">7.0</span>      <span class="dv">2019-07-23</span> [<span class="dv">1</span>]</span>
-<span id="cb18-26"><a href="#cb18-26"></a> codetools              <span class="fl">0.2</span><span class="dv">-16</span>     <span class="dv">2018-12-24</span> [<span class="dv">1</span>]</span>
-<span id="cb18-27"><a href="#cb18-27"></a> crayon                 <span class="dv">1</span>.<span class="fl">3.4</span>      <span class="dv">2017-09-16</span> [<span class="dv">1</span>]</span>
-<span id="cb18-28"><a href="#cb18-28"></a> DelayedArray         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">12.3</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb18-29"><a href="#cb18-29"></a> desc                   <span class="dv">1</span>.<span class="fl">2.0</span>      <span class="dv">2018-05-01</span> [<span class="dv">1</span>]</span>
-<span id="cb18-30"><a href="#cb18-30"></a> details              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2020-01-12</span> [<span class="dv">1</span>]</span>
-<span id="cb18-31"><a href="#cb18-31"></a> devtools               <span class="dv">2</span>.<span class="fl">3.1</span>      <span class="dv">2020-07-21</span> [<span class="dv">1</span>]</span>
-<span id="cb18-32"><a href="#cb18-32"></a> digest                 <span class="dv">0</span>.<span class="fl">6.25</span>     <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
-<span id="cb18-33"><a href="#cb18-33"></a> doParallel           <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.15</span>     <span class="dv">2019-08-02</span> [<span class="dv">1</span>]</span>
-<span id="cb18-34"><a href="#cb18-34"></a> dplyr                <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.0</span>      <span class="dv">2020-05-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-35"><a href="#cb18-35"></a> ellipsis               <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2020-05-15</span> [<span class="dv">1</span>]</span>
-<span id="cb18-36"><a href="#cb18-36"></a> evaluate               <span class="fl">0.14</span>       <span class="dv">2019-05-28</span> [<span class="dv">1</span>]</span>
-<span id="cb18-37"><a href="#cb18-37"></a> fansi                  <span class="dv">0</span>.<span class="fl">4.1</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
-<span id="cb18-38"><a href="#cb18-38"></a> foreach              <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">5.0</span>      <span class="dv">2020-03-30</span> [<span class="dv">1</span>]</span>
-<span id="cb18-39"><a href="#cb18-39"></a> fs                     <span class="dv">1</span>.<span class="fl">4.2</span>      <span class="dv">2020-06-30</span> [<span class="dv">1</span>]</span>
-<span id="cb18-40"><a href="#cb18-40"></a> generics               <span class="dv">0</span>.<span class="fl">0.2</span>      <span class="dv">2018-11-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-41"><a href="#cb18-41"></a> GenomeInfoDb         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2020-03-27</span> [<span class="dv">1</span>]</span>
-<span id="cb18-42"><a href="#cb18-42"></a> GenomeInfoDbData       <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
-<span id="cb18-43"><a href="#cb18-43"></a> GenomicRanges        <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">38.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-44"><a href="#cb18-44"></a> GetoptLong             <span class="dv">1</span>.<span class="fl">0.2</span>      <span class="dv">2020-07-06</span> [<span class="dv">1</span>]</span>
-<span id="cb18-45"><a href="#cb18-45"></a> GlobalOptions          <span class="dv">0</span>.<span class="fl">1.2</span>      <span class="dv">2020-06-10</span> [<span class="dv">1</span>]</span>
-<span id="cb18-46"><a href="#cb18-46"></a> glue                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
-<span id="cb18-47"><a href="#cb18-47"></a> htmltools              <span class="dv">0</span>.<span class="fl">5.0</span>      <span class="dv">2020-06-16</span> [<span class="dv">1</span>]</span>
-<span id="cb18-48"><a href="#cb18-48"></a> httr                   <span class="dv">1</span>.<span class="fl">4.2</span>      <span class="dv">2020-07-20</span> [<span class="dv">1</span>]</span>
-<span id="cb18-49"><a href="#cb18-49"></a> insight                <span class="dv">0</span>.<span class="fl">9.0</span>      <span class="dv">2020-07-20</span> [<span class="dv">1</span>]</span>
-<span id="cb18-50"><a href="#cb18-50"></a> IRanges              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">20.2</span>     <span class="dv">2020-01-13</span> [<span class="dv">1</span>]</span>
-<span id="cb18-51"><a href="#cb18-51"></a> iterators            <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.12</span>     <span class="dv">2019-07-26</span> [<span class="dv">1</span>]</span>
-<span id="cb18-52"><a href="#cb18-52"></a> jsonlite               <span class="dv">1</span>.<span class="fl">7.0</span>      <span class="dv">2020-06-25</span> [<span class="dv">1</span>]</span>
-<span id="cb18-53"><a href="#cb18-53"></a> knitr                  <span class="fl">1.29</span>       <span class="dv">2020-06-23</span> [<span class="dv">1</span>]</span>
-<span id="cb18-54"><a href="#cb18-54"></a> lattice                <span class="fl">0.20</span><span class="dv">-41</span>    <span class="dv">2020-04-02</span> [<span class="dv">1</span>]</span>
-<span id="cb18-55"><a href="#cb18-55"></a> lifecycle              <span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-03-06</span> [<span class="dv">1</span>]</span>
-<span id="cb18-56"><a href="#cb18-56"></a> magrittr               <span class="fl">1.5</span>        <span class="dv">2014-11-22</span> [<span class="dv">1</span>]</span>
-<span id="cb18-57"><a href="#cb18-57"></a> Matrix                 <span class="fl">1.2</span><span class="dv">-18</span>     <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
-<span id="cb18-58"><a href="#cb18-58"></a> matrixStats          <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">56.0</span>     <span class="dv">2020-03-13</span> [<span class="dv">1</span>]</span>
-<span id="cb18-59"><a href="#cb18-59"></a> memoise                <span class="dv">1</span>.<span class="dv">1</span>.<span class="fl">0.9000</span> <span class="dv">2020-05-06</span> [<span class="dv">1</span>]</span>
-<span id="cb18-60"><a href="#cb18-60"></a> pillar                 <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-07-10</span> [<span class="dv">1</span>]</span>
-<span id="cb18-61"><a href="#cb18-61"></a> pkgbuild               <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-07-13</span> [<span class="dv">1</span>]</span>
-<span id="cb18-62"><a href="#cb18-62"></a> pkgconfig              <span class="dv">2</span>.<span class="fl">0.3</span>      <span class="dv">2019-09-22</span> [<span class="dv">1</span>]</span>
-<span id="cb18-63"><a href="#cb18-63"></a> pkgload                <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-64"><a href="#cb18-64"></a> png                    <span class="fl">0.1</span><span class="dv">-7</span>      <span class="dv">2013-12-03</span> [<span class="dv">1</span>]</span>
-<span id="cb18-65"><a href="#cb18-65"></a> prettyunits            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
-<span id="cb18-66"><a href="#cb18-66"></a> processx               <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-07-05</span> [<span class="dv">1</span>]</span>
-<span id="cb18-67"><a href="#cb18-67"></a> ps                     <span class="dv">1</span>.<span class="fl">3.3</span>      <span class="dv">2020-05-08</span> [<span class="dv">1</span>]</span>
-<span id="cb18-68"><a href="#cb18-68"></a> purrr                  <span class="dv">0</span>.<span class="fl">3.4</span>      <span class="dv">2020-04-17</span> [<span class="dv">1</span>]</span>
-<span id="cb18-69"><a href="#cb18-69"></a> R6                     <span class="dv">2</span>.<span class="fl">4.1</span>      <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
-<span id="cb18-70"><a href="#cb18-70"></a> RCurl                  <span class="fl">1.98-1.2</span>   <span class="dv">2020-04-18</span> [<span class="dv">1</span>]</span>
-<span id="cb18-71"><a href="#cb18-71"></a> remotes                <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-07-21</span> [<span class="dv">1</span>]</span>
-<span id="cb18-72"><a href="#cb18-72"></a> report                 <span class="dv">0</span>.<span class="fl">1.0</span>      <span class="dv">2020-03-19</span> [<span class="dv">1</span>]</span>
-<span id="cb18-73"><a href="#cb18-73"></a> rGREAT               <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">18.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-74"><a href="#cb18-74"></a> rjson                  <span class="dv">0</span>.<span class="fl">2.20</span>     <span class="dv">2018-06-08</span> [<span class="dv">1</span>]</span>
-<span id="cb18-75"><a href="#cb18-75"></a> rlang                  <span class="dv">0</span>.<span class="fl">4.7</span>      <span class="dv">2020-07-09</span> [<span class="dv">1</span>]</span>
-<span id="cb18-76"><a href="#cb18-76"></a> rmarkdown              <span class="fl">2.3</span>        <span class="dv">2020-06-18</span> [<span class="dv">1</span>]</span>
-<span id="cb18-77"><a href="#cb18-77"></a> rmdformats             <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2020-06-07</span> [<span class="dv">1</span>]</span>
-<span id="cb18-78"><a href="#cb18-78"></a> rprojroot              <span class="fl">1.3</span><span class="dv">-2</span>      <span class="dv">2018-01-03</span> [<span class="dv">1</span>]</span>
-<span id="cb18-79"><a href="#cb18-79"></a> S4Vectors            <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">24.4</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
-<span id="cb18-80"><a href="#cb18-80"></a> sessioninfo            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2018-11-05</span> [<span class="dv">1</span>]</span>
-<span id="cb18-81"><a href="#cb18-81"></a> stringi                <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-02-17</span> [<span class="dv">1</span>]</span>
-<span id="cb18-82"><a href="#cb18-82"></a> stringr                <span class="dv">1</span>.<span class="fl">4.0</span>      <span class="dv">2019-02-10</span> [<span class="dv">1</span>]</span>
-<span id="cb18-83"><a href="#cb18-83"></a> SummarizedExperiment <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">16.1</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
-<span id="cb18-84"><a href="#cb18-84"></a> testthat               <span class="dv">2</span>.<span class="fl">3.2</span>      <span class="dv">2020-03-02</span> [<span class="dv">1</span>]</span>
-<span id="cb18-85"><a href="#cb18-85"></a> tibble                 <span class="dv">3</span>.<span class="fl">0.3</span>      <span class="dv">2020-07-10</span> [<span class="dv">1</span>]</span>
-<span id="cb18-86"><a href="#cb18-86"></a> tidyselect             <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-11</span> [<span class="dv">1</span>]</span>
-<span id="cb18-87"><a href="#cb18-87"></a> usethis                <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-04-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-88"><a href="#cb18-88"></a> vctrs                  <span class="dv">0</span>.<span class="fl">3.2</span>      <span class="dv">2020-07-15</span> [<span class="dv">1</span>]</span>
-<span id="cb18-89"><a href="#cb18-89"></a> withr                  <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb18-90"><a href="#cb18-90"></a> xfun                   <span class="fl">0.16</span>       <span class="dv">2020-07-24</span> [<span class="dv">1</span>]</span>
-<span id="cb18-91"><a href="#cb18-91"></a> xml2                   <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
-<span id="cb18-92"><a href="#cb18-92"></a> XVector                <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-93"><a href="#cb18-93"></a> yaml                   <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
-<span id="cb18-94"><a href="#cb18-94"></a> zlibbioc               <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb18-95"><a href="#cb18-95"></a> source                           </span>
-<span id="cb18-96"><a href="#cb18-96"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-97"><a href="#cb18-97"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-98"><a href="#cb18-98"></a> Bioconductor                     </span>
-<span id="cb18-99"><a href="#cb18-99"></a> Bioconductor                     </span>
-<span id="cb18-100"><a href="#cb18-100"></a> Bioconductor                     </span>
-<span id="cb18-101"><a href="#cb18-101"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-102"><a href="#cb18-102"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-103"><a href="#cb18-103"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-104"><a href="#cb18-104"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-105"><a href="#cb18-105"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-106"><a href="#cb18-106"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-107"><a href="#cb18-107"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-108"><a href="#cb18-108"></a> Bioconductor                     </span>
-<span id="cb18-109"><a href="#cb18-109"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-110"><a href="#cb18-110"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-111"><a href="#cb18-111"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-112"><a href="#cb18-112"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-113"><a href="#cb18-113"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-114"><a href="#cb18-114"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-115"><a href="#cb18-115"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-116"><a href="#cb18-116"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-117"><a href="#cb18-117"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-118"><a href="#cb18-118"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-119"><a href="#cb18-119"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-120"><a href="#cb18-120"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-121"><a href="#cb18-121"></a> Bioconductor                     </span>
-<span id="cb18-122"><a href="#cb18-122"></a> Bioconductor                     </span>
-<span id="cb18-123"><a href="#cb18-123"></a> Bioconductor                     </span>
-<span id="cb18-124"><a href="#cb18-124"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-125"><a href="#cb18-125"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-126"><a href="#cb18-126"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-127"><a href="#cb18-127"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-128"><a href="#cb18-128"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-129"><a href="#cb18-129"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-130"><a href="#cb18-130"></a> Bioconductor                     </span>
-<span id="cb18-131"><a href="#cb18-131"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-132"><a href="#cb18-132"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-133"><a href="#cb18-133"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-134"><a href="#cb18-134"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-135"><a href="#cb18-135"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-136"><a href="#cb18-136"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-137"><a href="#cb18-137"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-138"><a href="#cb18-138"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-139"><a href="#cb18-139"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f)   </span>
-<span id="cb18-140"><a href="#cb18-140"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-141"><a href="#cb18-141"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-142"><a href="#cb18-142"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-143"><a href="#cb18-143"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-144"><a href="#cb18-144"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-145"><a href="#cb18-145"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-146"><a href="#cb18-146"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-147"><a href="#cb18-147"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-148"><a href="#cb18-148"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-149"><a href="#cb18-149"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-150"><a href="#cb18-150"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-151"><a href="#cb18-151"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-152"><a href="#cb18-152"></a> <span class="kw">Github</span> (easystats<span class="op">/</span>report<span class="op">@</span>dcdd283)</span>
-<span id="cb18-153"><a href="#cb18-153"></a> Bioconductor                     </span>
-<span id="cb18-154"><a href="#cb18-154"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-155"><a href="#cb18-155"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-156"><a href="#cb18-156"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-157"><a href="#cb18-157"></a> <span class="kw">Github</span> (juba<span class="op">/</span>rmdformats<span class="op">@</span>94cd7a3) </span>
-<span id="cb18-158"><a href="#cb18-158"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-159"><a href="#cb18-159"></a> Bioconductor                     </span>
-<span id="cb18-160"><a href="#cb18-160"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-161"><a href="#cb18-161"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-162"><a href="#cb18-162"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
-<span id="cb18-163"><a href="#cb18-163"></a> Bioconductor                     </span>
-<span id="cb18-164"><a href="#cb18-164"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-165"><a href="#cb18-165"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-166"><a href="#cb18-166"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-167"><a href="#cb18-167"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-168"><a href="#cb18-168"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-169"><a href="#cb18-169"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-170"><a href="#cb18-170"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-171"><a href="#cb18-171"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-172"><a href="#cb18-172"></a> Bioconductor                     </span>
-<span id="cb18-173"><a href="#cb18-173"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
-<span id="cb18-174"><a href="#cb18-174"></a> Bioconductor                     </span>
-<span id="cb18-175"><a href="#cb18-175"></a></span>
-<span id="cb18-176"><a href="#cb18-176"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
-<span id="cb18-177"><a href="#cb18-177"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb18-178"><a href="#cb18-178"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb18-179"><a href="#cb18-179"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1"></a></span>
+<span id="cb28-2"><a href="#cb28-2"></a>─ Session info ───────────────────────────────────────────────────────────────</span>
+<span id="cb28-3"><a href="#cb28-3"></a> setting  value                       </span>
+<span id="cb28-4"><a href="#cb28-4"></a> version  R version <span class="dv">3</span>.<span class="fl">6.2</span> (<span class="dv">2019-12-12</span>)</span>
+<span id="cb28-5"><a href="#cb28-5"></a> os       Ubuntu <span class="dv">16</span>.<span class="fl">04.7</span> LTS          </span>
+<span id="cb28-6"><a href="#cb28-6"></a> system   x86_<span class="dv">64</span>, linux<span class="op">-</span>gnu           </span>
+<span id="cb28-7"><a href="#cb28-7"></a> ui       X11                         </span>
+<span id="cb28-8"><a href="#cb28-8"></a> <span class="kw">language</span> (EN)                        </span>
+<span id="cb28-9"><a href="#cb28-9"></a> collate  en_US.UTF<span class="dv">-8</span>                 </span>
+<span id="cb28-10"><a href="#cb28-10"></a> ctype    en_US.UTF<span class="dv">-8</span>                 </span>
+<span id="cb28-11"><a href="#cb28-11"></a> tz       Europe<span class="op">/</span>Zurich               </span>
+<span id="cb28-12"><a href="#cb28-12"></a> date     <span class="dv">2020-09-02</span>                  </span>
+<span id="cb28-13"><a href="#cb28-13"></a></span>
+<span id="cb28-14"><a href="#cb28-14"></a>─ Packages ───────────────────────────────────────────────────────────────────</span>
+<span id="cb28-15"><a href="#cb28-15"></a> package              <span class="op">*</span><span class="st"> </span>version    date       lib</span>
+<span id="cb28-16"><a href="#cb28-16"></a> assertthat             <span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2019-03-21</span> [<span class="dv">1</span>]</span>
+<span id="cb28-17"><a href="#cb28-17"></a> backports              <span class="dv">1</span>.<span class="fl">1.8</span>      <span class="dv">2020-06-17</span> [<span class="dv">1</span>]</span>
+<span id="cb28-18"><a href="#cb28-18"></a> Biobase              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">46.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-19"><a href="#cb28-19"></a> BiocGenerics         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-20"><a href="#cb28-20"></a> BiocParallel         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">20.1</span>     <span class="dv">2019-12-21</span> [<span class="dv">1</span>]</span>
+<span id="cb28-21"><a href="#cb28-21"></a> bitops                 <span class="fl">1.0</span><span class="dv">-6</span>      <span class="dv">2013-08-17</span> [<span class="dv">1</span>]</span>
+<span id="cb28-22"><a href="#cb28-22"></a> bookdown               <span class="fl">0.20</span>       <span class="dv">2020-06-23</span> [<span class="dv">1</span>]</span>
+<span id="cb28-23"><a href="#cb28-23"></a> callr                  <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-03-28</span> [<span class="dv">1</span>]</span>
+<span id="cb28-24"><a href="#cb28-24"></a> cellranger             <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2016-07-27</span> [<span class="dv">1</span>]</span>
+<span id="cb28-25"><a href="#cb28-25"></a> cli                    <span class="dv">2</span>.<span class="fl">0.2</span>      <span class="dv">2020-02-28</span> [<span class="dv">1</span>]</span>
+<span id="cb28-26"><a href="#cb28-26"></a> clipr                  <span class="dv">0</span>.<span class="fl">7.0</span>      <span class="dv">2019-07-23</span> [<span class="dv">1</span>]</span>
+<span id="cb28-27"><a href="#cb28-27"></a> codetools              <span class="fl">0.2</span><span class="dv">-16</span>     <span class="dv">2018-12-24</span> [<span class="dv">1</span>]</span>
+<span id="cb28-28"><a href="#cb28-28"></a> crayon                 <span class="dv">1</span>.<span class="fl">3.4</span>      <span class="dv">2017-09-16</span> [<span class="dv">1</span>]</span>
+<span id="cb28-29"><a href="#cb28-29"></a> DelayedArray         <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">12.3</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb28-30"><a href="#cb28-30"></a> desc                   <span class="dv">1</span>.<span class="fl">2.0</span>      <span class="dv">2018-05-01</span> [<span class="dv">1</span>]</span>
+<span id="cb28-31"><a href="#cb28-31"></a> details              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">2.1</span>      <span class="dv">2020-01-12</span> [<span class="dv">1</span>]</span>
+<span id="cb28-32"><a href="#cb28-32"></a> devtools               <span class="dv">2</span>.<span class="fl">3.1</span>      <span class="dv">2020-07-21</span> [<span class="dv">1</span>]</span>
+<span id="cb28-33"><a href="#cb28-33"></a> digest                 <span class="dv">0</span>.<span class="fl">6.25</span>     <span class="dv">2020-02-23</span> [<span class="dv">1</span>]</span>
+<span id="cb28-34"><a href="#cb28-34"></a> doParallel           <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.15</span>     <span class="dv">2019-08-02</span> [<span class="dv">1</span>]</span>
+<span id="cb28-35"><a href="#cb28-35"></a> dplyr                <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.1</span>      <span class="dv">2020-07-31</span> [<span class="dv">1</span>]</span>
+<span id="cb28-36"><a href="#cb28-36"></a> ellipsis               <span class="dv">0</span>.<span class="fl">3.1</span>      <span class="dv">2020-05-15</span> [<span class="dv">1</span>]</span>
+<span id="cb28-37"><a href="#cb28-37"></a> evaluate               <span class="fl">0.14</span>       <span class="dv">2019-05-28</span> [<span class="dv">1</span>]</span>
+<span id="cb28-38"><a href="#cb28-38"></a> fansi                  <span class="dv">0</span>.<span class="fl">4.1</span>      <span class="dv">2020-01-08</span> [<span class="dv">1</span>]</span>
+<span id="cb28-39"><a href="#cb28-39"></a> foreach              <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">5.0</span>      <span class="dv">2020-03-30</span> [<span class="dv">1</span>]</span>
+<span id="cb28-40"><a href="#cb28-40"></a> fs                     <span class="dv">1</span>.<span class="fl">5.0</span>      <span class="dv">2020-07-31</span> [<span class="dv">1</span>]</span>
+<span id="cb28-41"><a href="#cb28-41"></a> generics               <span class="dv">0</span>.<span class="fl">0.2</span>      <span class="dv">2018-11-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-42"><a href="#cb28-42"></a> GenomeInfoDb         <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">22.1</span>     <span class="dv">2020-03-27</span> [<span class="dv">1</span>]</span>
+<span id="cb28-43"><a href="#cb28-43"></a> GenomeInfoDbData       <span class="dv">1</span>.<span class="fl">2.2</span>      <span class="dv">2019-11-18</span> [<span class="dv">1</span>]</span>
+<span id="cb28-44"><a href="#cb28-44"></a> GenomicRanges        <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">38.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-45"><a href="#cb28-45"></a> GetoptLong             <span class="dv">1</span>.<span class="fl">0.2</span>      <span class="dv">2020-07-06</span> [<span class="dv">1</span>]</span>
+<span id="cb28-46"><a href="#cb28-46"></a> GlobalOptions          <span class="dv">0</span>.<span class="fl">1.2</span>      <span class="dv">2020-06-10</span> [<span class="dv">1</span>]</span>
+<span id="cb28-47"><a href="#cb28-47"></a> glue                   <span class="dv">1</span>.<span class="fl">4.1</span>      <span class="dv">2020-05-13</span> [<span class="dv">1</span>]</span>
+<span id="cb28-48"><a href="#cb28-48"></a> htmltools              <span class="dv">0</span>.<span class="fl">5.0</span>      <span class="dv">2020-06-16</span> [<span class="dv">1</span>]</span>
+<span id="cb28-49"><a href="#cb28-49"></a> httr                   <span class="dv">1</span>.<span class="fl">4.2</span>      <span class="dv">2020-07-20</span> [<span class="dv">1</span>]</span>
+<span id="cb28-50"><a href="#cb28-50"></a> insight                <span class="dv">0</span>.<span class="fl">9.0</span>      <span class="dv">2020-07-20</span> [<span class="dv">1</span>]</span>
+<span id="cb28-51"><a href="#cb28-51"></a> IRanges              <span class="op">*</span><span class="st"> </span><span class="dv">2</span>.<span class="fl">20.2</span>     <span class="dv">2020-01-13</span> [<span class="dv">1</span>]</span>
+<span id="cb28-52"><a href="#cb28-52"></a> iterators            <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">0.12</span>     <span class="dv">2019-07-26</span> [<span class="dv">1</span>]</span>
+<span id="cb28-53"><a href="#cb28-53"></a> jsonlite               <span class="dv">1</span>.<span class="fl">7.0</span>      <span class="dv">2020-06-25</span> [<span class="dv">1</span>]</span>
+<span id="cb28-54"><a href="#cb28-54"></a> knitr                  <span class="fl">1.29</span>       <span class="dv">2020-06-23</span> [<span class="dv">1</span>]</span>
+<span id="cb28-55"><a href="#cb28-55"></a> lattice                <span class="fl">0.20</span><span class="dv">-41</span>    <span class="dv">2020-04-02</span> [<span class="dv">1</span>]</span>
+<span id="cb28-56"><a href="#cb28-56"></a> lifecycle              <span class="dv">0</span>.<span class="fl">2.0</span>      <span class="dv">2020-03-06</span> [<span class="dv">1</span>]</span>
+<span id="cb28-57"><a href="#cb28-57"></a> magrittr               <span class="fl">1.5</span>        <span class="dv">2014-11-22</span> [<span class="dv">1</span>]</span>
+<span id="cb28-58"><a href="#cb28-58"></a> Matrix                 <span class="fl">1.2</span><span class="dv">-18</span>     <span class="dv">2019-11-27</span> [<span class="dv">1</span>]</span>
+<span id="cb28-59"><a href="#cb28-59"></a> matrixStats          <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">56.0</span>     <span class="dv">2020-03-13</span> [<span class="dv">1</span>]</span>
+<span id="cb28-60"><a href="#cb28-60"></a> memoise                <span class="dv">1</span>.<span class="dv">1</span>.<span class="fl">0.9000</span> <span class="dv">2020-05-06</span> [<span class="dv">1</span>]</span>
+<span id="cb28-61"><a href="#cb28-61"></a> pillar                 <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-07-10</span> [<span class="dv">1</span>]</span>
+<span id="cb28-62"><a href="#cb28-62"></a> pkgbuild               <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-07-13</span> [<span class="dv">1</span>]</span>
+<span id="cb28-63"><a href="#cb28-63"></a> pkgconfig              <span class="dv">2</span>.<span class="fl">0.3</span>      <span class="dv">2019-09-22</span> [<span class="dv">1</span>]</span>
+<span id="cb28-64"><a href="#cb28-64"></a> pkgload                <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-65"><a href="#cb28-65"></a> plyr                   <span class="dv">1</span>.<span class="fl">8.6</span>      <span class="dv">2020-03-03</span> [<span class="dv">1</span>]</span>
+<span id="cb28-66"><a href="#cb28-66"></a> png                    <span class="fl">0.1</span><span class="dv">-7</span>      <span class="dv">2013-12-03</span> [<span class="dv">1</span>]</span>
+<span id="cb28-67"><a href="#cb28-67"></a> prettyunits            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2020-01-24</span> [<span class="dv">1</span>]</span>
+<span id="cb28-68"><a href="#cb28-68"></a> processx               <span class="dv">3</span>.<span class="fl">4.3</span>      <span class="dv">2020-07-05</span> [<span class="dv">1</span>]</span>
+<span id="cb28-69"><a href="#cb28-69"></a> ps                     <span class="dv">1</span>.<span class="fl">3.3</span>      <span class="dv">2020-05-08</span> [<span class="dv">1</span>]</span>
+<span id="cb28-70"><a href="#cb28-70"></a> purrr                  <span class="dv">0</span>.<span class="fl">3.4</span>      <span class="dv">2020-04-17</span> [<span class="dv">1</span>]</span>
+<span id="cb28-71"><a href="#cb28-71"></a> R6                     <span class="dv">2</span>.<span class="fl">4.1</span>      <span class="dv">2019-11-12</span> [<span class="dv">1</span>]</span>
+<span id="cb28-72"><a href="#cb28-72"></a> Rcpp                   <span class="dv">1</span>.<span class="fl">0.5</span>      <span class="dv">2020-07-06</span> [<span class="dv">1</span>]</span>
+<span id="cb28-73"><a href="#cb28-73"></a> RCurl                  <span class="fl">1.98-1.2</span>   <span class="dv">2020-04-18</span> [<span class="dv">1</span>]</span>
+<span id="cb28-74"><a href="#cb28-74"></a> readxl                 <span class="dv">1</span>.<span class="fl">3.1</span>      <span class="dv">2019-03-13</span> [<span class="dv">1</span>]</span>
+<span id="cb28-75"><a href="#cb28-75"></a> remotes                <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-07-21</span> [<span class="dv">1</span>]</span>
+<span id="cb28-76"><a href="#cb28-76"></a> report                 <span class="dv">0</span>.<span class="fl">1.0</span>      <span class="dv">2020-03-19</span> [<span class="dv">1</span>]</span>
+<span id="cb28-77"><a href="#cb28-77"></a> rGREAT               <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">18.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-78"><a href="#cb28-78"></a> rjson                  <span class="dv">0</span>.<span class="fl">2.20</span>     <span class="dv">2018-06-08</span> [<span class="dv">1</span>]</span>
+<span id="cb28-79"><a href="#cb28-79"></a> rlang                  <span class="dv">0</span>.<span class="fl">4.7</span>      <span class="dv">2020-07-09</span> [<span class="dv">1</span>]</span>
+<span id="cb28-80"><a href="#cb28-80"></a> rmarkdown              <span class="fl">2.3</span>        <span class="dv">2020-06-18</span> [<span class="dv">1</span>]</span>
+<span id="cb28-81"><a href="#cb28-81"></a> rmdformats             <span class="dv">0</span>.<span class="fl">4.0</span>      <span class="dv">2020-06-07</span> [<span class="dv">1</span>]</span>
+<span id="cb28-82"><a href="#cb28-82"></a> rprojroot              <span class="fl">1.3</span><span class="dv">-2</span>      <span class="dv">2018-01-03</span> [<span class="dv">1</span>]</span>
+<span id="cb28-83"><a href="#cb28-83"></a> S4Vectors            <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">24.4</span>     <span class="dv">2020-04-09</span> [<span class="dv">1</span>]</span>
+<span id="cb28-84"><a href="#cb28-84"></a> sessioninfo            <span class="dv">1</span>.<span class="fl">1.1</span>      <span class="dv">2018-11-05</span> [<span class="dv">1</span>]</span>
+<span id="cb28-85"><a href="#cb28-85"></a> stringi                <span class="dv">1</span>.<span class="fl">4.6</span>      <span class="dv">2020-02-17</span> [<span class="dv">1</span>]</span>
+<span id="cb28-86"><a href="#cb28-86"></a> stringr                <span class="dv">1</span>.<span class="fl">4.0</span>      <span class="dv">2019-02-10</span> [<span class="dv">1</span>]</span>
+<span id="cb28-87"><a href="#cb28-87"></a> SummarizedExperiment <span class="op">*</span><span class="st"> </span><span class="dv">1</span>.<span class="fl">16.1</span>     <span class="dv">2019-12-19</span> [<span class="dv">1</span>]</span>
+<span id="cb28-88"><a href="#cb28-88"></a> testthat               <span class="dv">2</span>.<span class="fl">3.2</span>      <span class="dv">2020-03-02</span> [<span class="dv">1</span>]</span>
+<span id="cb28-89"><a href="#cb28-89"></a> tibble                 <span class="dv">3</span>.<span class="fl">0.3</span>      <span class="dv">2020-07-10</span> [<span class="dv">1</span>]</span>
+<span id="cb28-90"><a href="#cb28-90"></a> tidyselect             <span class="dv">1</span>.<span class="fl">1.0</span>      <span class="dv">2020-05-11</span> [<span class="dv">1</span>]</span>
+<span id="cb28-91"><a href="#cb28-91"></a> usethis                <span class="dv">1</span>.<span class="fl">6.1</span>      <span class="dv">2020-04-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-92"><a href="#cb28-92"></a> vctrs                  <span class="dv">0</span>.<span class="fl">3.2</span>      <span class="dv">2020-07-15</span> [<span class="dv">1</span>]</span>
+<span id="cb28-93"><a href="#cb28-93"></a> withr                  <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
+<span id="cb28-94"><a href="#cb28-94"></a> writexl                <span class="fl">1.3</span>        <span class="dv">2020-05-05</span> [<span class="dv">1</span>]</span>
+<span id="cb28-95"><a href="#cb28-95"></a> xfun                   <span class="fl">0.16</span>       <span class="dv">2020-07-24</span> [<span class="dv">1</span>]</span>
+<span id="cb28-96"><a href="#cb28-96"></a> xml2                   <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
+<span id="cb28-97"><a href="#cb28-97"></a> XVector                <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-98"><a href="#cb28-98"></a> yaml                   <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
+<span id="cb28-99"><a href="#cb28-99"></a> zlibbioc               <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb28-100"><a href="#cb28-100"></a> source                           </span>
+<span id="cb28-101"><a href="#cb28-101"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-102"><a href="#cb28-102"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-103"><a href="#cb28-103"></a> Bioconductor                     </span>
+<span id="cb28-104"><a href="#cb28-104"></a> Bioconductor                     </span>
+<span id="cb28-105"><a href="#cb28-105"></a> Bioconductor                     </span>
+<span id="cb28-106"><a href="#cb28-106"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-107"><a href="#cb28-107"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-108"><a href="#cb28-108"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-109"><a href="#cb28-109"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-110"><a href="#cb28-110"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-111"><a href="#cb28-111"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-112"><a href="#cb28-112"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-113"><a href="#cb28-113"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-114"><a href="#cb28-114"></a> Bioconductor                     </span>
+<span id="cb28-115"><a href="#cb28-115"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-116"><a href="#cb28-116"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-117"><a href="#cb28-117"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-118"><a href="#cb28-118"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-119"><a href="#cb28-119"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-120"><a href="#cb28-120"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-121"><a href="#cb28-121"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-122"><a href="#cb28-122"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-123"><a href="#cb28-123"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-124"><a href="#cb28-124"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-125"><a href="#cb28-125"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-126"><a href="#cb28-126"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-127"><a href="#cb28-127"></a> Bioconductor                     </span>
+<span id="cb28-128"><a href="#cb28-128"></a> Bioconductor                     </span>
+<span id="cb28-129"><a href="#cb28-129"></a> Bioconductor                     </span>
+<span id="cb28-130"><a href="#cb28-130"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-131"><a href="#cb28-131"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-132"><a href="#cb28-132"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-133"><a href="#cb28-133"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-134"><a href="#cb28-134"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-135"><a href="#cb28-135"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-136"><a href="#cb28-136"></a> Bioconductor                     </span>
+<span id="cb28-137"><a href="#cb28-137"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-138"><a href="#cb28-138"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-139"><a href="#cb28-139"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-140"><a href="#cb28-140"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-141"><a href="#cb28-141"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-142"><a href="#cb28-142"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-143"><a href="#cb28-143"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-144"><a href="#cb28-144"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-145"><a href="#cb28-145"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f)   </span>
+<span id="cb28-146"><a href="#cb28-146"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-147"><a href="#cb28-147"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-148"><a href="#cb28-148"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-149"><a href="#cb28-149"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-150"><a href="#cb28-150"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-151"><a href="#cb28-151"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-152"><a href="#cb28-152"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-153"><a href="#cb28-153"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-154"><a href="#cb28-154"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-155"><a href="#cb28-155"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-156"><a href="#cb28-156"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-157"><a href="#cb28-157"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-158"><a href="#cb28-158"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-159"><a href="#cb28-159"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-160"><a href="#cb28-160"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-161"><a href="#cb28-161"></a> <span class="kw">Github</span> (easystats<span class="op">/</span>report<span class="op">@</span>dcdd283)</span>
+<span id="cb28-162"><a href="#cb28-162"></a> Bioconductor                     </span>
+<span id="cb28-163"><a href="#cb28-163"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-164"><a href="#cb28-164"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-165"><a href="#cb28-165"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-166"><a href="#cb28-166"></a> <span class="kw">Github</span> (juba<span class="op">/</span>rmdformats<span class="op">@</span>94cd7a3) </span>
+<span id="cb28-167"><a href="#cb28-167"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-168"><a href="#cb28-168"></a> Bioconductor                     </span>
+<span id="cb28-169"><a href="#cb28-169"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-170"><a href="#cb28-170"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-171"><a href="#cb28-171"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                   </span>
+<span id="cb28-172"><a href="#cb28-172"></a> Bioconductor                     </span>
+<span id="cb28-173"><a href="#cb28-173"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-174"><a href="#cb28-174"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-175"><a href="#cb28-175"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-176"><a href="#cb28-176"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-177"><a href="#cb28-177"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-178"><a href="#cb28-178"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-179"><a href="#cb28-179"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-180"><a href="#cb28-180"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-181"><a href="#cb28-181"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-182"><a href="#cb28-182"></a> Bioconductor                     </span>
+<span id="cb28-183"><a href="#cb28-183"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                   </span>
+<span id="cb28-184"><a href="#cb28-184"></a> Bioconductor                     </span>
+<span id="cb28-185"><a href="#cb28-185"></a></span>
+<span id="cb28-186"><a href="#cb28-186"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
+<span id="cb28-187"><a href="#cb28-187"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb28-188"><a href="#cb28-188"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb28-189"><a href="#cb28-189"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
 </details>
 <p><br></p>
 </div>
