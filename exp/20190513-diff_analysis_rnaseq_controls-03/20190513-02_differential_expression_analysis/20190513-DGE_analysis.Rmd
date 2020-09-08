@@ -200,6 +200,35 @@ dea.limma <- list(
 )
 ```
 
+# Adding gene annotations
+```{r}
+load("../20190513-01_salmonObj/input/gencode.vM18.anno.RData")
+
+# t <- dea.limma$`PND15 vs Adult`
+an <- anno[,c(1:3,5,6)]
+an <- an[!duplicated(an),]
+colnames(an)[3] <- "Genes"
+
+an_sp <- split(an, an$Genes)
+
+an_df <- lapply(an_sp, function(x){
+  if(nrow(x) > 1){
+  x1 <- x[1,]
+  x1$transcript <- paste(x$transcript, collapse = ",")
+  x1$type <- paste(x$type, collapse = ",")
+  return(x1)
+  } else{
+    return(x)
+  }
+})
+
+df <- plyr::ldply(test, data.frame)[,-1]
+
+dea.limma <- lapply(dea.limma, function(x) merge(df, x))
+
+writexl::write_xlsx(x = dea.limma, path = "output/dea_rnaseq.xlsx", col_names = T, format_headers = T)
+```
+
 
 ## Save RData files
 ```{r}
@@ -223,6 +252,9 @@ save(dea.limma,
   compression_level = 3
 )
 ```
+
+
+
 
 # PCA plots {.tabset .tabset-pills}
 
@@ -249,6 +281,8 @@ plPCA(x = cpm, samples_data = salmon@phenoData, colorBy = "Group", add.labels = 
 ```{r, fig.align='center', fig.height=7, fig.width=8, warning=F}
 plPCA(x = v$E, samples_data = salmon@phenoData, colorBy = "Group", add.labels = FALSE)
 ```
+
+
 
 
 # SessionInfo
