@@ -1,0 +1,1084 @@
+---
+title: "Figure 5"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-08-07 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r integration-all-1, warning = F, message = F}
+library(EnrichedHeatmap)
+library(circlize)
+library(data.table)
+library(tidyverse)
+library(plgINS)
+library(BSgenome.Mmusculus.UCSC.mm10)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(csaw)
+library(gUtils)
+library(report)
+library(plyr)
+library(viridis)
+```
+
+
+# Function to subset data to one chromosome
+```{r integration-all-3, echo = F}
+mylapply <- function(...) {
+  if (require(parallel) && .Platform$OS.type == "unix") {
+    mclapply(..., mc.preschedule = F)
+  }
+  else {
+    lapply(...)
+  }
+}
+```
+
+# Data overlaps
+```{r}
+load("input/overlap_tables.RData")
+wi <- ldply(sp_df_s2, data.frame)[, -1]
+```
+
+# ATAC differential analysis
+```{r integration-all-4 }
+load("input/atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(res) <- gsub(pattern = "Peak-", replacement = "", x = colnames(res))
+res_p <- res[res$`diffAccessibility-qvalue` <= 0.05, ]
+res_lp <- res[res$`diffAccessibility-qvalue` <= 0.05 & abs(res$`diffAccessibility-logFC`) > 1, ]
+res_lp <- inner_join(res_lp, wi)
+
+
+tss_mm10 <- gr.mid(GRanges(res_lp))
+names(tss_mm10) <- tss_mm10$Name
+
+tss_5k <- promoters(tss_mm10, upstream = 2500, downstream = 2500)
+names(tss_5k) <- tss_5k$Name
+```
+
+# Normalized matrix
+```{r integration-all-5 }
+nm_atac <- "./input/mat_atac.RData"
+nm_rna_counts <- "./input/mat_rna_counts.RData"
+nm_chip <- "./input/mat_chip.RData"
+nm_bs <- "./input/mat_bs.RData"
+
+load(nm_atac)
+load(nm_rna_counts)
+load(nm_chip)
+load(nm_bs)
+```
+
+# Heatmaps
+
+## Color function 
+```{r integration-all-10 }
+generate_diff_color_fun <- function(x, rows) {
+  q <- quantile(x[rows, ], c(0.5, .95))
+  max_q <- max(abs(q))
+  colorRamp2(c(-max_q, 0, max_q), c("#3794bf", "#FFFFFF", "#df8640"))
+}
+
+generate_color_fun <- function(x, rows, col = "red") {
+  q <- NULL
+  if (is.list(x)) {
+    a <- lapply(x, function(y) quantile(y[rows, ], c(0.05, 0.95)))
+    min <- NULL
+    max <- NULL
+    for (i in 1:length(a)) {
+      min <- c(min, a[[i]][1])
+      max <- c(max, a[[i]][2])
+    }
+    q <- c(min(min), max(max))
+  } else {
+    q <- quantile(x[rows, ], c(0.05, 0.95))
+  }
+  max_q <- max(abs(q))
+  col <- colorRamp2(c(0, max_q), c("#FFFFFF", col))
+  return(col)
+}
+
+get_at <- function(mm) {
+  l <- length(mm@levels)
+  mm@colors <- c(mm@colors[1], mm@colors[median(1:l)], mm@colors[l])
+  mm@levels <- c(mm@levels[1], mm@levels[median(1:l)], mm@levels[l])
+  return(mm)
+}
+```
+
+
+## EH function
+```{r}
+make_EH <- function(x, k, name, ht) {
+  set.seed(1100)
+
+  names(k) <- x
+  partition <- k
+
+  nc <- length(unique(k))
+  pdf_file <- paste0("./output/enrichedHeatmap_", name, ".pdf")
+
+  col_an <- NULL
+  if (length(unique(partition)) <= 8) {
+    col_an <- RColorBrewer::brewer.pal(n = 8, name = "Dark2")
+    names(col_an) <- unique(partition)
+
+    col_an <- col_an[!is.na(names(col_an))]
+  } else {
+    library(RColorBrewer)
+    n <- length(unique(partition))
+    qual_col_pals <- brewer.pal.info[brewer.pal.info$category == "qual", ]
+    col_an <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+    names(col_an) <- unique(partition)
+    col_an <- col_an[!is.na(names(col_an))]
+    # pie(rep(1,n), col=sample(col_vector, n))
+  }
+
+  hm_an <- HeatmapAnnotation(
+    Categories = partition,
+    which = "row",
+    annotation_name_gp = gpar(fontsize = 0),
+    annotation_legend_param = list(
+      title_gp = gpar(
+        fontsize = 6,
+        fontface = "bold",
+        fontfamily = "Helvetica"
+      ),
+      labels_gp = gpar(
+        fontsize = 6,
+        fontfamily = "Helvetica"
+      )
+    ),
+    col = list(Categories = col_an),
+    simple_anno_size = unit(3, "mm")
+  )
+
+  axis_name <- c("-2.5kb", "Mid", "2.5kb")
+
+  col_atac <- generate_color_fun(x = mat_AS, col = "red", rows = x)
+
+  bg_col <- RColorBrewer::brewer.pal(n = 5, name = "Set2")
+
+  # ATAC-Seq
+  hm_atac <- EnrichedHeatmap(
+    mat = mat_AS$PND15_NF[x, ],
+    name = "PND15",
+    col = col_atac,
+    column_title = "PND15 ATAC",
+    top_annotation = HeatmapAnnotation(
+      lines = anno_enriched(
+        height = unit(1, "cm"),
+        gp = gpar(
+          lwd = 0.7,
+          fontsize = 6,
+          fontfamily = "Helvetica",
+          col = col_an,
+          lty = 1:length(unique(col_an))
+        ),
+        axis_param = list(
+          side = "right",
+          facing = "inside",
+          gp = gpar(
+            fontsize = 6,
+            col = "black",
+            lwd = 0.4
+          )
+        )
+      ),
+      annotation_name_gp = gpar(
+        fontsize = 0,
+        fontfamily = "Helvetica"
+      ),
+      annotation_legend_param = list(
+        title_gp = gpar(
+          fontsize = 6,
+          fontface = "bold",
+          fontfamily = "Helvetica"
+        ),
+        labels_gp = gpar(
+          fontsize = 6,
+          fontfamily = "Helvetica"
+        )
+      )
+    ),
+    border_gp = gpar(
+      col = "black",
+      lwd = 0.4
+    ),
+    column_title_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+
+      fill = bg_col[1]
+    ),
+    axis_name_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+      col = "black",
+      lwd = 0.4
+    ),
+    use_raster = FALSE,
+    row_split = partition,
+    row_gap = unit(0.5, "mm"),
+    row_title = NULL,
+    axis_name = axis_name,
+    width = unit(1.8, "cm"),
+    height = unit(ht, "cm"),
+    show_heatmap_legend = TRUE,
+    heatmap_legend_param = list(
+      direction = "vertical",
+      # at = get_at(m1 = mat_AS$Adult_NF[x,], m2 = mat_AS$PND15_NF[x,]),
+      title = expression(bold(ATAC ~ "RPKM")),
+      legend_height = unit(0.8, "cm"),
+      title_position = "topleft",
+      title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  ) +
+    EnrichedHeatmap(
+      mat = mat_AS$Adult_NF[x, ],
+      name = "Adult",
+      col = col_atac,
+      column_title = "Adult ATAC",
+      top_annotation = HeatmapAnnotation(
+        lines = anno_enriched(
+          height = unit(1, "cm"),
+          gp = gpar(
+            lwd = 0.7,
+            fontsize = 6,
+            fontfamily = "Helvetica",
+            col = col_an,
+            lty = 1:length(unique(col_an))
+          ),
+          axis_param = list(
+            side = "right",
+            facing = "inside",
+            gp = gpar(
+              fontsize = 6,
+              col = "black",
+              lwd = 0.4
+            )
+          )
+        ),
+        annotation_name_gp = gpar(
+          fontsize = 0,
+          fontfamily = "Helvetica"
+        ),
+        annotation_legend_param = list(
+          title_gp = gpar(
+            fontsize = 6,
+            fontface = "bold",
+            fontfamily = "Helvetica"
+          ),
+          labels_gp = gpar(
+            fontsize = 6,
+            fontfamily = "Helvetica"
+          )
+        )
+      ),
+      border_gp = gpar(
+        col = "black",
+        lwd = 0.4
+      ),
+      column_title_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+
+        fill = bg_col[1]
+      ),
+      axis_name_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+        col = "black",
+        lwd = 0.4
+      ),
+      use_raster = FALSE,
+      row_split = partition,
+      row_gap = unit(0.5, "mm"),
+      row_title = NULL,
+      axis_name = axis_name,
+      width = unit(1.8, "cm"),
+      height = unit(ht, "cm"),
+      show_heatmap_legend = FALSE,
+      heatmap_legend_param = list(
+        direction = "vertical",
+        # at = get_at(m1 = mat_AS$Adult_NF[x,], m2 = mat_AS$PND15_NF[x,]),
+        title = expression(bold(ATAC ~ "RPKM")),
+        legend_height = unit(0.8, "cm"),
+        title_position = "topleft",
+        title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+        labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+      )
+    )
+
+
+  hm_atac@ht_list$PND15@matrix_color_mapping <- get_at(mm = hm_atac@ht_list$PND15@matrix_color_mapping)
+  hm_atac@ht_list$Adult@matrix_color_mapping <- get_at(mm = hm_atac@ht_list$Adult@matrix_color_mapping)
+
+
+  # ChIP-Seq
+  hm_chip <- EnrichedHeatmap(
+    mat = mat_CS$PNW8_H3K4me3_SRX332343[x, ],
+    name = "PNW8 H3K4me3",
+    col = generate_color_fun(mat_CS$PNW8_H3K4me3_SRX332343[x, ], col = "blue"),
+    column_title = "PNW8 H3K4me3",
+    top_annotation = HeatmapAnnotation(
+      lines = anno_enriched(
+        height = unit(1, "cm"),
+        gp = gpar(
+          lwd = 0.7,
+          fontsize = 6,
+          fontfamily = "Helvetica",
+          col = col_an,
+          lty = 1:length(unique(col_an))
+        ),
+        axis_param = list(
+          side = "right",
+          facing = "inside",
+          gp = gpar(
+            fontsize = 6,
+            col = "black",
+            lwd = 0.4
+          )
+        )
+      ),
+      annotation_name_gp = gpar(
+        fontsize = 0,
+        fontfamily = "Helvetica"
+      ),
+      annotation_legend_param = list(
+        title_gp = gpar(
+          fontsize = 6,
+          fontface = "bold",
+          fontfamily = "Helvetica"
+        ),
+        labels_gp = gpar(
+          fontsize = 6,
+          fontfamily = "Helvetica"
+        )
+      )
+    ),
+    border_gp = gpar(
+      col = "black",
+      lwd = 0.4
+    ),
+    column_title_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+
+      fill = bg_col[2]
+    ),
+    axis_name_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+      col = "black",
+      lwd = 0.4
+    ),
+    use_raster = FALSE,
+    row_split = partition,
+    row_gap = unit(0.5, "mm"),
+    row_title = NULL,
+    axis_name = axis_name,
+    width = unit(1.8, "cm"),
+    height = unit(ht, "cm"),
+    show_heatmap_legend = TRUE,
+    heatmap_legend_param = list(
+      direction = "vertical",
+      # at = get_at(m1 = mat_CS$PNW8_H3K4me3_SRX332343[x, ]),
+      title = expression(bold(H3K4me3 ~ "RPKM")),
+      legend_height = unit(0.8, "cm"),
+      title_position = "topleft",
+      title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  ) +
+    EnrichedHeatmap(
+      mat = mat_CS$PNW8_H3K27ac_SRX332351[x, ],
+      name = "PNW8 H3K27ac",
+      col = generate_color_fun(mat_CS$PNW8_H3K27ac_SRX332351[x, ], col = "blue"),
+      column_title = "PNW8 H3K27ac",
+      top_annotation = HeatmapAnnotation(
+        lines = anno_enriched(
+          height = unit(1, "cm"),
+          gp = gpar(
+            lwd = 0.7,
+            fontsize = 6,
+            fontfamily = "Helvetica",
+            col = col_an,
+            lty = 1:length(unique(col_an))
+          ),
+          axis_param = list(
+            side = "right",
+            facing = "inside",
+            gp = gpar(
+              fontsize = 6,
+              col = "black",
+              lwd = 0.4
+            )
+          )
+        ),
+        annotation_name_gp = gpar(
+          fontsize = 0,
+          fontfamily = "Helvetica"
+        ),
+        annotation_legend_param = list(
+          title_gp = gpar(
+            fontsize = 6,
+            fontface = "bold",
+            fontfamily = "Helvetica"
+          ),
+          labels_gp = gpar(
+            fontsize = 6,
+            fontfamily = "Helvetica"
+          )
+        )
+      ),
+      border_gp = gpar(
+        col = "black",
+        lwd = 0.4
+      ),
+      column_title_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+
+        fill = bg_col[2]
+      ),
+      axis_name_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+        col = "black",
+        lwd = 0.4
+      ),
+      use_raster = FALSE,
+      row_split = partition,
+      row_gap = unit(0.5, "mm"),
+      row_title = NULL,
+      axis_name = axis_name,
+      width = unit(1.8, "cm"),
+      height = unit(ht, "cm"),
+      show_heatmap_legend = TRUE,
+      heatmap_legend_param = list(
+        direction = "vertical",
+        # at = get_at(m1 = mat_CS$PNW8_H3K27ac_SRX332351[x, ]),
+        title = expression(bold(H3K27ac ~ "RPKM")),
+        legend_height = unit(0.8, "cm"),
+        title_position = "topleft",
+        title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+        labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+      )
+    ) +
+    EnrichedHeatmap(
+      mat = mat_CS$PNW8_H3K27me3_SRX332346[x, ],
+      name = "PNW8 H3K27me3",
+      col = generate_color_fun(mat_CS$PNW8_H3K27me3_SRX332346[x, ], col = "blue"),
+      column_title = "PNW8 H3K27me3",
+      top_annotation = HeatmapAnnotation(
+        lines = anno_enriched(
+          height = unit(1, "cm"),
+          gp = gpar(
+            lwd = 0.7,
+            fontsize = 6,
+            fontfamily = "Helvetica",
+            col = col_an,
+            lty = 1:length(unique(col_an))
+          ),
+          axis_param = list(
+            side = "right",
+            facing = "inside",
+            gp = gpar(
+              fontsize = 6,
+              col = "black",
+              lwd = 0.4
+            )
+          )
+        ),
+        annotation_name_gp = gpar(
+          fontsize = 0,
+          fontfamily = "Helvetica"
+        ),
+        annotation_legend_param = list(
+          title_gp = gpar(
+            fontsize = 6,
+            fontface = "bold",
+            fontfamily = "Helvetica"
+          ),
+          labels_gp = gpar(
+            fontsize = 6,
+            fontfamily = "Helvetica"
+          )
+        )
+      ),
+      border_gp = gpar(
+        col = "black",
+        lwd = 0.4
+      ),
+      column_title_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+
+        fill = bg_col[2]
+      ),
+      axis_name_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+        col = "black",
+        lwd = 0.4
+      ),
+      use_raster = FALSE,
+      row_split = partition,
+      row_gap = unit(0.5, "mm"),
+      row_title = NULL,
+      axis_name = axis_name,
+      width = unit(1.8, "cm"),
+      height = unit(ht, "cm"),
+      show_heatmap_legend = TRUE,
+      heatmap_legend_param = list(
+        direction = "vertical",
+        # at = get_at(m1 = mat_CS$PNW8_H3K27me3_SRX332346[x, ]),
+        title = expression(bold(H3K27me3 ~ "RPKM")),
+        legend_height = unit(0.8, "cm"),
+        title_position = "topleft",
+        title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+        labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+      )
+    )
+
+  hm_chip@ht_list$`PNW8 H3K4me3`@matrix_color_mapping <- get_at(hm_chip@ht_list$`PNW8 H3K4me3`@matrix_color_mapping)
+  hm_chip@ht_list$`PNW8 H3K27ac`@matrix_color_mapping <- get_at(hm_chip@ht_list$`PNW8 H3K27ac`@matrix_color_mapping)
+  hm_chip@ht_list$`PNW8 H3K27me3`@matrix_color_mapping <- get_at(hm_chip@ht_list$`PNW8 H3K27me3`@matrix_color_mapping)
+
+  # Methylation color
+  meth_col_fun <- colorRamp2(c(0, 0.5, 1), c("red", "white", "blue"))
+
+  # BSseq
+
+
+  hm_bs <- EnrichedHeatmap(
+    mat = mat_BS$PND7_SRX749887[x, ],
+    name = "PND7 BS",
+    col = meth_col_fun,
+    column_title = "PND7 BS",
+    top_annotation = HeatmapAnnotation(
+      lines = anno_enriched(
+        height = unit(1, "cm"),
+        gp = gpar(
+          lwd = 0.7,
+          fontsize = 6,
+          fontfamily = "Helvetica",
+          col = col_an,
+          lty = 1:length(unique(col_an))
+        ),
+        axis_param = list(
+          side = "right",
+          facing = "inside",
+          gp = gpar(
+            fontsize = 6,
+            col = "black",
+            lwd = 0.4
+          )
+        )
+      ),
+      annotation_name_gp = gpar(
+        fontsize = 0,
+        fontfamily = "Helvetica"
+      ),
+      annotation_legend_param = list(
+        title_gp = gpar(
+          fontsize = 6,
+          fontface = "bold",
+          fontfamily = "Helvetica"
+        ),
+        labels_gp = gpar(
+          fontsize = 6,
+          fontfamily = "Helvetica"
+        )
+      )
+    ),
+    border_gp = gpar(
+      col = "black",
+      lwd = 0.4
+    ),
+    column_title_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+
+      fill = bg_col[4]
+    ),
+    axis_name_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+      col = "black",
+      lwd = 0.4
+    ),
+    use_raster = FALSE,
+    row_split = partition,
+    row_gap = unit(0.5, "mm"),
+    row_title = NULL,
+    axis_name = axis_name,
+    width = unit(1.8, "cm"),
+    height = unit(ht, "cm"),
+    show_heatmap_legend = TRUE,
+    heatmap_legend_param = list(
+      direction = "vertical",
+      # at = c(0, 5, 10),
+      title = expression(bold(DNAme)),
+      legend_height = unit(0.8, "cm"),
+      title_position = "topleft",
+      title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  ) +
+    EnrichedHeatmap(mat_BS$PND14_SRX749892[x, ],
+      name = "PND14 BS",
+      col = meth_col_fun,
+      column_title = "PND14 BS",
+      top_annotation = HeatmapAnnotation(
+        lines = anno_enriched(
+          height = unit(1, "cm"),
+          gp = gpar(
+            lwd = 0.7,
+            fontsize = 6,
+            fontfamily = "Helvetica",
+            col = col_an,
+            lty = 1:length(unique(col_an))
+          ),
+          axis_param = list(
+            side = "right",
+            facing = "inside",
+            gp = gpar(
+              fontsize = 6,
+              col = "black",
+              lwd = 0.4
+            )
+          )
+        ),
+        annotation_name_gp = gpar(
+          fontsize = 0,
+          fontfamily = "Helvetica"
+        ),
+        annotation_legend_param = list(
+          title_gp = gpar(
+            fontsize = 6,
+            fontface = "bold",
+            fontfamily = "Helvetica"
+          ),
+          labels_gp = gpar(
+            fontsize = 6,
+            fontfamily = "Helvetica"
+          )
+        )
+      ),
+      border_gp = gpar(
+        col = "black",
+        lwd = 0.4
+      ),
+      column_title_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+
+        fill = bg_col[4]
+      ),
+      axis_name_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+        col = "black",
+        lwd = 0.4
+      ),
+      use_raster = FALSE,
+      row_split = partition,
+      row_gap = unit(0.5, "mm"),
+      row_title = NULL,
+      axis_name = axis_name,
+      width = unit(1.8, "cm"),
+      height = unit(ht, "cm"),
+      show_heatmap_legend = FALSE,
+      heatmap_legend_param = list(
+        direction = "vertical",
+        # at = c(0, 5, 10),
+        title = expression(bold(DNAme)),
+        legend_height = unit(0.8, "cm"),
+        title_position = "topleft",
+        title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+        labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+      )
+    ) +
+    EnrichedHeatmap(mat_BS$PNW8[x, ],
+      name = "PNW8 BS",
+      col = meth_col_fun,
+      column_title = "PNW8 BS",
+      top_annotation = HeatmapAnnotation(
+        lines = anno_enriched(
+          height = unit(1, "cm"),
+          gp = gpar(
+            lwd = 0.7,
+            fontsize = 6,
+            fontfamily = "Helvetica",
+            col = col_an,
+            lty = 1:length(unique(col_an))
+          ),
+          axis_param = list(
+            side = "right",
+            facing = "inside",
+            gp = gpar(
+              fontsize = 6,
+              col = "black",
+              lwd = 0.4
+            )
+          )
+        ),
+        annotation_name_gp = gpar(
+          fontsize = 0,
+          fontfamily = "Helvetica"
+        ),
+        annotation_legend_param = list(
+          title_gp = gpar(
+            fontsize = 6,
+            fontface = "bold",
+            fontfamily = "Helvetica"
+          ),
+          labels_gp = gpar(
+            fontsize = 6,
+            fontfamily = "Helvetica"
+          )
+        )
+      ),
+      border_gp = gpar(
+        col = "black",
+        lwd = 0.4
+      ),
+      column_title_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+
+        fill = bg_col[4]
+      ),
+      axis_name_gp = gpar(
+        fontfamily = "Helvetica",
+        fontsize = 6,
+        col = "black",
+        lwd = 0.4
+      ),
+      use_raster = FALSE,
+      row_split = partition,
+      row_gap = unit(0.5, "mm"),
+      row_title = NULL,
+      axis_name = axis_name, axis_name_rot = 0,
+      width = unit(1.8, "cm"),
+      height = unit(ht, "cm"),
+      show_heatmap_legend = FALSE,
+      heatmap_legend_param = list(
+        direction = "vertical",
+        # at = c(0, 5, 10),
+        title = expression(bold(DNAme)),
+        legend_height = unit(2.5, "cm"),
+        title_position = "leftcenter-rot",
+        title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+        labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+      )
+    )
+
+
+  an_RNA <- data.frame(Group = gsub(pattern = "_.*", replacement = "", x = colnames(mat_RNA_counts)))
+  an_RNA$Group <- factor(an_RNA$Group, levels = c("PND8", "PND15", "Adult"))
+
+  cols_rna <- magma(n = 10)[c(3, 6, 9)]
+  cols_rna <- c(PND8 = cols_rna[3], PND15 = cols_rna[2], Adult = cols_rna[1])
+
+
+  cl <- c(
+    grep(pattern = "PND8", x = colnames(mat_RNA_counts)),
+    grep(pattern = "PND15", x = colnames(mat_RNA_counts)),
+    grep(pattern = "Adult", x = colnames(mat_RNA_counts))
+  )
+
+  mat_RNA_counts <- mat_RNA_counts[, cl]
+  # rownames(an_RNA) <- colnames(mat_RNA_counts)
+
+  ta <- HeatmapAnnotation(
+    Group = an_RNA$Group,
+    col = list(Group = cols_rna),
+    simple_anno_size = unit(3, "mm"),
+    show_annotation_name = TRUE,
+    height = unit(3, "mm"),
+    annotation_name_side = "right",
+    annotation_name_rot = 0,
+    annotation_name_gp = gpar(fontsize = 0),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 6, fontface = "bold", fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  )
+
+  hm_rna_counts <- Heatmap(
+    matrix = data.matrix(mat_RNA_counts[x, ]),
+    name = "RNA Expression",
+    na_col = "grey",
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    cluster_rows = F,
+    cluster_columns = F,
+    width = unit(1.8, "cm"),
+    height = unit(ht, "cm"),
+    use_raster = FALSE,
+    row_split = partition,
+    row_title = NULL,
+    top_annotation = ta,
+    heatmap_legend_param = list(
+      direction = "vertical",
+      # at = c(-4, -2, 0, 2, 4),
+      title = expression(bold(~ Log[2] ~ "fold-change")),
+      legend_height = unit(0.8, "cm"),
+      title_position = "topleft",
+      title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  )
+
+  hm_rna_counts@matrix_color_mapping <- get_at(mm = hm_rna_counts@matrix_color_mapping)
+
+  if (all(is.na(mat_RNA_counts[x, ]))) {
+    ht_list <- hm_an + hm_atac + hm_chip + hm_bs
+  } else if (name == "distal" | name == "distal_accUp" | name == "distal_accDown") {
+    ht_list <- hm_an + hm_atac + hm_chip + hm_bs
+  } else {
+    ht_list <- hm_an + hm_atac + hm_chip + hm_bs + hm_rna_counts
+  }
+
+  ht_opt$TITLE_PADDING <- unit(1, "mm")
+  ht_opt$legend_gap <- unit(3, "mm")
+  ht_opt$legend_grid_height <- unit(2, "mm")
+  ht_opt$legend_grid_width <- unit(2, "mm")
+  ht_opt$HEATMAP_LEGEND_PADDING <- unit(1, "mm")
+    
+  
+  pdf(file = pdf_file, width = 11, height = 8.5)
+  grid.newpage()
+  pushViewport(viewport(gp = gpar(lwd = 0.5)))
+  draw(
+    ht_list,
+    ht_gap = unit(1, "mm"),
+    merge_legends = TRUE,
+    # heatmap_legend_side = "bottom",
+    # annotation_legend_side = "right",
+    newpage = FALSE
+  )
+  popViewport()
+  
+  dev.off()
+  
+  png_file <- gsub(pattern = "pdf", replacement = "png", x = pdf_file)
+  
+  png(filename = png_file, width = 11, height = 8.5, units = "in", res = 330)
+  grid.newpage()
+  pushViewport(viewport(gp = gpar(lwd = 0.5)))
+  draw(
+    ht_list,
+    ht_gap = unit(1, "mm"),
+    merge_legends = TRUE,
+    # heatmap_legend_side = "bottom",
+    # annotation_legend_side = "right",
+    newpage = FALSE
+  )
+  popViewport()
+  
+  dev.off()
+  
+  invisible(gc())
+}
+```
+
+## Distal regions
+```{r}
+dis <- res_lp[grep(pattern = "distal", x = res_lp$anno), ]
+dis <- split(x = dis, f = dis$anno)
+dis <- dis[lapply(dis, nrow) > 10]
+distal <- plyr::ldply(dis, data.frame)[, -1]
+k_distal <- gsub(pattern = "distal.", replacement = "", x = distal$anno)
+k_distal <- gsub(pattern = "accUp", replacement = "More Acc", x = k_distal)
+k_distal <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_distal)
+k_distal <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_distal)
+k_distal <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_distal)
+k_distal <- gsub(pattern = "\\.", replacement = " & ", x = k_distal)
+k_distal <- gsub(pattern = "Acc", replacement = "acc.", x = k_distal)
+k_distal <- gsub(pattern = "& H3K27me3", replacement = "(H3K27me3)", x = k_distal)
+k_distal <- gsub(pattern = "& H3K4me3", replacement = "(H3K4me3)", x = k_distal)
+k_distal <- gsub(pattern = "& H3K27ac", replacement = "(H3K27ac)", x = k_distal)
+k_distal <- gsub(pattern = "Less acc.$", replacement = "Less acc. (No H3 mark)", x = k_distal)
+k_distal <- gsub(pattern = "More acc.$", replacement = "More acc. (No H3 mark)", x = k_distal)
+k_distal <- factor(k_distal, unique(k_distal))
+  
+make_EH(x = distal$Name, k = k_distal, name = "distal", ht = 12)
+```
+
+## Distal regions accUp
+```{r}
+dis_acup <- res_lp[grep(pattern = "distal.accUp", x = res_lp$anno), ]
+dis_acup <- split(x = dis_acup, f = dis_acup$anno)
+dis_acup <- dis_acup[lapply(dis_acup, nrow) > 10]
+distal_acup <- plyr::ldply(dis_acup, data.frame)[, -1]
+k_distal_acup <- gsub(pattern = "distal.", replacement = "", x = distal_acup$anno)
+k_distal_acup <- gsub(pattern = "accUp", replacement = "More Acc", x = k_distal_acup)
+k_distal_acup <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_distal_acup)
+k_distal_acup <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_distal_acup)
+k_distal_acup <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_distal_acup)
+k_distal_acup <- gsub(pattern = "\\.", replacement = " & ", x = k_distal_acup)
+
+make_EH(x = distal_acup$Name, k = k_distal_acup, name = "distal_accUp", ht = 12)
+```
+
+## Distal regions accDown
+```{r}
+dis_acdn <- res_lp[grep(pattern = "distal.accDown", x = res_lp$anno), ]
+dis_acdn <- split(x = dis_acdn, f = dis_acdn$anno)
+dis_acdn <- dis_acdn[lapply(dis_acdn, nrow) > 10]
+distal_acdn <- plyr::ldply(dis_acdn, data.frame)[, -1]
+k_distal_acdn <- gsub(pattern = "distal.", replacement = "", x = distal_acdn$anno)
+k_distal_acdn <- gsub(pattern = "accUp", replacement = "More Acc", x = k_distal_acdn)
+k_distal_acdn <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_distal_acdn)
+k_distal_acdn <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_distal_acdn)
+k_distal_acdn <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_distal_acdn)
+k_distal_acdn <- gsub(pattern = "\\.", replacement = " & ", x = k_distal_acdn)
+
+make_EH(x = distal_acdn$Name, k = k_distal_acdn, name = "distal_accDown", ht = 12)
+```
+
+
+
+## Proximal regions
+```{r}
+pr <- res_lp[grep(pattern = "proximal", x = res_lp$anno), ]
+pr <- split(x = pr, f = pr$anno)
+pr <- pr[lapply(pr, nrow) > 10]
+proximal <- plyr::ldply(pr, data.frame)[, -1]
+k_proximal <- gsub(pattern = "proximal.", replacement = "", x = proximal$anno)
+k_proximal <- gsub(pattern = "active", replacement = "Active", x = k_proximal)
+k_proximal <- gsub(pattern = "inActive", replacement = "Inactive", x = k_proximal)
+k_proximal <- gsub(pattern = "accUp", replacement = "More Acc", x = k_proximal)
+k_proximal <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_proximal)
+k_proximal <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_proximal)
+k_proximal <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_proximal)
+k_proximal <- gsub(pattern = "\\.", replacement = " & ", x = k_proximal)
+
+make_EH(x = proximal$Name, k = k_proximal, name = "proximal", ht = 14.5)
+```
+
+## Proximal active regions
+```{r}
+pr_ac <- res_lp[grep(pattern = "proximal.active", x = res_lp$anno), ]
+pr_ac <- split(x = pr_ac, f = pr_ac$anno)
+pr_ac <- pr_ac[lapply(pr_ac, nrow) > 10]
+proximal_active <- plyr::ldply(pr_ac, data.frame)[, -1]
+k_ac <- gsub(pattern = "proximal.active.", replacement = "", x = proximal_active$anno)
+k_ac <- gsub(pattern = "accUp", replacement = "More Acc", x = k_ac)
+k_ac <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_ac)
+k_ac <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_ac)
+k_ac <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_ac)
+k_ac <- gsub(pattern = "\\.", replacement = " & ", x = k_ac)
+k_ac <- gsub(pattern = "& H3K27me3", replacement = "(H3K27me3)", x = k_ac)
+k_ac <- gsub(pattern = "& H3K4me3", replacement = "(H3K4me3)", x = k_ac)
+k_ac <- gsub(pattern = "& H3K27ac", replacement = "(H3K27ac)", x = k_ac)
+k_ac <- gsub(pattern = "More Acc & More Expr", replacement = "Category 1", x = k_ac)
+k_ac <- gsub(pattern = "More Acc & Less Expr", replacement = "Category 2", x = k_ac)
+k_ac <- gsub(pattern = "Less Acc & Less Expr", replacement = "Category 3", x = k_ac)
+k_ac <- gsub(pattern = "Less Acc & More Expr", replacement = "Category 4", x = k_ac)
+k_ac <- gsub(pattern = "Category 1$", replacement = "Category 1 (No H3 mark)", x = k_ac)
+k_ac <- gsub(pattern = "Category 2$", replacement = "Category 2 (No H3 mark)", x = k_ac)
+k_ac <- gsub(pattern = "Category 3$", replacement = "Category 3 (No H3 mark)", x = k_ac)
+k_ac <- factor(k_ac, unique(k_ac)[c(6,8,7,2,4,5,3,1)])
+
+make_EH(x = proximal_active$Name, k = k_ac, name = "proximal_active", ht = 14.5)
+```
+
+## Proximal inactive regions
+```{r}
+pr_inac <- res_lp[grep(pattern = "proximal.inactive", x = res_lp$anno), ]
+pr_inac <- split(x = pr_inac, f = pr_inac$anno)
+pr_inac <- pr_inac[lapply(pr_inac, nrow) > 10]
+proximal_inactive <- plyr::ldply(pr_inac, data.frame)[, -1]
+k_inac <- gsub(pattern = "proximal.inactive.", replacement = "", x = proximal_inactive$anno)
+k_inac <- gsub(pattern = "accUp", replacement = "More Acc", x = k_inac)
+k_inac <- gsub(pattern = "accDown", replacement = "Less Acc", x = k_inac)
+k_inac <- gsub(pattern = "rnaUp", replacement = "More Expr", x = k_inac)
+k_inac <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = k_inac)
+k_inac <- gsub(pattern = "\\.", replacement = " & ", x = k_inac)
+
+make_EH(x = proximal_inactive$Name, k = k_inac, name = "proximal_inactive", ht = 14.5)
+```
+
+
+# Profile plots
+```{r, eval= FALSE}
+add_anno_enriched <- function(ht_list, name, wh, ri, ci) {
+  pushViewport(viewport(layout.pos.row = ri, layout.pos.col = ci))
+  extract_anno_enriched(ht_list = draw(ht_list), which = wh)
+  # upViewport()
+}
+
+pushViewport(viewport(layout = grid.layout(nrow = 3, ncol = 3)))
+add_anno_enriched(ht_list = hm_atac, name = "PND15 ATAC", wh = 1, ri = 1, ci = 1)
+add_anno_enriched(hm_atac, "Adult ATAC", wh = 2, ri = 1, ci = 2)
+add_anno_enriched(hm_chip, "H3K4me3 ChIP", wh = 1, ri = 2, ci = 1)
+add_anno_enriched(hm_chip, "H3K27ac ChIP", wh = 2, ri = 2, ci = 2)
+add_anno_enriched(hm_chip, "H3K27me3 ChIP", wh = 3, ri = 2, ci = 3)
+add_anno_enriched(hm_bs, "PND7 BS", wh = 1, ri = 3, ci = 1)
+add_anno_enriched(hm_bs, "PND14 BS", wh = 2, ri = 3, ci = 2)
+add_anno_enriched(hm_bs, "PNW8 BS", wh = 3, ri = 3, ci = 3)
+upViewport()
+```
+
+<!-- ## Convert to PNG -->
+<!-- ```{r integration-all-12, eval = TRUE} -->
+<!-- pdf <- list.files(path = "output", pattern = "pdf", recursive = T, full.names = T) -->
+<!-- png <- mylapply(pdf, function(x) { -->
+<!--   pdftools::pdf_convert( -->
+<!--     pdf = x, format = "png", dpi = 200, -->
+<!--     filenames = gsub(pattern = ".pdf", replacement = ".png", x = x), pages = 1 -->
+<!--   ) -->
+<!-- }, mc.cores = length(pdf)) -->
+<!-- ``` -->
+
+<!-- # Heatmaps -->
+<!-- ```{r integration-all-13, echo=FALSE} -->
+<!-- plots <- list.files(path = "output", pattern = "png", full.names = TRUE) -->
+<!-- plots <- plots[grep(pattern = "heat", x = plots)] -->
+
+<!-- names(plots) <- sapply(plots, function(x) { -->
+<!--   n <- as.numeric(gsub(pattern = "\\..*|.*_cluster_", replacement = "", x = x)) -->
+<!--   if (n == 1) { -->
+<!--     return("No clustering") -->
+<!--   } else { -->
+<!--     return(paste("Cluster:", sprintf("%01d", n))) -->
+<!--   } -->
+<!-- }) -->
+
+<!-- plots <- plots[c(2:10, 1)] -->
+
+<!-- bs <- bsselectR::bsselect(plots, type = "img", live_search = TRUE, show_tick = TRUE, height = 1000, width = "100%") -->
+
+<!-- bsselectR::as_iframe(widget = bs, file = "lfc1_qval05.html", height = 1000, width = "100%") -->
+<!-- ``` -->
+
+# SessionInfo
+```{r integration-all-14 }
+devtools::session_info()
+```
