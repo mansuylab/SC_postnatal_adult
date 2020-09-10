@@ -1,0 +1,82 @@
+---
+title: "RNA-Seq: Comparison lab vs lit RE"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-09-10 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+```
+
+
+# Data
+```{r}
+load("input/limma_SC_Controls_lit_tx.RData")
+lit <- dea.limma$`PND14 vs Adult`
+
+load("input/tx_limma_SC_Controls.RData")
+lab <- dea.limma$`PND15 vs Adult`
+```
+
+## Common RE
+```{r}
+lit <- lit[grep(pattern = "ENSMUST", x = lit$Genes, invert = T), c(1, 2, 6)]
+lab <- lab[grep(pattern = "ENSMUST", x = lab$Genes, invert = T), c(1, 2, 6)]
+
+colnames(lit)[2:3] <- c("lit_logFC", "lit_qvalue")
+colnames(lab)[2:3] <- c("lab_logFC", "lab_qvalue")
+
+tab <- merge(lab, lit)
+tab_dir <- tab[(tab$lab_logFC > 0 & tab$lit_logFC > 0) | (tab$lab_logFC < 0 & tab$lit_logFC < 0), ]
+```
+
+
+# Scatterplot
+
+## All
+```{r}
+ggplot(tab, aes(x = lab_logFC, y = lit_logFC)) +
+  geom_point(alpha = 0.2, size = 2) +
+  geom_hline(yintercept = c(0, 1, -1), color = c("red", "blue", "blue"), alpha = 0.5, linetype = "dashed") +
+  geom_vline(xintercept = c(0, 1, -1), color = c("red", "blue", "blue"), alpha = 0.5, linetype = "dashed") +
+  ggtitle(paste("n =", nrow(tab)))
+```
+
+## Same direction
+```{r}
+ggplot(tab_dir, aes(x = lab_logFC, y = lit_logFC)) +
+  geom_point(alpha = 0.2, size = 2) +
+  geom_hline(yintercept = c(0, 1, -1), color = c("red", "blue", "blue"), alpha = 0.5, linetype = "dashed") +
+  geom_vline(xintercept = c(0, 1, -1), color = c("red", "blue", "blue"), alpha = 0.5, linetype = "dashed") +
+  ggtitle(paste("n =", nrow(tab_dir)))
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
