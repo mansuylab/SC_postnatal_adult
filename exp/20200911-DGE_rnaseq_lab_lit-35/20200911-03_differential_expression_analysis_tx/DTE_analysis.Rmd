@@ -1,0 +1,140 @@
+---
+title: "RNA-Seq: differential transcript expression analysis of controls (lab + literature)"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-09-11 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(limma)
+library(edgeR)
+library(plgINS)
+library(sva)
+library(SummarizedExperiment)
+```
+
+# Load salmon object
+```{r, message=FALSE, warning=FALSE}
+load("input/SC_controls_rnaseq_lab_lit_salmon.tds.RData")
+salmon <- salmon[c(10:17,1:9,18)]
+```
+
+# Differeitial analysis using `limma`
+
+## limma fit
+```{r}
+# design <- model.matrix(~ 0 + SV1 + SV2 + SV3 + Group, data = sv.pl@colData)
+design <- model.matrix(~ 0 + Group, data = salmon@phenoData)
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+y <- DGEList(counts = salmon@gene.counts)
+keep <- filterByExpr(y, design, min.count = 10)
+y <- y[keep,]
+
+dds <- calcNormFactors(y)
+v <- voom(dds, design = design)
+
+contrast.matrix <- makeContrasts(PND15 - PND8, PNW8 - PND15, levels = design)
+fit <- lmFit(v)
+
+fit2 <- contrasts.fit(fit, contrast.matrix)
+fit2 <- eBayes(fit2)
+```
+
+## DEA results
+```{r}
+pnd8.pnd15 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+pnd8.pnd15 <- data.frame(Genes = rownames(pnd8.pnd15), pnd8.pnd15, stringsAsFactors = F)
+
+pnd15.pnw8 <- as.data.frame(topTable(fit2, coef = 2, number = Inf))
+pnd15.pnw8 <- data.frame(Genes = rownames(pnd15.pnw8), pnd15.pnw8, stringsAsFactors = F)
+```
+
+## Venn Diagram
+```{r}
+results <- decideTests(fit2)
+vennDiagram(results)
+```
+
+# `cpm` Counts data and pData
+
+```{r}
+cpm <- cpm(dds, log = T)
+
+data <- list(cpm = cpm, voomE = v$E, pData = salmon@phenoData)
+
+save(data,
+  file = "./output/data_pData_tx.RData", compress = T,
+  compression_level = 3
+)
+```
+
+# Results
+```{r}
+dea.list <- list(
+  `pnd8 vs pnd15` = as.DEA(pnd8.pnd15),
+  `pnd15 vs pnw8` = as.DEA(pnd15.pnw8)
+)
+
+normCounts <- v$E
+
+voomEList <- v
+
+dea.limma <- list(
+  `pnd8 vs pnd15` = pnd8.pnd15,
+  `pnd15 vs pnw8` = pnd15.pnw8
+)
+```
+
+
+## Save RData files
+```{r}
+save(dea.list,
+  file = "./output/dea_SC_Controls_lab_lit_tx.DEA.RData", compress = T,
+  compression_level = 3
+)
+
+save(normCounts,
+  file = "./output/normCounts_voom_SC_Controls_lab_lit_tx.RData", compress = T,
+  compression_level = 3
+)
+
+save(voomEList,
+  file = "./output/voom_EList_SC_Controls_lab_lit_tx.RData", compress = T,
+  compression_level = 3
+)
+
+save(dea.limma,
+  file = "./output/limma_SC_Controls_lab_lit_tx.RData", compress = T,
+  compression_level = 3
+)
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```
