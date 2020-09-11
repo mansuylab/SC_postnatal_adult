@@ -27,6 +27,9 @@ link-citations: yes
 # Library
 ```{r overlap-matrix-rGREAT-1, warning = F, message = F}
 library(ATACseqQC)
+library(ggplot2)
+library(plyr)
+library(dplyr)
 ```
 
 # BAM files
@@ -35,10 +38,30 @@ bam_files <- list.files(path = "input", pattern = "bam$", full.names = T)
 names(bam_files) <- gsub(pattern = "input/|\\.bam", replacement = "", x = bam_files)
 ```
 
-# Distribution
+# Fragment size calculation
 ```{r}
-fragSize <- fragSizeDist(bamFiles = bam_files, bamFiles.labels = names(bam_files))
-saveRDS(fragSize, "output/fragSize.rds")
+if (!file.exists("output/fragSize.rds")) {
+  fragSize <- fragSizeDist(bamFiles = bam_files, bamFiles.labels = names(bam_files))
+  saveRDS(fragSize, "output/fragSize.rds")
+} else {
+  fragSize <- readRDS("output/fragSize.rds")
+}
+
+# fs_df <- lapply(fragSize, function(x) data.frame(x = names(x), y = as.numeric(x)))
+# fs_df <- ldply(fs_df, data.frame, .id = "Sample")
+```
+
+# Plots
+```{r, fig.height=11, fig.width=8.5, fig.align='center'}
+par(mfrow = c(4, 3))
+for (i in 1:12) {
+  plot(fragSize[[i]], main = names(fragSize)[i], xlab = "", ylab = "")
+}
+```
+
+## NFF
+```{r, fig.height=4, fig.width=5, fig.align='center'}
+plot(fragSize[[13]], main = names(fragSize)[13], xlab = "", ylab = "")
 ```
 
 
