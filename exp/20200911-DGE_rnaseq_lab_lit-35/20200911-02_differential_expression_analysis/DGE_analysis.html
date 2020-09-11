@@ -3039,14 +3039,16 @@ window.onload = function() {
 </div>
 <div id="cpm-counts-data-and-pdata" class="section level1">
 <h1><code>cpm</code> Counts data and pData</h1>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>cpm &lt;-<span class="st"> </span><span class="kw">cpm</span>(dds, <span class="dt">log =</span> T)</span>
-<span id="cb6-2"><a href="#cb6-2"></a></span>
-<span id="cb6-3"><a href="#cb6-3"></a>data &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">cpm =</span> cpm, <span class="dt">voomE =</span> v<span class="op">$</span>E, <span class="dt">pData =</span> salmon<span class="op">@</span>phenoData)</span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>y &lt;-<span class="st"> </span><span class="kw">DGEList</span>(<span class="dt">counts =</span> salmon<span class="op">@</span>gene.counts)</span>
+<span id="cb6-2"><a href="#cb6-2"></a>dds &lt;-<span class="st"> </span><span class="kw">calcNormFactors</span>(y)</span>
+<span id="cb6-3"><a href="#cb6-3"></a>cpm &lt;-<span class="st"> </span><span class="kw">cpm</span>(dds, <span class="dt">log =</span> T)</span>
 <span id="cb6-4"><a href="#cb6-4"></a></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="kw">save</span>(data,</span>
-<span id="cb6-6"><a href="#cb6-6"></a>  <span class="dt">file =</span> <span class="st">&quot;./output/data_pData.RData&quot;</span>, <span class="dt">compress =</span> T,</span>
-<span id="cb6-7"><a href="#cb6-7"></a>  <span class="dt">compression_level =</span> <span class="dv">3</span></span>
-<span id="cb6-8"><a href="#cb6-8"></a>)</span></code></pre></div>
+<span id="cb6-5"><a href="#cb6-5"></a>data &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">cpm =</span> cpm, <span class="dt">voomE =</span> v<span class="op">$</span>E, <span class="dt">pData =</span> salmon<span class="op">@</span>phenoData)</span>
+<span id="cb6-6"><a href="#cb6-6"></a></span>
+<span id="cb6-7"><a href="#cb6-7"></a><span class="kw">save</span>(data,</span>
+<span id="cb6-8"><a href="#cb6-8"></a>  <span class="dt">file =</span> <span class="st">&quot;./output/data_pData.RData&quot;</span>, <span class="dt">compress =</span> T,</span>
+<span id="cb6-9"><a href="#cb6-9"></a>  <span class="dt">compression_level =</span> <span class="dv">3</span></span>
+<span id="cb6-10"><a href="#cb6-10"></a>)</span></code></pre></div>
 </div>
 <div id="results" class="section level1">
 <h1>Results</h1>

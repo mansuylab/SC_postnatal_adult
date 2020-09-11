@@ -83,6 +83,8 @@ vennDiagram(results)
 # `cpm` Counts data and pData
 
 ```{r}
+y <- DGEList(counts = salmon@gene.counts)
+dds <- calcNormFactors(y)
 cpm <- cpm(dds, log = T)
 
 data <- list(cpm = cpm, voomE = v$E, pData = salmon@phenoData)
