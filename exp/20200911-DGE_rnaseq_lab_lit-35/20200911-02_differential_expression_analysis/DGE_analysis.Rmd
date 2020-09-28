@@ -29,60 +29,75 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Libraries required
 
-```{r, message=FALSE, warning=FALSE}
+```{r DGE-analysis-1, message=FALSE, warning=FALSE}
 library(limma)
 library(edgeR)
 library(plgINS)
 library(sva)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
 library(SummarizedExperiment)
 ```
 
 # Load salmon object
-```{r, message=FALSE, warning=FALSE}
+```{r DGE-analysis-2, message=FALSE, warning=FALSE}
 load("input/SC_controls_rnaseq_lab_lit_salmon.tds.RData")
-salmon <- salmon[c(10:17,1:9,18)]
+salmon <- salmon[c(10:17, 1:9, 18)]
 ```
 
 # Differeitial analysis using `limma`
 
-## limma fit
-```{r}
-# design <- model.matrix(~ 0 + SV1 + SV2 + SV3 + Group, data = sv.pl@colData)
-design <- model.matrix(~ 0 + Group, data = salmon@phenoData)
+## PND8 vs PND15
+```{r DGE-analysis-3 }
+design <- model.matrix(~ 0 + Group, data = salmon@phenoData[grep(pattern = "PND8|PND15", x = salmon@phenoData$Group), ])
 colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
 
-y <- DGEList(counts = salmon@gene.counts)
+y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND8|PND15", x = colnames(salmon@gene.counts))])
 keep <- filterByExpr(y, design, min.count = 15)
-y <- y[keep,]
+y <- y[keep, ]
 
 dds <- calcNormFactors(y)
 v <- voom(dds, design = design)
 
-contrast.matrix <- makeContrasts(PND15 - PND8, PNW8 - PND15, levels = design)
+contrast.matrix <- makeContrasts(PND15 - PND8, levels = design)
 fit <- lmFit(v)
 
 fit2 <- contrasts.fit(fit, contrast.matrix)
 fit2 <- eBayes(fit2)
-```
 
-## DEA results
-```{r}
 pnd8.pnd15 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
 pnd8.pnd15 <- data.frame(Genes = rownames(pnd8.pnd15), pnd8.pnd15, stringsAsFactors = F)
-
-pnd15.pnw8 <- as.data.frame(topTable(fit2, coef = 2, number = Inf))
-pnd15.pnw8 <- data.frame(Genes = rownames(pnd15.pnw8), pnd15.pnw8, stringsAsFactors = F)
+pnd8.pnd15_sig <- pnd8.pnd15[abs(pnd8.pnd15$logFC) >= 1 & pnd8.pnd15$adj.P.Val <= 0.05, ]
 ```
 
-## Venn Diagram
-```{r}
-results <- decideTests(fit2)
-vennDiagram(results)
+## PND15 vs PNW8
+```{r DGE-analysis-4 }
+design <- model.matrix(~ 0 + Group, data = salmon@phenoData[grep(pattern = "PND15|PNW8", x = salmon@phenoData$Group), ])
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND15|PNW8", x = colnames(salmon@gene.counts))])
+keep <- filterByExpr(y, design, min.count = 15)
+y <- y[keep, ]
+
+dds <- calcNormFactors(y)
+v <- voom(dds, design = design)
+
+contrast.matrix <- makeContrasts(PNW8 - PND15, levels = design)
+fit <- lmFit(v)
+
+fit2 <- contrasts.fit(fit, contrast.matrix)
+fit2 <- eBayes(fit2)
+
+
+pnd15.pnw8 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+pnd15.pnw8 <- data.frame(Genes = rownames(pnd15.pnw8), pnd15.pnw8, stringsAsFactors = F)
+pnd15.pnw8_sig <- pnd15.pnw8[abs(pnd15.pnw8$logFC) >= 1 & pnd15.pnw8$adj.P.Val <= 0.05, ]
 ```
 
 # `cpm` Counts data and pData
 
-```{r}
+```{r DGE-analysis-5 }
 y <- DGEList(counts = salmon@gene.counts)
 dds <- calcNormFactors(y)
 cpm <- cpm(dds, log = T)
@@ -96,7 +111,7 @@ save(data,
 ```
 
 # Results
-```{r}
+```{r DGE-analysis-6 }
 dea.list <- list(
   `pnd8 vs pnd15` = as.DEA(pnd8.pnd15),
   `pnd15 vs pnw8` = as.DEA(pnd15.pnw8)
@@ -114,7 +129,7 @@ dea.limma <- list(
 
 
 ## Save RData files
-```{r}
+```{r DGE-analysis-7 }
 save(dea.list,
   file = "./output/dea_SC_Controls_lab_lit.DEA.RData", compress = T,
   compression_level = 3
@@ -136,7 +151,85 @@ save(dea.limma,
 )
 ```
 
+
+# MA plots
+## PND8 vs PND15
+```{r DGE-analysis-8 }
+res_8_15 <- pnd8.pnd15
+res_8_15$threshold <- as.factor(res_8_15$adj.P.Val < 0.05)
+
+p1 <- ggplot(data = res_8_15, aes(
+  x = res_8_15$AveExpr,
+  y = res_8_15$logFC,
+  colour = threshold
+)) +
+  geom_point(alpha = 0.5, size = 1.8) +
+  geom_hline(aes(yintercept = 0), colour = "blue", size = 1) +
+  ylim(c(
+    -ceiling(max(abs(res_8_15$logFC))),
+    ceiling(max(abs(res_8_15$logFC)))
+  )) +
+  ggtitle("PND8 vs PND15") +
+  labs(subtitle = "loess fit") +
+  xlab("Mean expression") +
+  ylab("Log2 Fold Change") +
+  theme(
+    plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
+    plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"),
+    axis.title.x = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(face = "bold", size = 12),
+    legend.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 14)
+  ) +
+  scale_colour_discrete(name = "p.adjusted < 0.05") +
+  stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1)
+```
+
+## PND15 vs PNW8
+```{r DGE-analysis-9 }
+res_15_w8 <- pnd15.pnw8
+res_15_w8$threshold <- as.factor(res_15_w8$adj.P.Val < 0.05)
+
+p2 <- ggplot(data = res_15_w8, aes(
+  x = res_15_w8$AveExpr,
+  y = res_15_w8$logFC,
+  colour = threshold
+)) +
+  geom_point(alpha = 0.5, size = 1.8) +
+  geom_hline(aes(yintercept = 0), colour = "blue", size = 1) +
+  ylim(c(
+    -ceiling(max(abs(res_15_w8$logFC))),
+    ceiling(max(abs(res_15_w8$logFC)))
+  )) +
+  ggtitle("PND15 vs PNW8") +
+  labs(subtitle = "loess fit") +
+  xlab("Mean expression") +
+  ylab("Log2 Fold Change") +
+  theme(
+    plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
+    plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"),
+    axis.title.x = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(face = "bold", size = 12),
+    legend.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 14)
+  ) +
+  scale_colour_discrete(name = "p.adjusted < 0.05") +
+  stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1)
+```
+
+```{r DGE-analysis-10, fig.height=5, fig.width=11}
+p1 | p2
+```
+
+
+# References
+```{r DGE-analysis-11}
+report::cite_packages(session = sessionInfo())
+```
+
+
 # SessionInfo
-```{r}
-devtools::session_info()
+```{r DGE-analysis-12 }
+devtools::session_info() %>%
+  details::details()
 ```
