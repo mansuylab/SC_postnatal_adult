@@ -43,7 +43,7 @@ library(SummarizedExperiment)
 # Load salmon object
 ```{r DGE-analysis-2, message=FALSE, warning=FALSE}
 load("input/SC_controls_rnaseq_lab_lit_salmon.tds.RData")
-salmon <- salmon[c(10:17, 1:9, 18)]
+salmon <- salmon[c(11:18, 1:10, 19)]
 ```
 
 # Differeitial analysis using `limma`
@@ -71,19 +71,20 @@ pnd8.pnd15 <- data.frame(Genes = rownames(pnd8.pnd15), pnd8.pnd15, stringsAsFact
 pnd8.pnd15_sig <- pnd8.pnd15[abs(pnd8.pnd15$logFC) >= 1 & pnd8.pnd15$adj.P.Val <= 0.05, ]
 ```
 
-## PND15 vs PNW8
+## PND14 + PND15 vs PNW8
 ```{r DGE-analysis-4 }
-design <- model.matrix(~ 0 + Group, data = salmon@phenoData[grep(pattern = "PND15|PNW8", x = salmon@phenoData$Group), ])
-colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+design <- model.matrix(~ 0 + Group1 + Batch, 
+                       data = salmon@phenoData[grep(pattern = "PND14|PND15|PNW8", x = salmon@phenoData$Group),])
+colnames(design) <- gsub(pattern = "Group1", replacement = "", x = colnames(design))
 
-y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND15|PNW8", x = colnames(salmon@gene.counts))])
+y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND14|PND15|PNW8", x = colnames(salmon@gene.counts))])
 keep <- filterByExpr(y, design, min.count = 15)
 y <- y[keep, ]
 
 dds <- calcNormFactors(y)
 v <- voom(dds, design = design)
 
-contrast.matrix <- makeContrasts(PNW8 - PND15, levels = design)
+contrast.matrix <- makeContrasts(PNW8 - PND14_PND15, levels = design)
 fit <- lmFit(v)
 
 fit2 <- contrasts.fit(fit, contrast.matrix)
