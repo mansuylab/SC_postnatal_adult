@@ -1,0 +1,94 @@
+---
+title: "RE: overlap ATAC-seq and RNA-seq"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-09-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r 20200218-overlap-diff-RE-diff-acc-1, message=FALSE, warning=FALSE}
+library(SummarizedExperiment)
+library(dplyr)
+library(edgeR)
+library(ComplexHeatmap)
+library(seriation)
+```
+
+# ATAC
+```{r}
+load("./input/repeat_elements_atac_diff_chromatin_accessibility_gene_level.RData")
+da <- data.frame(rowData(data_ge), stringsAsFactors = F, check.names = F)
+atac_da <- da[da$subtype_qvalue <= 0.05 & abs(da$subtype_logFC) >= 0.5, ]
+atac_da <- atac_da[atac_da$class_id %in% c("LINE", "LTR", "SINE"),]
+r <- rownames(atac_da)
+
+y_atac <- DGEList(assay(data_ge))
+colnames(y_atac) <- gsub(pattern = "input/|\\.bam", replacement = "", x = colnames(assay(data_ge)))
+colnames(y_atac) <- gsub(pattern = "\\.", replacement = "_", x = colnames(y_atac))
+y_atac <- calcNormFactors(y_atac)
+
+atac_cpm <- cpm(y_atac, log = TRUE)
+atac_cpm <- atac_cpm[r,]
+```
+
+# RNA-Seq
+```{r}
+load("input/data_pData_tx.RData")
+load("input/limma_SC_Controls_lab_lit_tx.RData")
+
+rna_da <- dea.limma$`pnd15 vs pnw8`[dea.limma$`pnd15 vs pnw8`$Genes %in% r,]
+rna_cpm <- data$cpm[rownames(data$cpm) %in% r,]
+rna_cpm <- rna_cpm[,grep(pattern = "PND8", x = colnames(rna_cpm), invert = T)]
+```
+
+
+# Heatmap
+
+## Seriate the data
+```{r}
+mat_atac <- data.matrix(atac_cpm - rowMeans(atac_cpm[, grep(pattern = "PND15", x = colnames(atac_cpm), value = T)]))
+o_atac <- seriate(max(mat_atac) - mat_atac)
+mat_atac <- mat_atac[get_order(o_atac), ]
+
+
+mat_rna <- data.matrix(rna_cpm - rowMeans(rna_cpm[, grep(pattern = "PND14|PND15", x = colnames(rna_cpm), value = T)]))
+# o_rna <- seriate(max(mat_rna) - mat_rna)
+mat_rna <- mat_rna[rownames(mat_atac),]
+```
+
+
+## Make heatmap
+```{r, fig.height=11, fig.width=8.5}
+Heatmap(mat_atac, cluster_rows = F, cluster_columns = T, name = "ATAC-seq") + 
+  Heatmap(mat_rna, cluster_rows = F, cluster_columns = F, name = "RNA-seq", row_names_gp = gpar(fontsize = 7))
+```
+
+
+# Log-fold-change scatter plot
+```{r}
+plot(rna_da[r,]$logFC, atac_da[r,]$subtype_logFC)
+```
+
+
+# SessionInfo
+```{r 20200218-overlap-diff-RE-diff-acc-6 }
+devtools::session_info()
+```
