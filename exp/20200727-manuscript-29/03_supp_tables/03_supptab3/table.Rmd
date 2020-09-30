@@ -1,0 +1,110 @@
+---
+title: "Supplementary table 3"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-09-08 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+# Differential analysis results + GSEA analysis from `cameraPR` only GO:BP
+
+# Library
+```{r overlap-matrix-rGREAT-1, warning = F, message = F}
+library(readxl)
+library(writexl)
+```
+
+
+# S1
+```{r}
+s1 <- data.frame(read_xlsx("input/atac_diff_chromatin_accessibility_lfc1_qval05.xlsx", sheet = 1))[, -c(12:23)]
+colnames(s1) <- gsub(pattern = "Peak.|diffAccessibility.", replacement = "", x = colnames(s1))
+colnames(s1)[12:21] <- c(
+  "Distance_to_TSS", "Gene_symbol", "Transcrip_ID", "Overlapping_region", "Annotation",
+  "Log2_fold_change", "Average_gene_expression_CPM_Log2", "F_statistics",
+  "p-value", "adjusted_p-value"
+)
+
+s1 <- s1[abs(s1$Log2_fold_change) >= 1 & s1$`adjusted_p-value` <= 0.05, ]
+s1 <- s1[order(s1$`adjusted_p-value`), ]
+
+s1$Annotation[s1$Annotation == "intronic"] <- "Gene body"
+s1$Annotation[s1$Annotation == "exonic"] <- "Gene body"
+s1$Annotation[s1$Annotation == "intergenic"] <- "Intergenic"
+s1$Annotation[s1$Annotation == "TSS"] <- "TSS +/− 1kbp"
+s1$Annotation[s1$Annotation == "proximal <=1000bp"] <- "TSS +/− 1kbp"
+```
+
+
+# S2
+```{r}
+s2 <- list.files(path = "input", pattern = "GO_BP", full.names = T)
+names(s2) <- gsub(pattern = "input/|_GO_BP.xlsx|_bg_all", replacement = "", x = s2)
+names(s2) <- gsub(pattern = "Adult_Negative", replacement = "Less acc. in Adult", x = names(s2))
+names(s2) <- gsub(pattern = "Adult_Positive", replacement = "More acc. in Adult", x = names(s2))
+names(s2) <- gsub(pattern = "-intergenic", replacement = " Intergenic", x = names(s2))
+names(s2) <- gsub(pattern = "-Proximal_1000_TSS", replacement = " TSS +/− 1kbp", x = names(s2))
+names(s2) <- gsub(pattern = "-intronic_exonic", replacement = " Gene body", x = names(s2))
+
+s2 <- s2[c(5, 1, 7, 3, 8, 4, 6, 2)]
+
+
+s <- lapply(s2, function(x) {
+  s <- data.frame(read_xlsx(x, sheet = 1))
+  colnames(s)[c(1:3, 6, 11:13)] <- c(
+    "GO_ID", "GO_name", "nRegions", "Fold_enrichment", "nGenes_annotated",
+    "p-value", "adjusted_p-value"
+  )
+
+  s <- s[s$`adjusted_p-value` <= 0.05, ]
+  s <- s[s$nGenes_annotated >= 10 & s$nGenes_annotated <= 1000, ]
+  s <- s[order(s$`adjusted_p-value`), ]
+
+  return(s)
+})
+
+s2 <- s[lapply(s,nrow) > 0]
+
+# names(s2) <- paste("GO -", names(s2))
+```
+
+
+
+
+# Table
+```{r}
+tabs <- c(list(`DA - PND15 vs Adult` = s1), s2)
+names(tabs) <- gsub(pattern = "\\+/−", replacement = "abs", x = names(tabs))
+
+write_xlsx(x = tabs, path = "output/Supplementary_Table_3.xlsx", col_names = T, format_headers = T)
+```
+
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```
