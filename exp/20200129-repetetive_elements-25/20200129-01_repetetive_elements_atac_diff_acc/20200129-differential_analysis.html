@@ -2986,7 +2986,7 @@ window.onload = function() {
     </div>
     <div id="postamble" data-toggle="wy-nav-shift" class="status">
                   <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-01-29 <br> <b>Updated on:</b> 2020-09-01</p>
+                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-01-29 <br> <b>Updated on:</b> 2020-09-29</p>
           </div>
    </div>
      
@@ -3015,7 +3015,6 @@ window.onload = function() {
 <h1>Counts for RE</h1>
 <div id="transcript-level" class="section level2">
 <h2>Transcript level</h2>
-<!-- ### regions count -->
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>counts_file &lt;-<span class="st"> &quot;output/counts_te.rds&quot;</span></span>
 <span id="cb3-2"><a href="#cb3-2"></a><span class="cf">if</span>(<span class="op">!</span><span class="kw">file.exists</span>(counts_file)){</span>
 <span id="cb3-3"><a href="#cb3-3"></a>counts_te &lt;-<span class="st"> </span><span class="kw">regionCounts</span>(bamFiles,</span>
@@ -3026,31 +3025,6 @@ window.onload = function() {
 <span id="cb3-8"><a href="#cb3-8"></a>} <span class="cf">else</span>{</span>
 <span id="cb3-9"><a href="#cb3-9"></a>counts_te &lt;-<span class="st"> </span><span class="kw">readRDS</span>(counts_file)</span>
 <span id="cb3-10"><a href="#cb3-10"></a>}</span></code></pre></div>
-<!-- ### FC -->
-<!-- ```{r} -->
-<!-- if (!file.exists("./output/fc_transcriptID.rds")) { -->
-<!--   fc_te <- featureCounts( -->
-<!--     isPairedEnd = TRUE, -->
-<!--     files = bamFiles, -->
-<!--     annot.ext = "input/mm10_rmsk_TE.gtf.gz", -->
-<!--     isGTFAnnotationFile = T, -->
-<!--     GTF.attrType = "transcript_id", -->
-<!--     GTF.attrType.extra = c("gene_id", "family_id", "class_id"), -->
-<!--     GTF.featureType = "exon", -->
-<!--     allowMultiOverlap = T, -->
-<!--     fraction = T, -->
-<!--     countMultiMappingReads = T, -->
-<!--     ignoreDup = T, -->
-<!--     nthreads = 22 -->
-<!--   ) -->
-<!--   saveRDS(object = fc_te, file = "./output/fc_transcriptID.rds") -->
-<!-- } else { -->
-<!--   fc_te <- readRDS("output/fc_transcriptID.rds") -->
-<!-- } -->
-<!-- rownames(fc_te$annotation) <- fc_te$annotation$GeneID -->
-<!-- counts_te <- SummarizedExperiment(list(counts = fc_te$counts)) -->
-<!-- counts_te@metadata <- fc_te$annotation -->
-<!-- ``` -->
 </div>
 <div id="gene-level" class="section level2">
 <h2>Gene level</h2>
@@ -3161,7 +3135,8 @@ window.onload = function() {
 <span id="cb7-26"><a href="#cb7-26"></a>tab_ge &lt;-<span class="st"> </span><span class="kw">merge</span>(an_gi, tab_ge)</span>
 <span id="cb7-27"><a href="#cb7-27"></a><span class="kw">colnames</span>(tab_ge)[<span class="dv">4</span><span class="op">:</span><span class="kw">ncol</span>(tab_ge)] &lt;-<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;subtype&quot;</span>, <span class="kw">colnames</span>(tab_ge)[<span class="dv">4</span><span class="op">:</span><span class="kw">ncol</span>(tab_ge)], <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
 <span id="cb7-28"><a href="#cb7-28"></a></span>
-<span id="cb7-29"><a href="#cb7-29"></a><span class="kw">rowData</span>(data_ge) &lt;-<span class="st"> </span>tab_ge</span></code></pre></div>
+<span id="cb7-29"><a href="#cb7-29"></a><span class="kw">rownames</span>(tab_ge) &lt;-<span class="st"> </span>tab_ge<span class="op">$</span>gene_id</span>
+<span id="cb7-30"><a href="#cb7-30"></a><span class="kw">rowData</span>(data_ge) &lt;-<span class="st"> </span>tab_ge[<span class="kw">rownames</span>(<span class="kw">rowData</span>(data_ge)),]</span></code></pre></div>
 </div>
 <div id="aggregate-trasncripts-pval-to-gene-level" class="section level2">
 <h2>Aggregate trasncripts pval to gene level</h2>
@@ -3316,7 +3291,7 @@ window.onload = function() {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2020-09-01                  
+##  date     2020-09-29                  
 ## 
 ## ─ Packages ───────────────────────────────────────────────────────────────────
 ##  package              * version    date       lib

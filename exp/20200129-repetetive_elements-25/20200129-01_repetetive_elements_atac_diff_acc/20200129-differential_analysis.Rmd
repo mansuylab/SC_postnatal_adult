@@ -45,7 +45,6 @@ gtf <- data.frame(rtracklayer::import("input/mm10_rmsk_TE.gtf.gz"))
 
 ## Transcript level
 
-<!-- ### regions count -->
 ```{r}
 counts_file <- "output/counts_te.rds"
 if(!file.exists(counts_file)){
@@ -58,35 +57,6 @@ counts_te <- regionCounts(bamFiles,
 counts_te <- readRDS(counts_file)
 }
 ```
-
-
-<!-- ### FC -->
-<!-- ```{r} -->
-<!-- if (!file.exists("./output/fc_transcriptID.rds")) { -->
-<!--   fc_te <- featureCounts( -->
-<!--     isPairedEnd = TRUE, -->
-<!--     files = bamFiles, -->
-<!--     annot.ext = "input/mm10_rmsk_TE.gtf.gz", -->
-<!--     isGTFAnnotationFile = T, -->
-<!--     GTF.attrType = "transcript_id", -->
-<!--     GTF.attrType.extra = c("gene_id", "family_id", "class_id"), -->
-<!--     GTF.featureType = "exon", -->
-<!--     allowMultiOverlap = T, -->
-<!--     fraction = T, -->
-<!--     countMultiMappingReads = T, -->
-<!--     ignoreDup = T, -->
-<!--     nthreads = 22 -->
-<!--   ) -->
-
-<!--   saveRDS(object = fc_te, file = "./output/fc_transcriptID.rds") -->
-<!-- } else { -->
-<!--   fc_te <- readRDS("output/fc_transcriptID.rds") -->
-<!-- } -->
-
-<!-- rownames(fc_te$annotation) <- fc_te$annotation$GeneID -->
-<!-- counts_te <- SummarizedExperiment(list(counts = fc_te$counts)) -->
-<!-- counts_te@metadata <- fc_te$annotation -->
-<!-- ``` -->
 
 
 ## Gene level
@@ -204,7 +174,8 @@ an_gi <- an_gi[!duplicated(an_gi), ]
 tab_ge <- merge(an_gi, tab_ge)
 colnames(tab_ge)[4:ncol(tab_ge)] <- paste("subtype", colnames(tab_ge)[4:ncol(tab_ge)], sep = "_")
 
-rowData(data_ge) <- tab_ge
+rownames(tab_ge) <- tab_ge$gene_id
+rowData(data_ge) <- tab_ge[rownames(rowData(data_ge)),]
 ```
 
 ## Aggregate trasncripts pval to gene level
