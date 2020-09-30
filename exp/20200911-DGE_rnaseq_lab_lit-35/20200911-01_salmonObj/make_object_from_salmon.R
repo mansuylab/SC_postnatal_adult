@@ -21,7 +21,7 @@ p1 <- p1[p1$Assay.Type == "RS", c(2,8)]
 colnames(p1) <- c("Group", "Samples")
 p1$Samples <- gsub(pattern = "_1", replacement = "", x = p1$Samples)
 rownames(p1) <- p1$Samples
-p1 <- p1[p1$Group == "PNW8",]
+p1 <- p1[p1$Group %in% c("PND14", "PNW8"),]
 
 p2 <- read.delim("input/dataset_pnd_adult.tsv", header = T, stringsAsFactors = F)
 rownames(p2) <- p2$Samples
@@ -33,6 +33,11 @@ pheno <- pheno[colnames(salmon@gene.counts), ]
 
 # Set phenoData of Salmon object ----
 salmon@phenoData <- pheno
+salmon@phenoData$Group1 <- "PND14_PND15"
+salmon@phenoData$Group1[salmon@phenoData$Group == "PNW8"] <- "PNW8"
+salmon@phenoData$Group1[salmon@phenoData$Group == "PND8"] <- "PND8"
+salmon@phenoData$Batch <- "Lab"
+salmon@phenoData$Batch[salmon@phenoData$Group %in% c("PND14", "PNW8")] <- "Lit"
 
 
 # Save salmon data as R object ----
