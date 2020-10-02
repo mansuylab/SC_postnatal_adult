@@ -24,20 +24,21 @@ link-citations: yes
 ---
 
 # Library
-```{r 20200218-overlap-diff-RE-diff-acc-1, message=FALSE, warning=FALSE}
+```{r re-overlap-atac-rnaseq-1, message=FALSE, warning=FALSE}
 library(SummarizedExperiment)
 library(dplyr)
 library(edgeR)
 library(ComplexHeatmap)
 library(seriation)
+library(circlize)
 ```
 
 # ATAC
-```{r}
+```{r re-overlap-atac-rnaseq-2}
 load("./input/repeat_elements_atac_diff_chromatin_accessibility_gene_level.RData")
 da <- data.frame(rowData(data_ge), stringsAsFactors = F, check.names = F)
 atac_da <- da[da$subtype_qvalue <= 0.05 & abs(da$subtype_logFC) >= 0.5, ]
-atac_da <- atac_da[atac_da$class_id %in% c("LINE", "LTR", "SINE"),]
+atac_da <- atac_da[atac_da$class_id %in% c("LINE", "LTR", "SINE"), ]
 r <- rownames(atac_da)
 
 y_atac <- DGEList(assay(data_ge))
@@ -46,51 +47,76 @@ colnames(y_atac) <- gsub(pattern = "\\.", replacement = "_", x = colnames(y_atac
 y_atac <- calcNormFactors(y_atac)
 
 atac_cpm <- cpm(y_atac, log = TRUE)
-atac_cpm <- atac_cpm[r,]
+atac_cpm <- atac_cpm[r, ]
 ```
 
 # RNA-Seq
-```{r}
+```{r re-overlap-atac-rnaseq-3}
 load("input/data_pData_tx.RData")
 load("input/limma_SC_Controls_lab_lit_tx.RData")
 
-rna_da <- dea.limma$`pnd15 vs pnw8`[dea.limma$`pnd15 vs pnw8`$Genes %in% r,]
-rna_cpm <- data$cpm[rownames(data$cpm) %in% r,]
-rna_cpm <- rna_cpm[,grep(pattern = "PND8", x = colnames(rna_cpm), invert = T)]
+rna_da <- dea.limma$`pnd14 vs pnw8`[dea.limma$`pnd14 vs pnw8`$Genes %in% r, ]
+rna_cpm <- data$cpm[rownames(data$cpm) %in% r, ]
+rna_cpm <- rna_cpm[, grep(pattern = "PND8", x = colnames(rna_cpm), invert = T)]
 ```
 
 
 # Heatmap
 
 ## Seriate the data
-```{r}
+```{r re-overlap-atac-rnaseq-4}
 mat_atac <- data.matrix(atac_cpm - rowMeans(atac_cpm[, grep(pattern = "PND15", x = colnames(atac_cpm), value = T)]))
 o_atac <- seriate(max(mat_atac) - mat_atac)
 mat_atac <- mat_atac[get_order(o_atac), ]
+atac_da <- atac_da[get_order(o_atac), ]
 
-
-rna_cpm <- rna_cpm[,grep(pattern = "PND14|PNW8", x = colnames(rna_cpm))]
+rna_cpm <- rna_cpm[, grep(pattern = "PND14|PNW8", x = colnames(rna_cpm))]
 
 mat_rna <- data.matrix(rna_cpm - rna_cpm[, grep(pattern = "PND14", x = colnames(rna_cpm), value = T)])
 # o_rna <- seriate(max(mat_rna) - mat_rna)
-mat_rna <- mat_rna[rownames(mat_atac),]
+mat_rna <- mat_rna[rownames(mat_atac), ]
+rna_da <- rna_da[get_order(o_atac), ]
 ```
 
 
 ## Make heatmap
-```{r, fig.height=11, fig.width=8.5}
-Heatmap(mat_atac, cluster_rows = F, cluster_columns = T, name = "ATAC-seq") + 
-  Heatmap(mat_rna, cluster_rows = F, cluster_columns = F, name = "RNA-seq", row_names_gp = gpar(fontsize = 7))
+```{r re-overlap-atac-rnaseq-5, fig.height=11, fig.width=8.5, warning=FALSE, message=FALSE}
+col <- colorRamp2(c(-5, 0, 5), c("blue", "grey", "red"))
+
+ht <- Heatmap(mat_atac,
+  cluster_rows = F,
+  cluster_columns = T,
+  name = "ATAC-seq",
+  left_annotation = HeatmapAnnotation(df = atac_da[, 3, drop = FALSE], which = "row"),
+  right_annotation = HeatmapAnnotation(df = atac_da[, 4, drop = FALSE], which = "row"),
+  row_split = atac_da$class_id, row_title_rot = 0
+) +
+  Heatmap(mat_rna,
+    col = col,
+    cluster_rows = F,
+    cluster_columns = F,
+    name = "RNA-seq",
+    row_names_gp = gpar(fontsize = 6),
+    na_col = "black",
+    right_annotation = HeatmapAnnotation(df = rna_da[, 2, drop = FALSE], which = "row")
+  )
+
+ht
+
+pdf("output/atac_rna_data_overlap_RE_heatmap.pdf", width = 8.5, height = 11)
+ht
+dev.off()
 ```
 
 
-# Log-fold-change scatter plot
-```{r}
-plot(rna_da[r,]$logFC, atac_da[r,]$subtype_logFC)
+## Saving table
+```{r re-overlap-atac-rnaseq-6}
+tab <- merge(atac_da, rna_da, by.x = "gene_id", by.y = "Genes", all = T)
+writexl::write_xlsx(tab, "output/atac_rna_subtypes_diff_analysis.xlsx")
 ```
 
 
 # SessionInfo
-```{r 20200218-overlap-diff-RE-diff-acc-6 }
+```{r re-overlap-atac-rnaseq-7 }
 devtools::session_info()
 ```
