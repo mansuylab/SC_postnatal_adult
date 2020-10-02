@@ -29,7 +29,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Libraries required
 
-```{r DGE-analysis-1, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(limma)
 library(edgeR)
 library(plgINS)
@@ -38,10 +38,25 @@ library(ggplot2)
 library(dplyr)
 library(patchwork)
 library(SummarizedExperiment)
+library(reshape2)
+library(plotly)
+library(limma)
+library(devtools)
+library(corrplot)
+library(autoplotly)
+library(ggfortify)
+library(pheatmap)
+library(viridis)
+library(dendextend)
+library(RColorBrewer)
+library(plgINS)
+library(PCAtools)
+library(cowplot)
+library(ggplotify)
 ```
 
 # Load salmon object
-```{r DGE-analysis-2, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 load("input/SC_controls_rnaseq_lab_lit_salmon.tds.RData")
 salmon <- salmon[c(11:18, 1:10, 19)]
 ```
@@ -49,7 +64,7 @@ salmon <- salmon[c(11:18, 1:10, 19)]
 # Differeitial analysis using `limma`
 
 ## PND8 vs PND15
-```{r DGE-analysis-3 }
+```{r }
 design <- model.matrix(~ 0 + Group, data = salmon@phenoData[grep(pattern = "PND8|PND15", x = salmon@phenoData$Group), ])
 colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
 
@@ -71,10 +86,70 @@ pnd8.pnd15 <- data.frame(Genes = rownames(pnd8.pnd15), pnd8.pnd15, stringsAsFact
 pnd8.pnd15_sig <- pnd8.pnd15[abs(pnd8.pnd15$logFC) >= 1 & pnd8.pnd15$adj.P.Val <= 0.05, ]
 ```
 
+## PND15 vs PNW8
+```{r }
+design <- model.matrix(~ 0 + Group,
+  data = salmon@phenoData[grep(pattern = "PND15|PNW8", x = salmon@phenoData$Group), ]
+)
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND15|PNW8", x = colnames(salmon@gene.counts))])
+keep <- filterByExpr(y, design, min.count = 15)
+y <- y[keep, ]
+
+dds <- calcNormFactors(y)
+v <- voom(dds, design = design)
+
+contrast.matrix <- makeContrasts(PNW8 - PND15, levels = design)
+fit <- lmFit(v)
+
+fit2 <- contrasts.fit(fit, contrast.matrix)
+fit2 <- eBayes(fit2)
+
+
+pnd15_o.pnw8 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+pnd15_o.pnw8 <- data.frame(Genes = rownames(pnd15_o.pnw8), pnd15_o.pnw8, stringsAsFactors = F)
+pnd15_o.pnw8_sig <- pnd15_o.pnw8[abs(pnd15_o.pnw8$logFC) >= 1 & pnd15_o.pnw8$adj.P.Val <= 0.05, ]
+```
+
+## PND14 vs PNW8
+```{r }
+design <- model.matrix(~ 0 + Group,
+  data = salmon@phenoData[grep(pattern = "PND14|PNW8", x = salmon@phenoData$Group), ]
+)
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND14|PNW8", x = colnames(salmon@gene.counts))])
+keep <- filterByExpr(y, design, min.count = 15)
+y <- y[keep, ]
+
+dds <- calcNormFactors(y)
+v <- voom(dds, design = design)
+
+contrast.matrix <- makeContrasts(PNW8 - PND14, levels = design)
+fit <- lmFit(v)
+
+fit2 <- contrasts.fit(fit, contrast.matrix)
+try(
+  fit2 <- eBayes(fit2)
+)
+try(
+  pnd14.pnw8 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+)
+try(
+  pnd14.pnw8 <- data.frame(Genes = rownames(pnd14.pnw8), pnd14.pnw8, stringsAsFactors = F)
+)
+try(
+  pnd14.pnw8_sig <- pnd14.pnw8[abs(pnd14.pnw8$logFC) >= 1 & pnd14.pnw8$adj.P.Val <= 0.05, ]
+)
+```
+
+
 ## PND14 + PND15 vs PNW8
-```{r DGE-analysis-4 }
-design <- model.matrix(~ 0 + Group1 + Batch, 
-                       data = salmon@phenoData[grep(pattern = "PND14|PND15|PNW8", x = salmon@phenoData$Group),])
+```{r }
+design <- model.matrix(~ 0 + Group1 + Batch,
+  data = salmon@phenoData[grep(pattern = "PND14|PND15|PNW8", x = salmon@phenoData$Group), ]
+)
 colnames(design) <- gsub(pattern = "Group1", replacement = "", x = colnames(design))
 
 y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND14|PND15|PNW8", x = colnames(salmon@gene.counts))])
@@ -98,7 +173,7 @@ pnd15.pnw8_sig <- pnd15.pnw8[abs(pnd15.pnw8$logFC) >= 1 & pnd15.pnw8$adj.P.Val <
 
 # `cpm` Counts data and pData
 
-```{r DGE-analysis-5 }
+```{r }
 y <- DGEList(counts = salmon@gene.counts)
 dds <- calcNormFactors(y)
 cpm <- cpm(dds, log = T)
@@ -112,7 +187,7 @@ save(data,
 ```
 
 # Results
-```{r DGE-analysis-6 }
+```{r }
 dea.list <- list(
   `pnd8 vs pnd15` = as.DEA(pnd8.pnd15),
   `pnd15 vs pnw8` = as.DEA(pnd15.pnw8)
@@ -130,7 +205,7 @@ dea.limma <- list(
 
 
 ## Save RData files
-```{r DGE-analysis-7 }
+```{r }
 save(dea.list,
   file = "./output/dea_SC_Controls_lab_lit.DEA.RData", compress = T,
   compression_level = 3
@@ -155,7 +230,7 @@ save(dea.limma,
 
 # MA plots
 ## PND8 vs PND15
-```{r DGE-analysis-8 }
+```{r }
 res_8_15 <- pnd8.pnd15
 res_8_15$threshold <- as.factor(res_8_15$adj.P.Val < 0.05)
 
@@ -187,7 +262,7 @@ p1 <- ggplot(data = res_8_15, aes(
 ```
 
 ## PND15 vs PNW8
-```{r DGE-analysis-9 }
+```{r }
 res_15_w8 <- pnd15.pnw8
 res_15_w8$threshold <- as.factor(res_15_w8$adj.P.Val < 0.05)
 
@@ -218,19 +293,49 @@ p2 <- ggplot(data = res_15_w8, aes(
   stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1)
 ```
 
-```{r DGE-analysis-10, fig.height=5, fig.width=11}
+```{r, fig.height=5, fig.width=11}
 p1 | p2
 ```
 
 
+# Heatmap of most variable genes
+```{r}
+xvar <- apply((data$cpm + 1), 1, var)
+genes500 <- head(sort(xvar, decreasing = TRUE), n = 500)
+x500 <- data$cpm[rownames(data$cpm) %in% names(genes500), ]
+
+pheatmap(x500, scale = "row", show_rownames = F, col = viridis(100), show_colnames = F, annotation_col = data$pData[,c(1,4)], main = "Clustering of samples based on top 500 variable genes")
+```
+
+# PCA
+```{r, fig.height=8.5, fig.width=11}
+pca <- prcomp(t(data$cpm))
+# ggplotly(
+  autoplot(pca,
+  data = data$pData, colour = "Group",
+  frame = TRUE, frame.type = "norm", size = 2
+) +
+  ggtitle("") + 
+    theme(axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        plot.title = element_text(size = 25, face = "bold"),
+        legend.text=element_text(size=20),
+        legend.title=element_text(size=20, face = "bold"))
+```
+
+
+
+
 # References
-```{r DGE-analysis-11}
+```{r }
 report::cite_packages(session = sessionInfo())
 ```
 
 
 # SessionInfo
-```{r DGE-analysis-12 }
+```{r }
 devtools::session_info() %>%
   details::details()
 ```
