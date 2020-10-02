@@ -69,7 +69,9 @@ o_atac <- seriate(max(mat_atac) - mat_atac)
 mat_atac <- mat_atac[get_order(o_atac), ]
 
 
-mat_rna <- data.matrix(rna_cpm - rowMeans(rna_cpm[, grep(pattern = "PND14|PND15", x = colnames(rna_cpm), value = T)]))
+rna_cpm <- rna_cpm[,grep(pattern = "PND14|PNW8", x = colnames(rna_cpm))]
+
+mat_rna <- data.matrix(rna_cpm - rna_cpm[, grep(pattern = "PND14", x = colnames(rna_cpm), value = T)])
 # o_rna <- seriate(max(mat_rna) - mat_rna)
 mat_rna <- mat_rna[rownames(mat_atac),]
 ```
