@@ -2968,7 +2968,7 @@ window.onload = function() {
     </div>
     <div id="postamble" data-toggle="wy-nav-shift" class="status">
                   <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-09-11 <br> <b>Updated on:</b> 2020-10-02</p>
+                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-09-11 <br> <b>Updated on:</b> 2020-10-05</p>
           </div>
    </div>
      
@@ -3148,7 +3148,9 @@ window.onload = function() {
 <span id="cb9-16"><a href="#cb9-16" aria-hidden="true"></a><span class="kw">save</span>(dea.limma,</span>
 <span id="cb9-17"><a href="#cb9-17" aria-hidden="true"></a>  <span class="dt">file =</span> <span class="st">&quot;./output/limma_SC_Controls_lab_lit.RData&quot;</span>, <span class="dt">compress =</span> T,</span>
 <span id="cb9-18"><a href="#cb9-18" aria-hidden="true"></a>  <span class="dt">compression_level =</span> <span class="dv">3</span></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true"></a>)</span></code></pre></div>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true"></a>)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true"></a>writexl<span class="op">::</span><span class="kw">write_xlsx</span>(<span class="dt">x =</span> dea.limma, <span class="dt">path =</span> <span class="st">&quot;output/dea_results.xlsx&quot;</span>, <span class="dt">col_names =</span> T, <span class="dt">format_headers =</span> T)</span></code></pre></div>
 </div>
 </div>
 <div id="ma-plots" class="section level1">
@@ -3277,7 +3279,7 @@ window.onload = function() {
 <span id="cb22-9"><a href="#cb22-9" aria-hidden="true"></a> collate  en_US.UTF<span class="dv">-8</span>                 </span>
 <span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a> ctype    en_US.UTF<span class="dv">-8</span>                 </span>
 <span id="cb22-11"><a href="#cb22-11" aria-hidden="true"></a> tz       Europe<span class="op">/</span>Zurich               </span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true"></a> date     <span class="dv">2020-10-02</span>                  </span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true"></a> date     <span class="dv">2020-10-05</span>                  </span>
 <span id="cb22-13"><a href="#cb22-13" aria-hidden="true"></a></span>
 <span id="cb22-14"><a href="#cb22-14" aria-hidden="true"></a>─ Packages ───────────────────────────────────────────────────────────────────</span>
 <span id="cb22-15"><a href="#cb22-15" aria-hidden="true"></a> package              <span class="op">*</span><span class="st"> </span>version    date       lib</span>
@@ -3407,152 +3409,154 @@ window.onload = function() {
 <span id="cb22-139"><a href="#cb22-139" aria-hidden="true"></a> viridis              <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">5.1</span>      <span class="dv">2018-03-29</span> [<span class="dv">1</span>]</span>
 <span id="cb22-140"><a href="#cb22-140" aria-hidden="true"></a> viridisLite          <span class="op">*</span><span class="st"> </span><span class="dv">0</span>.<span class="fl">3.0</span>      <span class="dv">2018-02-01</span> [<span class="dv">1</span>]</span>
 <span id="cb22-141"><a href="#cb22-141" aria-hidden="true"></a> withr                  <span class="dv">2</span>.<span class="fl">2.0</span>      <span class="dv">2020-04-20</span> [<span class="dv">1</span>]</span>
-<span id="cb22-142"><a href="#cb22-142" aria-hidden="true"></a> xfun                   <span class="fl">0.16</span>       <span class="dv">2020-07-24</span> [<span class="dv">1</span>]</span>
-<span id="cb22-143"><a href="#cb22-143" aria-hidden="true"></a> XML                    <span class="fl">3.99-0.3</span>   <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
-<span id="cb22-144"><a href="#cb22-144" aria-hidden="true"></a> xml2                   <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
-<span id="cb22-145"><a href="#cb22-145" aria-hidden="true"></a> xtable                 <span class="fl">1.8</span><span class="dv">-4</span>      <span class="dv">2019-04-21</span> [<span class="dv">1</span>]</span>
-<span id="cb22-146"><a href="#cb22-146" aria-hidden="true"></a> XVector                <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb22-147"><a href="#cb22-147" aria-hidden="true"></a> yaml                   <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
-<span id="cb22-148"><a href="#cb22-148" aria-hidden="true"></a> zlibbioc               <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
-<span id="cb22-149"><a href="#cb22-149" aria-hidden="true"></a> source                            </span>
-<span id="cb22-150"><a href="#cb22-150" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-142"><a href="#cb22-142" aria-hidden="true"></a> writexl                <span class="fl">1.3</span>        <span class="dv">2020-05-05</span> [<span class="dv">1</span>]</span>
+<span id="cb22-143"><a href="#cb22-143" aria-hidden="true"></a> xfun                   <span class="fl">0.16</span>       <span class="dv">2020-07-24</span> [<span class="dv">1</span>]</span>
+<span id="cb22-144"><a href="#cb22-144" aria-hidden="true"></a> XML                    <span class="fl">3.99-0.3</span>   <span class="dv">2020-01-20</span> [<span class="dv">1</span>]</span>
+<span id="cb22-145"><a href="#cb22-145" aria-hidden="true"></a> xml2                   <span class="dv">1</span>.<span class="fl">3.2</span>      <span class="dv">2020-04-23</span> [<span class="dv">1</span>]</span>
+<span id="cb22-146"><a href="#cb22-146" aria-hidden="true"></a> xtable                 <span class="fl">1.8</span><span class="dv">-4</span>      <span class="dv">2019-04-21</span> [<span class="dv">1</span>]</span>
+<span id="cb22-147"><a href="#cb22-147" aria-hidden="true"></a> XVector                <span class="dv">0</span>.<span class="fl">26.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb22-148"><a href="#cb22-148" aria-hidden="true"></a> yaml                   <span class="dv">2</span>.<span class="fl">2.1</span>      <span class="dv">2020-02-01</span> [<span class="dv">1</span>]</span>
+<span id="cb22-149"><a href="#cb22-149" aria-hidden="true"></a> zlibbioc               <span class="dv">1</span>.<span class="fl">32.0</span>     <span class="dv">2019-10-29</span> [<span class="dv">1</span>]</span>
+<span id="cb22-150"><a href="#cb22-150" aria-hidden="true"></a> source                            </span>
 <span id="cb22-151"><a href="#cb22-151" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-152"><a href="#cb22-152" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-152"><a href="#cb22-152" aria-hidden="true"></a> Bioconductor                      </span>
 <span id="cb22-153"><a href="#cb22-153" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-154"><a href="#cb22-154" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-155"><a href="#cb22-155" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-156"><a href="#cb22-156" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-154"><a href="#cb22-154" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-155"><a href="#cb22-155" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-156"><a href="#cb22-156" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-157"><a href="#cb22-157" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-158"><a href="#cb22-158" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-159"><a href="#cb22-159" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-158"><a href="#cb22-158" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-159"><a href="#cb22-159" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-160"><a href="#cb22-160" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-161"><a href="#cb22-161" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-161"><a href="#cb22-161" aria-hidden="true"></a> Bioconductor                      </span>
 <span id="cb22-162"><a href="#cb22-162" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-163"><a href="#cb22-163" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-164"><a href="#cb22-164" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-163"><a href="#cb22-163" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-164"><a href="#cb22-164" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-165"><a href="#cb22-165" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-166"><a href="#cb22-166" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-167"><a href="#cb22-167" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-168"><a href="#cb22-168" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-169"><a href="#cb22-169" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-169"><a href="#cb22-169" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-170"><a href="#cb22-170" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-171"><a href="#cb22-171" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-172"><a href="#cb22-172" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-173"><a href="#cb22-173" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-174"><a href="#cb22-174" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-175"><a href="#cb22-175" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-176"><a href="#cb22-176" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-177"><a href="#cb22-177" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-172"><a href="#cb22-172" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-173"><a href="#cb22-173" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-174"><a href="#cb22-174" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-175"><a href="#cb22-175" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-176"><a href="#cb22-176" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-177"><a href="#cb22-177" aria-hidden="true"></a> Bioconductor                      </span>
 <span id="cb22-178"><a href="#cb22-178" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-179"><a href="#cb22-179" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-180"><a href="#cb22-180" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-181"><a href="#cb22-181" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-182"><a href="#cb22-182" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-183"><a href="#cb22-183" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-180"><a href="#cb22-180" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-181"><a href="#cb22-181" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-182"><a href="#cb22-182" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-183"><a href="#cb22-183" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-184"><a href="#cb22-184" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-185"><a href="#cb22-185" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-186"><a href="#cb22-186" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-187"><a href="#cb22-187" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-188"><a href="#cb22-188" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-186"><a href="#cb22-186" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-187"><a href="#cb22-187" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-188"><a href="#cb22-188" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-189"><a href="#cb22-189" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-190"><a href="#cb22-190" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-191"><a href="#cb22-191" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-190"><a href="#cb22-190" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-191"><a href="#cb22-191" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-192"><a href="#cb22-192" aria-hidden="true"></a> Bioconductor                      </span>
 <span id="cb22-193"><a href="#cb22-193" aria-hidden="true"></a> Bioconductor                      </span>
 <span id="cb22-194"><a href="#cb22-194" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-195"><a href="#cb22-195" aria-hidden="true"></a> <span class="kw">Github</span> (sinhrks<span class="op">/</span>ggfortify<span class="op">@</span>3f4020d)</span>
-<span id="cb22-196"><a href="#cb22-196" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-195"><a href="#cb22-195" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-196"><a href="#cb22-196" aria-hidden="true"></a> <span class="kw">Github</span> (sinhrks<span class="op">/</span>ggfortify<span class="op">@</span>3f4020d)</span>
 <span id="cb22-197"><a href="#cb22-197" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-198"><a href="#cb22-198" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-199"><a href="#cb22-199" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-200"><a href="#cb22-200" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-201"><a href="#cb22-201" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-202"><a href="#cb22-202" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-199"><a href="#cb22-199" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-200"><a href="#cb22-200" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-201"><a href="#cb22-201" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-202"><a href="#cb22-202" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-203"><a href="#cb22-203" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-204"><a href="#cb22-204" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-205"><a href="#cb22-205" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-206"><a href="#cb22-206" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-207"><a href="#cb22-207" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-206"><a href="#cb22-206" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-207"><a href="#cb22-207" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-208"><a href="#cb22-208" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-209"><a href="#cb22-209" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-210"><a href="#cb22-210" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-211"><a href="#cb22-211" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-209"><a href="#cb22-209" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-210"><a href="#cb22-210" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-211"><a href="#cb22-211" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-212"><a href="#cb22-212" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-213"><a href="#cb22-213" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-214"><a href="#cb22-214" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-215"><a href="#cb22-215" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-213"><a href="#cb22-213" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-214"><a href="#cb22-214" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-215"><a href="#cb22-215" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-216"><a href="#cb22-216" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-217"><a href="#cb22-217" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-218"><a href="#cb22-218" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-219"><a href="#cb22-219" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-220"><a href="#cb22-220" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-217"><a href="#cb22-217" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-218"><a href="#cb22-218" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-219"><a href="#cb22-219" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-220"><a href="#cb22-220" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-221"><a href="#cb22-221" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-222"><a href="#cb22-222" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-223"><a href="#cb22-223" aria-hidden="true"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f)    </span>
-<span id="cb22-224"><a href="#cb22-224" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-222"><a href="#cb22-222" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-223"><a href="#cb22-223" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-224"><a href="#cb22-224" aria-hidden="true"></a> <span class="kw">Github</span> (r<span class="op">-</span>lib<span class="op">/</span>memoise<span class="op">@</span>4aefd9f)    </span>
 <span id="cb22-225"><a href="#cb22-225" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-226"><a href="#cb22-226" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-226"><a href="#cb22-226" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-227"><a href="#cb22-227" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-228"><a href="#cb22-228" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-229"><a href="#cb22-229" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-230"><a href="#cb22-230" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-229"><a href="#cb22-229" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-230"><a href="#cb22-230" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-231"><a href="#cb22-231" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-232"><a href="#cb22-232" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-233"><a href="#cb22-233" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-234"><a href="#cb22-234" aria-hidden="true"></a> local                             </span>
-<span id="cb22-235"><a href="#cb22-235" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-232"><a href="#cb22-232" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-233"><a href="#cb22-233" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-234"><a href="#cb22-234" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-235"><a href="#cb22-235" aria-hidden="true"></a> local                             </span>
 <span id="cb22-236"><a href="#cb22-236" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-237"><a href="#cb22-237" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-238"><a href="#cb22-238" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-237"><a href="#cb22-237" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-238"><a href="#cb22-238" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-239"><a href="#cb22-239" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-240"><a href="#cb22-240" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-241"><a href="#cb22-241" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-242"><a href="#cb22-242" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-242"><a href="#cb22-242" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-243"><a href="#cb22-243" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-244"><a href="#cb22-244" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-244"><a href="#cb22-244" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-245"><a href="#cb22-245" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-246"><a href="#cb22-246" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-247"><a href="#cb22-247" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-248"><a href="#cb22-248" aria-hidden="true"></a> <span class="kw">Github</span> (easystats<span class="op">/</span>report<span class="op">@</span>dcdd283) </span>
-<span id="cb22-249"><a href="#cb22-249" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-246"><a href="#cb22-246" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-247"><a href="#cb22-247" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-248"><a href="#cb22-248" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-249"><a href="#cb22-249" aria-hidden="true"></a> <span class="kw">Github</span> (easystats<span class="op">/</span>report<span class="op">@</span>dcdd283) </span>
 <span id="cb22-250"><a href="#cb22-250" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-251"><a href="#cb22-251" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-252"><a href="#cb22-252" aria-hidden="true"></a> <span class="kw">Github</span> (juba<span class="op">/</span>rmdformats<span class="op">@</span>94cd7a3)  </span>
-<span id="cb22-253"><a href="#cb22-253" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-252"><a href="#cb22-252" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-253"><a href="#cb22-253" aria-hidden="true"></a> <span class="kw">Github</span> (juba<span class="op">/</span>rmdformats<span class="op">@</span>94cd7a3)  </span>
 <span id="cb22-254"><a href="#cb22-254" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-255"><a href="#cb22-255" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-256"><a href="#cb22-256" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-256"><a href="#cb22-256" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-257"><a href="#cb22-257" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-258"><a href="#cb22-258" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-259"><a href="#cb22-259" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-260"><a href="#cb22-260" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-261"><a href="#cb22-261" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-262"><a href="#cb22-262" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-263"><a href="#cb22-263" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-264"><a href="#cb22-264" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-265"><a href="#cb22-265" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-266"><a href="#cb22-266" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-267"><a href="#cb22-267" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-258"><a href="#cb22-258" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-259"><a href="#cb22-259" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-260"><a href="#cb22-260" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-261"><a href="#cb22-261" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-262"><a href="#cb22-262" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-263"><a href="#cb22-263" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-264"><a href="#cb22-264" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-265"><a href="#cb22-265" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-266"><a href="#cb22-266" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-267"><a href="#cb22-267" aria-hidden="true"></a> Bioconductor                      </span>
 <span id="cb22-268"><a href="#cb22-268" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-269"><a href="#cb22-269" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-270"><a href="#cb22-270" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-271"><a href="#cb22-271" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-272"><a href="#cb22-272" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-273"><a href="#cb22-273" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
+<span id="cb22-273"><a href="#cb22-273" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-274"><a href="#cb22-274" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-275"><a href="#cb22-275" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-275"><a href="#cb22-275" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-276"><a href="#cb22-276" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-277"><a href="#cb22-277" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
 <span id="cb22-278"><a href="#cb22-278" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
-<span id="cb22-279"><a href="#cb22-279" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
-<span id="cb22-280"><a href="#cb22-280" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-281"><a href="#cb22-281" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-279"><a href="#cb22-279" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-280"><a href="#cb22-280" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-281"><a href="#cb22-281" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.1</span>)                    </span>
 <span id="cb22-282"><a href="#cb22-282" aria-hidden="true"></a> Bioconductor                      </span>
-<span id="cb22-283"><a href="#cb22-283" aria-hidden="true"></a></span>
-<span id="cb22-284"><a href="#cb22-284" aria-hidden="true"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
-<span id="cb22-285"><a href="#cb22-285" aria-hidden="true"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb22-286"><a href="#cb22-286" aria-hidden="true"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
-<span id="cb22-287"><a href="#cb22-287" aria-hidden="true"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
+<span id="cb22-283"><a href="#cb22-283" aria-hidden="true"></a> <span class="kw">CRAN</span> (R <span class="dv">3</span>.<span class="fl">6.2</span>)                    </span>
+<span id="cb22-284"><a href="#cb22-284" aria-hidden="true"></a> Bioconductor                      </span>
+<span id="cb22-285"><a href="#cb22-285" aria-hidden="true"></a></span>
+<span id="cb22-286"><a href="#cb22-286" aria-hidden="true"></a>[<span class="dv">1</span>] <span class="op">/</span>home<span class="op">/</span>ubuntu<span class="op">/</span>R<span class="op">/</span>x86_<span class="dv">64</span><span class="op">-</span>pc<span class="op">-</span>linux<span class="op">-</span>gnu<span class="op">-</span>library<span class="op">/</span><span class="fl">3.6</span></span>
+<span id="cb22-287"><a href="#cb22-287" aria-hidden="true"></a>[<span class="dv">2</span>] <span class="op">/</span>usr<span class="op">/</span>local<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb22-288"><a href="#cb22-288" aria-hidden="true"></a>[<span class="dv">3</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>site<span class="op">-</span>library</span>
+<span id="cb22-289"><a href="#cb22-289" aria-hidden="true"></a>[<span class="dv">4</span>] <span class="op">/</span>usr<span class="op">/</span>lib<span class="op">/</span>R<span class="op">/</span>library</span></code></pre></div>
 </details>
 <p><br></p>
 </div>
