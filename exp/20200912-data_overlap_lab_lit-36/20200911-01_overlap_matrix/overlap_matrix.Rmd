@@ -248,7 +248,7 @@ cpm <- data$cpm
 mat_RNA_counts_merged <- data.frame(
   Genes = rownames(cpm),
   PNW8 = cpm[, grep(pattern = "PNW8", x = colnames(cpm))],
-  PND15 = rowMeans(cpm[, grep(pattern = "PND15", x = colnames(cpm))]),
+  PND14 = cpm[, grep(pattern = "PND14", x = colnames(cpm))],
   PND8 = rowMeans(cpm[, grep(pattern = "PND8", x = colnames(cpm))])
 )
 
@@ -259,14 +259,14 @@ colnames(dea.limma$`PND8 vs PND15`)[2:ncol(dea.limma$`PND8 vs PND15`)] <- paste(
   colnames(dea.limma$`PND8 vs PND15`)[2:ncol(dea.limma$`PND8 vs PND15`)],
   sep = "_"
 )
-colnames(dea.limma$`PND15 vs PNW8`)[2:ncol(dea.limma$`PND15 vs PNW8`)] <- paste("PND15_vs_PNW8",
-  colnames(dea.limma$`PND15 vs PNW8`)[2:ncol(dea.limma$`PND15 vs PNW8`)],
+colnames(dea.limma$`PND14 vs PNW8`)[2:ncol(dea.limma$`PND14 vs PNW8`)] <- paste("PND14_vs_PNW8",
+  colnames(dea.limma$`PND14 vs PNW8`)[2:ncol(dea.limma$`PND14 vs PNW8`)],
   sep = "_"
 )
 
 # Adding differential analysis results to expression table
 mat_RNA <- inner_join(mat_RNA_counts_merged, dea.limma$`PND8 vs PND15`)
-mat_RNA <- inner_join(mat_RNA, dea.limma$`PND15 vs PNW8`)
+mat_RNA <- inner_join(mat_RNA, dea.limma$`PND14 vs PNW8`)
 
 # Changing column names
 colnames(mat_RNA)[1] <- "nearestTSS.gene_name"
