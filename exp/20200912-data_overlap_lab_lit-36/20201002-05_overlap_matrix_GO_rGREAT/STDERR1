@@ -1,0 +1,216 @@
+
+
+processing file: overlap_matrix_rGREAT.Rmd
+
+Attaching package: 'dplyr'
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+Loading required package: GenomicRanges
+Loading required package: stats4
+Loading required package: BiocGenerics
+Loading required package: parallel
+
+Attaching package: 'BiocGenerics'
+
+The following objects are masked from 'package:parallel':
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following objects are masked from 'package:dplyr':
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from 'package:stats':
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from 'package:base':
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which, which.max, which.min
+
+Loading required package: S4Vectors
+
+Attaching package: 'S4Vectors'
+
+The following objects are masked from 'package:dplyr':
+
+    first, rename
+
+The following object is masked from 'package:base':
+
+    expand.grid
+
+Loading required package: IRanges
+
+Attaching package: 'IRanges'
+
+The following objects are masked from 'package:dplyr':
+
+    collapse, desc, slice
+
+Loading required package: GenomeInfoDb
+
+------------------
+Note: On Aug 19 2019 GREAT released version 4 where it supports `hg38`
+genome and removes some ontologies such pathways. `submitGreatJob()`
+still takes `hg19` as default. `hg38` can be specified by the `species
+= 'hg38'` argument. To use the older versions such as 3.0.0, specify as
+`submitGreatJob(..., version = '3.0.0')`.
+------------------
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Loading required package: DelayedArray
+Loading required package: matrixStats
+
+Attaching package: 'matrixStats'
+
+The following objects are masked from 'package:Biobase':
+
+    anyMissing, rowMedians
+
+The following object is masked from 'package:dplyr':
+
+    count
+
+Loading required package: BiocParallel
+
+Attaching package: 'DelayedArray'
+
+The following objects are masked from 'package:matrixStats':
+
+    colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+
+The following objects are masked from 'package:base':
+
+    aperm, apply, rowsum
+
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Joining, by = c("Name", "isDistal", "isProximalActive", "accUp", "expUp", "H3K4me3", "H3K27acOnly", "H3K27me3Only")
+Don't make too frequent requests. The time break is 300s.
+Please wait for 286s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 280s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 286s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 284s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 284s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 285s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 281s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 282s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 282s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 282s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 285s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 288s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 282s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 286s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 288s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 284s for the next request.
+The time break can be set by `request_interval` argument.
+
+Don't make too frequent requests. The time break is 300s.
+Please wait for 289s for the next request.
+The time break can be set by `request_interval` argument.
+
+Quitting from lines 233-246 (overlap_matrix_rGREAT.Rmd) 
+Error in abs(d$RNA_PND15_vs_Adult_logFC) : 
+  non-numeric argument to mathematical function
+Calls: <Anonymous> ... withCallingHandlers -> withVisible -> eval -> eval -> perform_rGREAT
+Execution halted
