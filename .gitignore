@@ -20,3 +20,5 @@ exp/20191127-motifs_enrichment_and_functional_analysis-16/20200107-05_motif_enri
 exp/20190512-preprocessing-00/*/*/input
 exp/20190512-preprocessing-00/*/*/output
 exp/20190512-preprocessing-00/*/*/log
+exp/20200912-data_overlap_lab_lit-36/20201002-05_overlap_matrix_GO_rGREAT/output
+exp/20200912-data_overlap_lab_lit-36/20201002-06_overlap_matrix_homer_TF/output
