@@ -385,7 +385,7 @@ fgsea.pnd15.adult <- lapply(fgsea.pnd15.adult, function(x) {
 path <- fgsea.pnd15.adult
 
 for (i in 1:length(path)) {
-  n <- paste0("./output/fGSEA_PND15vsAdult_", names(path)[i], ".xlsx")
+  n <- paste0("./output/fGSEA_PND14vsPNW8_", names(path)[i], ".xlsx")
   n <- gsub(pattern = " ", replacement = "-", x = n)
   writexl::write_xlsx(x = path[[i]], path = n, col_names = T, format_headers = T)
 }
@@ -440,7 +440,9 @@ common.pnd8vspnd15 <- list()
 for (i in 1:length(fgsea.pnd8.pnd15)) {
   n <- names(fgsea.pnd8.pnd15)[i]
   tab1 <- fgsea.pnd8.pnd15[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
   tab2 <- cameraPR.pnd8.pnd15[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("cameraPR", colnames(tab2)[2:ncol(tab2)], sep = "-")
   tab <- merge(tab1, tab2, by = "pathway")
 
   common.pnd8vspnd15[[i]] <- tab
@@ -460,7 +462,9 @@ common.pnd15vsadult <- list()
 for (i in 1:length(fgsea.pnd15.adult)) {
   n <- names(fgsea.pnd15.adult)[i]
   tab1 <- fgsea.pnd15.adult[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
   tab2 <- cameraPR.pnd15.adult[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("cameraPR", colnames(tab2)[2:ncol(tab2)], sep = "-")
   tab <- merge(tab1, tab2, by = "pathway")
 
   common.pnd15vsadult[[i]] <- tab
