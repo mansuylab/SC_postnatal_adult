@@ -49,7 +49,7 @@ res$genomeAnno_class_gene <- paste(res$class_n, res$gene_id, sep = "_")
 colnames(res) <- gsub(pattern = "\\.", replacement = "-", x = colnames(res))
 colnames(res) <- gsub(pattern = "X-", replacement = "", x = colnames(res))
 
-res <- res[,-c(6:24)]
+res <- res[, -c(6:24)]
 
 res_f <- res[abs(res$logFC) >= 1 & res$qvalue <= 0.05, ]
 
@@ -130,9 +130,9 @@ perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL, spli
     }
 
 
-    bp <- paste0("output/subcategory/", n, "_GO_BP.xlsx")
-    mf <- paste0("output/subcategory/", n, "_GO_MF.xlsx")
-    cc <- paste0("output/subcategory/", n, "_GO_CC.xlsx")
+    bp <- paste0("output/subcategory_bg_LINE/", n, "_GO_BP.xlsx")
+    mf <- paste0("output/subcategory_bg_LINE/", n, "_GO_MF.xlsx")
+    cc <- paste0("output/subcategory_bg_LINE/", n, "_GO_CC.xlsx")
 
     if (!(file.exists(bp) & file.exists(cc) & file.exists(mf))) {
       df_GR <- sp_d[[i]]
@@ -181,9 +181,9 @@ perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL, spli
       n <- paste(n, "bg_all", sep = "_")
     }
 
-    bp <- paste0("output/subcategory/", n, "_GO_BP.xlsx")
-    mf <- paste0("output/subcategory/", n, "_GO_MF.xlsx")
-    cc <- paste0("output/subcategory/", n, "_GO_CC.xlsx")
+    bp <- paste0("output/subcategory_bg_LINE/", n, "_GO_BP.xlsx")
+    mf <- paste0("output/subcategory_bg_LINE/", n, "_GO_MF.xlsx")
+    cc <- paste0("output/subcategory_bg_LINE/", n, "_GO_CC.xlsx")
 
     if (!(file.exists(bp) & file.exists(cc) & file.exists(mf))) {
       writexl::write_xlsx(
@@ -212,10 +212,10 @@ perform_rGREAT <- function(df, FC, bg, fName, split = FALSE, sp_col = NULL, spli
 bg <- res[substr(x = res$seqnames, start = 1, stop = 3) == "chr", ]
 df <- res_f[substr(x = res_f$seqnames, start = 1, stop = 3) == "chr", ]
 
-df_sc <- df[df$gene_id %in%sc,]
+df_sc <- df[df$gene_id %in% sc, ]
 df_sc <- split(df_sc, df_sc$gene_id)
 df_sc <- df_sc[lapply(df_sc, nrow) > 10]
-df_sc <- plyr::ldply(df_sc, data.frame)[,-1]
+df_sc <- plyr::ldply(df_sc, data.frame)[, -1]
 
 cat1 <- data.frame(readxl::read_xlsx("input/RE_DiffAccess_Gene ID_aggregate counts.xlsx", sheet = 4))
 
@@ -225,7 +225,7 @@ cat2$Category[cat2$Family == "ERV1"] <- "Category 4"
 cat2$Category[cat2$Family == "ERVK"] <- "Category 5"
 cat2$Category[cat2$Family == "L1"] <- "Category 6"
 
-df_ca <- rbind(cat1, cat2)[,c(1,4)]
+df_ca <- rbind(cat1, cat2)[, c(1, 4)]
 colnames(df_ca)[1] <- "gene_id"
 df_ca$Category <- gsub(pattern = " ", replacement = "_", x = df_ca$Category)
 
@@ -235,6 +235,9 @@ df_ca <- merge(df, df_ca)
 
 bg <- dplyr::left_join(bg, d)
 bg$Category[is.na(bg$Category)] <- "Category_0"
+
+bg_LTR <- bg[bg$class_id == "LTR", ]
+bg_LINE <- bg[bg$class_id == "LINE", ]
 ```
 
 
@@ -319,7 +322,7 @@ adult_sp_subcat <- perform_rGREAT(
 
 
 ## Split Category
-```{r re-rGREAT-9, message=FALSE, warning=FALSE}
+```{r re-rGREAT-9, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_subcat1 <- perform_rGREAT(
   df = df_ca, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -514,7 +517,7 @@ adult_sp_subcat_bg_all <- perform_rGREAT(
 ```
 
 ## Split Category (all background)
-```{r re-rGREAT-17, message=FALSE, warning=FALSE}
+```{r re-rGREAT-17, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_subcat1_bg_all <- perform_rGREAT(
   df = df_ca, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -636,13 +639,94 @@ adult_sp_anno_subcat_bg_all <- perform_rGREAT(
 ```
 
 
+## Split RE sub category (specific)
+
+```{r re-rGREAT-22, message=FALSE, warning=FALSE, eval=FALSE}
+all_sp_subcat1_bg_LTR_cat_1_5 <- perform_rGREAT(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T), ],
+  FC = "all",
+  bg = bg_LTR,
+  fName = "PND15_Adult",
+  split = T,
+  sp_col = "Category",
+  split_bg = FALSE
+  # out = "output/subcategory_bg_LTR/",
+)
+```
+
+```{r re-rGREAT-23, message=FALSE, warning=FALSE, eval=FALSE}
+pnd15_sp_subcat1_bg_LTR_cat_1_5 <- perform_rGREAT(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T), ],
+  FC = "neg",
+  bg = bg_LTR,
+  fName = "Adult_Negative",
+  split = T,
+  sp_col = "Category",
+  split_bg = FALSE
+  # out = "output/subcategory_bg_LTR/",
+)
+```
+
+```{r re-rGREAT-24, message=FALSE, warning=FALSE, eval=FALSE}
+adult_sp_subcat1_bg_LTR_cat_1_5 <- perform_rGREAT(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T), ],
+  FC = "pos",
+  bg = bg_LTR,
+  fName = "Adult_Positive",
+  split = T,
+  sp_col = "Category",
+  split_bg = FALSE
+  # out = "output/subcategory_bg_LTR/",
+)
+```
+
+```{r re-rGREAT-25, message=FALSE, warning=FALSE}
+all_sp_subcat1_bg_LINE_cat_6 <- perform_rGREAT(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category), ],
+  FC = "all",
+  bg = bg_LINE,
+  fName = "PND15_Adult",
+  split = T,
+  sp_col = "Category",
+  split_bg = FALSE
+  # out = "output/subcategory_bg_LINE/",
+)
+```
+
+```{r re-rGREAT-26, message=FALSE, warning=FALSE}
+pnd15_sp_subcat1_bg_LINE_cat_6 <- perform_rGREAT(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category), ],
+  FC = "neg",
+  bg = bg_LINE,
+  fName = "Adult_Negative",
+  split = T,
+  sp_col = "Category",
+  split_bg = FALSE
+  # out = "output/subcategory_bg_LINE/",
+)
+```
+
+```{r re-rGREAT-27, message=FALSE, warning=FALSE}
+adult_sp_subcat1_bg_LINE_cat_6 <- perform_rGREAT(
+  df = df_ca[grep(pattern = "_6", x = df_ca$Category), ],
+  FC = "pos",
+  bg = bg_LINE,
+  fName = "Adult_Positive",
+  split = T,
+  sp_col = "Category",
+  split_bg = FALSE
+  # out = "output/subcategory_bg_LINE/",
+)
+```
+
+
 # References
-```{r re-rGREAT-22 }
+```{r re-rGREAT-28 }
 report::cite_packages(sessionInfo())
 ```
 
 # SessionInfo
-```{r re-rGREAT-23 }
+```{r re-rGREAT-29 }
 devtools::session_info() %>%
   details()
 ```
