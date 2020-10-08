@@ -128,6 +128,7 @@ mat$isProximalActive[mat$isDistal] <- NA
 # select the columns according to which we want to split
 mat2 <- mat[, 67:73]
 mat2$expUp[mat2$isDistal] <- NA
+mat$expUp[mat$isDistal] <- NA
 
 splitAndName <- function(o) {
   s <- split(o, apply(o, 1, collapse = " ", paste))
