@@ -69,7 +69,7 @@ perform_rGREAT <- function(df, rna = FALSE, bg, fName = "no_ChIP_data", split = 
         d <- split(x = d, f = d$rna)
       } else {
         d <- df
-        d$rna <- (abs(d$RNA_PND14_vs_PNW8_logFC) >= 0) & (d$RNA_PND14_vs_PNW8_adj.P.Val >= 0)
+        d$rna <- (abs(d$RNA_PND14_vs_PNW8_logFC) >= 0)
         d$rna <- tolower(d$rna)
         d$rna[is.na(d$rna)] <- "not_detected"
         d <- split(x = d, f = d$rna)
