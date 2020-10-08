@@ -30,27 +30,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Libraries required
 
-```{r libraries, message=FALSE, warning=FALSE}
-library(plotly)
+```{r pathways-analysis-1, message=FALSE, warning=FALSE}
 library(fgsea)
 library(limma)
-library(plgINS)
-library(multiGSEA)
-library(EnrichmentBrowser)
-library(grid)
-library(gridExtra)
-library(heatmaply)
+library(parallel)
 ```
 
 # Data setup
-```{r load-objects}
+```{r pathways-analysis-2 }
 load("input/limma_SC_Controls_lab_lit.RData")
 load("input/gencode.vM18.anno.RData")
 ```
 
 
 # Genes with length information
-```{r genes-information}
+```{r pathways-analysis-3 }
 genes <- anno[, c(2, 3, 6, 7, 10)]
 genes <- genes[!duplicated(genes), ]
 
@@ -67,7 +61,7 @@ rownames(genes.f) <- genes.f$entrez_id
 
 
 # GeneSets
-```{r making-geneSets}
+```{r pathways-analysis-4 }
 if (!file.exists("output/pathways.rds")) {
   MSigdb <- getMSigGeneSetDb(
     collection = c("c1", "c2", "c3", "c4", "c5", "c6", "c7", "h"),
@@ -103,12 +97,12 @@ pathways <- pathways[5:7]
 
 
 # fgsea
-```{r pathways-analysis-2}
+```{r pathways-analysis-5 }
 fgsea.pnd8.pnd15 <- lapply(pathways, function(x) {
   dea <- dea.limma$`pnd8 vs pnd15`
   genes <- dea$t
   names(genes) <- dea$Genes
-  res <- fgsea(pathways = x, stats = genes, nperm = 1000, minSize = 10, maxSize = 1000, nproc = detectCores() - 1)
+  res <- fgsea(pathways = x, stats = genes, nperm = 100000, minSize = 10, maxSize = 1000, nproc = detectCores() - 1)
   # res <- data.frame(res[res$padj <= 0.05, ])
   rownames(res) <- res$pathway
   return(res)
@@ -118,17 +112,41 @@ fgsea.pnd15.adult <- lapply(pathways, function(x) {
   dea <- dea.limma$`pnd14 vs pnw8`
   genes <- dea$logFC
   names(genes) <- dea$Genes
-  res <- fgsea(pathways = x, stats = genes, nperm = 1000, minSize = 10, maxSize = 1000, nproc = detectCores() - 1)
+  res <- fgsea(pathways = x, stats = genes, nperm = 100000, minSize = 10, maxSize = 1000, nproc = detectCores() - 1)
   # res <- data.frame(res[res$padj <= 0.05, ])
   rownames(res) <- res$pathway
   return(res)
 })
 ```
 
+# fgsea Multi-level
+```{r pathways-analysis-6 }
+fgsea.pnd8.pnd15_m <- lapply(pathways, function(x) {
+  dea <- dea.limma$`pnd8 vs pnd15`
+  genes <- dea$t
+  names(genes) <- dea$Genes
+  res <- fgseaMultilevel(pathways = x, stats = genes, minSize = 10, maxSize = 1000, eps = 1e-100, nproc = detectCores() - 1)
+  # res <- data.frame(res[res$padj <= 0.05, ])
+  rownames(res) <- res$pathway
+  return(res)
+})
+
+fgsea.pnd15.adult_m <- lapply(pathways, function(x) {
+  dea <- dea.limma$`pnd14 vs pnw8`
+  genes <- dea$logFC
+  names(genes) <- dea$Genes
+  res <- fgseaMultilevel(pathways = x, stats = genes, minSize = 10, maxSize = 1000, eps = 1e-100, nproc = detectCores() - 1)
+  # res <- data.frame(res[res$padj <= 0.05, ])
+  rownames(res) <- res$pathway
+  return(res)
+})
+```
+
+
 # cameraPR
 
 ## Function
-```{r pathways-analysis-3}
+```{r pathways-analysis-7 }
 cameraPR <- function(statistic, index, use.ranks = FALSE, inter.gene.cor = 0.01, sort = TRUE, ...) {
   dots <- names(list(...))
   if (length(dots)) warning("Extra arguments disregarded: ", sQuote(dots))
@@ -221,7 +239,7 @@ cameraPR <- function(statistic, index, use.ranks = FALSE, inter.gene.cor = 0.01,
 ```
 
 ## cameraPR
-```{r pathways-analysis-4}
+```{r pathways-analysis-8 }
 cameraPR.pnd8.pnd15 <- lapply(pathways, function(x) {
   dea <- dea.limma$`pnd8 vs pnd15`
   genes <- dea$t
@@ -243,75 +261,13 @@ cameraPR.pnd15.adult <- lapply(pathways, function(x) {
 })
 ```
 
-# Results
-
-<!-- ```{r pathways-analysis-5} -->
-<!-- names <- names(fgsea.pnd8.pnd15) -->
-
-<!-- p <- NULL -->
-<!-- for (i in 1:length(names)) { -->
-<!--   path <- unique(c( -->
-<!--     fgsea.pnd8.pnd15[[names[i]]]$pathway, cameraPR.pnd8.pnd15[[names[i]]]$pathway, -->
-<!--     fgsea.pnd15.adult[[names[i]]]$pathway, cameraPR.pnd15.adult[[names[i]]]$pathway -->
-<!--   )) -->
-<!--   table <- data.frame(matrix(nrow = length(path), ncol = 4, data = 0)) -->
-<!--   colnames(table) <- c( -->
-<!--     "fGSEA: PND8 vs PND15", "cameraPR: PND8 vs PND15", -->
-<!--     "fGSEA: PND15 vs Adult", "cameraPR: PND14 vs PNW8" -->
-<!--   ) -->
-<!--   rownames(table) <- path -->
-
-<!--   table$`fGSEA: PND8 vs PND15` <- fgsea.pnd8.pnd15[[names[i]]][path, "NES"] -->
-<!--   table$`fGSEA: PND14 vs PNW8` <- fgsea.pnd15.adult[[names[i]]][path, "NES"] -->
-
-<!--   table$`cameraPR: PND8 vs PND15` <- cameraPR.pnd8.pnd15[[names[i]]][path, "TwoSampT"] -->
-<!--   table$`cameraPR: PND14 vs PNW8` <- cameraPR.pnd15.adult[[names[i]]][path, "TwoSampT"] -->
-
-<!--   p[[i]] <- heatmaply(x = table, dendrogram = "none", cexRow = 0.6) %>% layout(width = 700, height = 1000) -->
-<!--   names(p)[i] <- names[i] -->
-<!-- } -->
-<!-- ``` -->
-
 # Tables
 
-## Function
-```{r pathways-analysis-6}
-make_DT <- function(df) {
-  df <- data.frame(df, stringsAsFactors = F, check.names = F)
-  DT::datatable(
-    df,
-    rownames = F,
-    filter = "top", extensions = c("Buttons", "ColReorder"), options = list(
-      pageLength = 10,
-      buttons = c("copy", "csv", "excel", "pdf", "print"),
-      colReorder = list(realtime = FALSE),
-      dom = "fltBip"
-    )
-  )
-}
-```
+## PND8 vs PND15
 
-```{r pathways-analysis-7, echo=FALSE,include = FALSE}
-# dependencies attaching...
-make_DT(matrix())
-require(DT)
-```
+### fGSEA
 
-## PND8 vs PND15 {.tabset .tabset-dropdown}
-
-<!-- ### fGSEA {.tabset .tabset-pills} -->
-
-<!-- ```{r pathways-analysis-8, results='asis'} -->
-<!-- path <- fgsea.pnd8.pnd15 -->
-
-<!-- for (i in 1:length(path)) { -->
-<!--   cat("#### ", names(path)[i], "\n\n") -->
-<!--   print(htmltools::tagList(make_DT(path[[i]]))) -->
-<!--   cat("\n\n") -->
-<!-- } -->
-<!-- ``` -->
-
-```{r pathways-analysis-9}
+```{r pathways-analysis-11 }
 fgsea.pnd8.pnd15 <- lapply(fgsea.pnd8.pnd15, function(x) {
   x$leadingEdgeGenes <- NA
   for (i in 1:nrow(x)) {
@@ -332,21 +288,32 @@ for (i in 1:length(path)) {
 ```
 
 
+### fGSEA multilevel
+```{r pathways-analysis-12 }
+fgsea.pnd8.pnd15_m <- lapply(fgsea.pnd8.pnd15_m, function(x) {
+  x$leadingEdgeGenes <- NA
+  for (i in 1:nrow(x)) {
+    x$leadingEdgeGenes[i] <- paste(x$leadingEdge[[i]], collapse = ",")
+  }
+  x <- data.frame(x)
+  x <- x[, !colnames(x) %in% "leadingEdge"]
+  return(x)
+})
 
-### CameraPR {.tabset .tabset-pills}
+path <- fgsea.pnd8.pnd15_m
+
+for (i in 1:length(path)) {
+  n <- paste0("./output/fGSEA_multilevel_PND8vsPND15_", names(path)[i], ".xlsx")
+  n <- gsub(pattern = " ", replacement = "-", x = n)
+  writexl::write_xlsx(x = data.frame(path[[i]]), path = n, col_names = T, format_headers = T)
+}
+```
 
 
-<!-- ```{r pathways-analysis-10, results='asis'} -->
-<!-- path <- cameraPR.pnd8.pnd15 -->
 
-<!-- for (i in 1:length(path)) { -->
-<!--   cat("#### ", names(path)[i], "\n\n") -->
-<!--   print(htmltools::tagList(make_DT(path[[i]]))) -->
-<!--   cat("\n\n") -->
-<!-- } -->
-<!-- ``` -->
+### CameraPR
 
-```{r pathways-analysis-11}
+```{r pathways-analysis-13 }
 path <- cameraPR.pnd8.pnd15
 
 for (i in 1:length(path)) {
@@ -357,21 +324,11 @@ for (i in 1:length(path)) {
 ```
 
 
-## PND14 vs PNW8 {.tabset .tabset-dropdown}
+## PND14 vs PNW8
 
-### fGSEA {.tabset .tabset-pills}
+### fGSEA
 
-
-<!-- ```{r pathways-analysis-12, results='asis'} -->
-<!-- path <- fgsea.pnd15.adult -->
-<!-- for (i in 1:length(path)) { -->
-<!--   cat("#### ", names(path)[i], "\n\n") -->
-<!--   print(htmltools::tagList(make_DT(path[[i]]))) -->
-<!--   cat("\n\n") -->
-<!-- } -->
-<!-- ``` -->
-
-```{r pathways-analysis-13}
+```{r pathways-analysis-14 }
 fgsea.pnd15.adult <- lapply(fgsea.pnd15.adult, function(x) {
   x$leadingEdgeGenes <- NA
   for (i in 1:nrow(x)) {
@@ -391,20 +348,34 @@ for (i in 1:length(path)) {
 }
 ```
 
-### CameraPR {.tabset .tabset-pills}
+
+### fGSEA multilevel
+
+```{r pathways-analysis-15 }
+fgsea.pnd15.adult_m <- lapply(fgsea.pnd15.adult_m, function(x) {
+  x$leadingEdgeGenes <- NA
+  for (i in 1:nrow(x)) {
+    x$leadingEdgeGenes[i] <- paste(x$leadingEdge[[i]], collapse = ",")
+  }
+  x <- data.frame(x)
+  x <- x[, !colnames(x) %in% "leadingEdge"]
+  return(x)
+})
+
+path <- fgsea.pnd15.adult_m
+
+for (i in 1:length(path)) {
+  n <- paste0("./output/fGSEA_multilevel_PND14vsPNW8_", names(path)[i], ".xlsx")
+  n <- gsub(pattern = " ", replacement = "-", x = n)
+  writexl::write_xlsx(x = path[[i]], path = n, col_names = T, format_headers = T)
+}
+```
 
 
-<!-- ```{r pathways-analysis-14, results='asis'} -->
-<!-- path <- cameraPR.pnd15.adult -->
 
-<!-- for (i in 1:length(path)) { -->
-<!--   cat("#### ", names(path)[i], "\n\n") -->
-<!--   print(htmltools::tagList(make_DT(path[[i]]))) -->
-<!--   cat("\n\n") -->
-<!-- } -->
-<!-- ``` -->
+### CameraPR
 
-```{r pathways-analysis-15}
+```{r pathways-analysis-16 }
 path <- cameraPR.pnd15.adult
 
 for (i in 1:length(path)) {
@@ -415,28 +386,13 @@ for (i in 1:length(path)) {
 ```
 
 
-
-<!-- # Plots {.tabset .tabset-pills} -->
-<!-- ```{r pathways-analysis-16, echo=F, include=FALSE} -->
-<!-- heatmaply(matrix(0, nrow = 3, ncol = 3)) -->
-<!-- ``` -->
-
-<!-- ```{r pathways-analysis-17, results='asis', fig.align='center'} -->
-<!-- for (i in 1:length(p)) { -->
-<!--   cat("## ", names(p)[i], "\n\n") -->
-<!--   print(htmltools::tagList(p[[i]])) -->
-<!--   cat("\n\n") -->
-<!-- } -->
-<!-- ``` -->
-
-
 # Common pathways
 
 
 ## PND8 vs PND15
-```{r pathways-analysis-18}
-common.pnd8vspnd15 <- list()
 
+### fGSEA + cameraPR
+```{r pathways-analysis-17 }
 for (i in 1:length(fgsea.pnd8.pnd15)) {
   n <- names(fgsea.pnd8.pnd15)[i]
   tab1 <- fgsea.pnd8.pnd15[[n]]
@@ -445,20 +401,75 @@ for (i in 1:length(fgsea.pnd8.pnd15)) {
   colnames(tab2)[2:ncol(tab2)] <- paste("cameraPR", colnames(tab2)[2:ncol(tab2)], sep = "-")
   tab <- merge(tab1, tab2, by = "pathway")
 
-  common.pnd8vspnd15[[i]] <- tab
-  names(common.pnd8vspnd15)[i] <- n
-
   writexl::write_xlsx(
-    x = tab, path = paste0("./output/common_PND8vsPND15_", n, ".xlsx"),
+    x = tab, path = paste0("./output/fGSEA_cameraPR_PND8vsPND15_", n, ".xlsx"),
     col_names = T, format_headers = T
   )
 }
 ```
 
-## PND15 vs Adult
-```{r pathways-analysis-19}
-common.pnd15vsadult <- list()
+### fGSEA multilevel + cameraPR
+```{r pathways-analysis-18 }
+for (i in 1:length(fgsea.pnd8.pnd15_m)) {
+  n <- names(fgsea.pnd8.pnd15_m)[i]
+  tab1 <- fgsea.pnd8.pnd15_m[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
+  tab2 <- cameraPR.pnd8.pnd15[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("cameraPR", colnames(tab2)[2:ncol(tab2)], sep = "-")
+  tab <- merge(tab1, tab2, by = "pathway")
 
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/fGSEAmultiLevel_cameraPR_PND8vsPND15_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
+
+### fGSEA + fGSEA multilevel
+```{r pathways-analysis-19 }
+for (i in 1:length(fgsea.pnd8.pnd15)) {
+  n <- names(fgsea.pnd8.pnd15)[i]
+  tab1 <- fgsea.pnd8.pnd15[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
+  tab2 <- fgsea.pnd8.pnd15_m[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("fGSEAmultiLevel", colnames(tab2)[2:ncol(tab2)], sep = "-")
+  tab <- merge(tab1, tab2, by = "pathway")
+
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/fGSEA_fGSEAmultiLevel_PND8vsPND15_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
+### fGSEA + fGSEA multilevel + cameraPR
+```{r pathways-analysis-20 }
+for (i in 1:length(fgsea.pnd8.pnd15)) {
+  n <- names(fgsea.pnd8.pnd15)[i]
+  tab1 <- fgsea.pnd8.pnd15[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
+  tab2 <- fgsea.pnd8.pnd15_m[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("fGSEAmultiLevel", colnames(tab2)[2:ncol(tab2)], sep = "-")
+  tab3 <- cameraPR.pnd8.pnd15[[n]]
+  colnames(tab3)[2:ncol(tab3)] <- paste("cameraPR", colnames(tab3)[2:ncol(tab3)], sep = "-")
+
+  tab <- merge(tab1, tab2, by = "pathway")
+  tab <- merge(tab, tab3, by = "pathway")
+
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/fGSEA_fGSEAmultiLevel_PND8vsPND15_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
+
+
+## PND15 vs Adult
+
+### fGSEA + cameraPR
+```{r pathways-analysis-21 }
 for (i in 1:length(fgsea.pnd15.adult)) {
   n <- names(fgsea.pnd15.adult)[i]
   tab1 <- fgsea.pnd15.adult[[n]]
@@ -467,24 +478,76 @@ for (i in 1:length(fgsea.pnd15.adult)) {
   colnames(tab2)[2:ncol(tab2)] <- paste("cameraPR", colnames(tab2)[2:ncol(tab2)], sep = "-")
   tab <- merge(tab1, tab2, by = "pathway")
 
-  common.pnd15vsadult[[i]] <- tab
-  names(common.pnd15vsadult)[i] <- n
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/fGSEA_cameraPR_PND8vsPND15_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
+### fGSEA multilevel + cameraPR
+```{r pathways-analysis-22 }
+for (i in 1:length(fgsea.pnd15.adult_m)) {
+  n <- names(fgsea.pnd15.adult_m)[i]
+  tab1 <- fgsea.pnd15.adult_m[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
+  tab2 <- cameraPR.pnd15.adult[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("cameraPR", colnames(tab2)[2:ncol(tab2)], sep = "-")
+  tab <- merge(tab1, tab2, by = "pathway")
 
   writexl::write_xlsx(
-    x = tab, path = paste0("./output/common_PND14vsPNW8_", n, ".xlsx"),
+    x = tab, path = paste0("./output/fGSEAmultiLevel_cameraPR_PND8vsPND15_", n, ".xlsx"),
     col_names = T, format_headers = T
   )
 }
 ```
 
 
+### fGSEA + fGSEA multilevel
+```{r pathways-analysis-23 }
+for (i in 1:length(fgsea.pnd15.adult)) {
+  n <- names(fgsea.pnd15.adult)[i]
+  tab1 <- fgsea.pnd15.adult[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
+  tab2 <- fgsea.pnd15.adult_m[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("fGSEAmultiLevel", colnames(tab2)[2:ncol(tab2)], sep = "-")
+  tab <- merge(tab1, tab2, by = "pathway")
+
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/fGSEA_fGSEAmultiLevel_PND8vsPND15_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
+### fGSEA + fGSEA multilevel + cameraPR
+```{r pathways-analysis-24 }
+for (i in 1:length(fgsea.pnd15.adult)) {
+  n <- names(fgsea.pnd15.adult)[i]
+  tab1 <- fgsea.pnd15.adult[[n]]
+  colnames(tab1)[2:ncol(tab1)] <- paste("fGSEA", colnames(tab1)[2:ncol(tab1)], sep = "-")
+  tab2 <- fgsea.pnd15.adult_m[[n]]
+  colnames(tab2)[2:ncol(tab2)] <- paste("fGSEAmultiLevel", colnames(tab2)[2:ncol(tab2)], sep = "-")
+  tab3 <- cameraPR.pnd15.adult[[n]]
+  colnames(tab3)[2:ncol(tab3)] <- paste("cameraPR", colnames(tab3)[2:ncol(tab3)], sep = "-")
+
+  tab <- merge(tab1, tab2, by = "pathway")
+  tab <- merge(tab, tab3, by = "pathway")
+
+  writexl::write_xlsx(
+    x = tab, path = paste0("./output/fGSEA_fGSEAmultiLevel_PND8vsPND15_", n, ".xlsx"),
+    col_names = T, format_headers = T
+  )
+}
+```
+
 # References
-```{r pathways-analysis-20}
+```{r pathways-analysis-25 }
 report::cite_packages(sessionInfo())
 ```
 
 
 # SessionInfo
-```{r sessionInfo}
+```{r pathways-analysis-26 }
 devtools::session_info()
 ```

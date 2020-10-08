@@ -1,63 +1,0 @@
-[1] "en_US.utf8"
-  |                                                                              |                                                                      |   0%  |                                                                              |.                                                                     |   1%
-   inline R code fragments
-
-  |                                                                              |..                                                                    |   2%
-label: setup (with options) 
-List of 1
- $ include: logi FALSE
-
-  |                                                                              |..                                                                    |   3%
-  ordinary text without R code
-
-  |                                                                              |...                                                                   |   5%
-label: overlap-matrix-homer-1 (with options) 
-List of 2
- $ warning: symbol F
- $ message: symbol F
-
-  |                                                                              |....                                                                  |   6%
-  ordinary text without R code
-
-  |                                                                              |.....                                                                 |   7%
-label: overlap-matrix-homer-2
-  |                                                                              |......                                                                |   8%
-  ordinary text without R code
-
-  |                                                                              |......                                                                |   9%
-label: overlap-matrix-homer-3
-  |                                                                              |.......                                                               |  10%
-  ordinary text without R code
-
-  |                                                                              |........                                                              |  11%
-label: overlap-matrix-homer-4
-  |                                                                              |.........                                                             |  12%
-  ordinary text without R code
-
-  |                                                                              |..........                                                            |  14%
-label: overlap-matrix-homer-5 (with options) 
-List of 2
- $ message: logi FALSE
- $ warning: logi FALSE
-
-  |                                                                              |..........                                                            |  15%
-  ordinary text without R code
-
-  |                                                                              |...........                                                           |  16%
-label: overlap-matrix-homer-6
-  |                                                                              |............                                                          |  17%
-  ordinary text without R code
-
-  |                                                                              |.............                                                         |  18%
-label: unnamed-chunk-1
-  |                                                                              |..............                                                        |  19%
-  ordinary text without R code
-
-  |                                                                              |..............                                                        |  20%
-label: unnamed-chunk-2
-  |                                                                              |...............                                                       |  22%
-  ordinary text without R code
-
-  |                                                                              |................                                                      |  23%
-label: unnamed-chunk-3
-
