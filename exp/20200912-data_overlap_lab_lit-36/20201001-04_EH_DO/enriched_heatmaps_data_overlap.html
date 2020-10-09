@@ -2972,7 +2972,7 @@ window.onload = function() {
     </div>
     <div id="postamble" data-toggle="wy-nav-shift" class="status">
                   <p class="author"><span class="glyphicon glyphicon-user"></span> Deepak Tanwar</p>
-                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-10-01 <br> <b>Updated on:</b> 2020-10-08</p>
+                        <p class="date"><span class="glyphicon glyphicon-calendar"></span> <b>Created on:</b> 2020-10-01 <br> <b>Updated on:</b> 2020-10-09</p>
           </div>
    </div>
      
@@ -3090,7 +3090,7 @@ window.onload = function() {
 <h2>Fold change color for heatmap (from Pierre-Luc)</h2>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true"></a>sqrtCols &lt;-<span class="st"> </span><span class="cf">function</span>(x, <span class="dt">cols =</span> <span class="ot">NULL</span>) {</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true"></a>  <span class="cf">if</span> (<span class="kw">is.null</span>(cols)) {</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>    cols &lt;-<span class="st"> </span><span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">11</span>, <span class="st">&quot;RdBu&quot;</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true"></a>    cols &lt;-<span class="st"> </span><span class="kw">rev</span>(<span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">11</span>, <span class="st">&quot;RdBu&quot;</span>))</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true"></a>  }</span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true"></a>  <span class="cf">if</span> (<span class="kw">is.function</span>(cols)) {</span>
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true"></a>    cols &lt;-<span class="st"> </span><span class="kw">cols</span>(<span class="dv">11</span>)</span>
@@ -3098,15 +3098,13 @@ window.onload = function() {
 <span id="cb11-8"><a href="#cb11-8" aria-hidden="true"></a>  <span class="cf">if</span> (<span class="kw">length</span>(cols) <span class="op">!=</span><span class="st"> </span><span class="dv">11</span>) {</span>
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true"></a>    <span class="kw">stop</span>(<span class="st">&quot;`cols` should contain 11 colors.&quot;</span>)</span>
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true"></a>  }</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a>  bb &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="op">-</span><span class="kw">seq</span>(</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a>    <span class="dt">from =</span> <span class="kw">sqrt</span>(<span class="kw">abs</span>(<span class="kw">min</span>(x, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>))), <span class="dt">to =</span> <span class="dv">0</span>,</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a>    <span class="dt">length.out =</span> <span class="dv">6</span></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a>  )<span class="op">^</span><span class="dv">2</span>, <span class="kw">seq</span>(</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a>    <span class="dt">from =</span> <span class="dv">0</span>, <span class="dt">to =</span> <span class="kw">sqrt</span>(<span class="kw">max</span>(x, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)),</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true"></a>    <span class="dt">length.out =</span> <span class="dv">6</span></span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true"></a>  )[<span class="op">-</span><span class="dv">1</span>]<span class="op">^</span><span class="dv">2</span>)</span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true"></a>  <span class="kw">colorRamp2</span>(bb, cols)</span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true"></a>}</span></code></pre></div>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true"></a>  bb &lt;-<span class="st"> </span><span class="kw">c</span>(</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true"></a>    <span class="op">-</span><span class="kw">seq</span>(<span class="dt">from =</span> <span class="kw">sqrt</span>(<span class="kw">abs</span>(<span class="kw">min</span>(x, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>))), <span class="dt">to =</span> <span class="dv">0</span>, <span class="dt">length.out =</span> <span class="dv">6</span>)<span class="op">^</span><span class="dv">2</span>,</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true"></a>    <span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">0</span>, <span class="dt">to =</span> <span class="kw">sqrt</span>(<span class="kw">max</span>(x, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)), <span class="dt">length.out =</span> <span class="dv">6</span>)[<span class="op">-</span><span class="dv">1</span>]<span class="op">^</span><span class="dv">2</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true"></a>  )</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true"></a>  <span class="kw">colorRamp2</span>(bb, cols)</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true"></a>}</span></code></pre></div>
 </div>
 <div id="enriched-heatmap-creating-function" class="section level2">
 <h2>Enriched Heatmap creating function</h2>
@@ -3196,276 +3194,304 @@ window.onload = function() {
 </div>
 <div id="eh-function" class="section level2">
 <h2>EH function</h2>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>draw_EH &lt;-<span class="st"> </span><span class="cf">function</span>(x, k, name, ht, type, <span class="dt">log =</span> <span class="ot">FALSE</span>, outdir) {</span>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a>draw_EH &lt;-<span class="st"> </span><span class="cf">function</span>(x, k, name, ht, type, <span class="dt">log =</span> <span class="ot">FALSE</span>, outdir, rm) {</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a>  <span class="kw">set.seed</span>(<span class="dv">1100</span>)</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a>  <span class="kw">names</span>(k) &lt;-<span class="st"> </span>x</span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a>  partition &lt;-<span class="st"> </span>k</span>
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a></span>
 <span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a>  nc &lt;-<span class="st"> </span><span class="kw">length</span>(<span class="kw">unique</span>(k))</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a>  pdf_file &lt;-<span class="st"> </span><span class="kw">ifelse</span>(log, <span class="kw">paste0</span>(<span class="st">&quot;./output/&quot;</span>, outdir, <span class="st">&quot;/&quot;</span>, name, <span class="st">&quot;_log2.pdf&quot;</span>), <span class="kw">paste0</span>(<span class="st">&quot;./output/&quot;</span>, outdir, <span class="st">&quot;/&quot;</span>, name, <span class="st">&quot;.pdf&quot;</span>))</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true"></a>  col_an &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true"></a>  <span class="cf">if</span> (<span class="kw">length</span>(<span class="kw">unique</span>(partition)) <span class="op">&lt;=</span><span class="st"> </span><span class="dv">8</span>) {</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span><span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">8</span>, <span class="dt">name =</span> <span class="st">&quot;Dark2&quot;</span>)</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true"></a>    <span class="kw">names</span>(col_an) &lt;-<span class="st"> </span><span class="kw">unique</span>(partition)</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true"></a></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span>col_an[<span class="op">!</span><span class="kw">is.na</span>(<span class="kw">names</span>(col_an))]</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true"></a>  } <span class="cf">else</span> {</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true"></a>    n &lt;-<span class="st"> </span><span class="kw">length</span>(<span class="kw">unique</span>(partition))</span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true"></a>    qual_col_pals &lt;-<span class="st"> </span>brewer.pal.info[brewer.pal.info<span class="op">$</span>category <span class="op">==</span><span class="st"> &quot;qual&quot;</span>, ]</span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">mapply</span>(brewer.pal, qual_col_pals<span class="op">$</span>maxcolors, <span class="kw">rownames</span>(qual_col_pals)))</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true"></a>    <span class="kw">names</span>(col_an) &lt;-<span class="st"> </span><span class="kw">unique</span>(partition)</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span>col_an[<span class="op">!</span><span class="kw">is.na</span>(<span class="kw">names</span>(col_an))]</span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true"></a>    <span class="co"># pie(rep(1,n), col=sample(col_vector, n))</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a>  pdf_file &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true"></a>  <span class="cf">if</span> (log) {</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true"></a>    <span class="cf">if</span> (rm <span class="op">==</span><span class="st"> &quot;meth&quot;</span>) {</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true"></a>      pdf_file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/&quot;</span>, outdir, <span class="st">&quot;/&quot;</span>, name, <span class="st">&quot;_no_meth_log2.pdf&quot;</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true"></a>      pdf_file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/&quot;</span>, outdir, <span class="st">&quot;/&quot;</span>, name, <span class="st">&quot;_log2.pdf&quot;</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true"></a>    }</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true"></a>  } <span class="cf">else</span> {</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true"></a>    <span class="cf">if</span> (rm <span class="op">==</span><span class="st"> &quot;meth&quot;</span>) {</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true"></a>      pdf_file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/&quot;</span>, outdir, <span class="st">&quot;/&quot;</span>, name, <span class="st">&quot;_no_meth.pdf&quot;</span>)</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true"></a>      pdf_file &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;./output/&quot;</span>, outdir, <span class="st">&quot;/&quot;</span>, name, <span class="st">&quot;.pdf&quot;</span>)</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true"></a>    }</span>
 <span id="cb13-23"><a href="#cb13-23" aria-hidden="true"></a>  }</span>
 <span id="cb13-24"><a href="#cb13-24" aria-hidden="true"></a></span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true"></a>  hm_an &lt;-<span class="st"> </span><span class="kw">HeatmapAnnotation</span>(</span>
-<span id="cb13-26"><a href="#cb13-26" aria-hidden="true"></a>    <span class="dt">Categories =</span> partition,</span>
-<span id="cb13-27"><a href="#cb13-27" aria-hidden="true"></a>    <span class="dt">which =</span> <span class="st">&quot;row&quot;</span>,</span>
-<span id="cb13-28"><a href="#cb13-28" aria-hidden="true"></a>    <span class="dt">annotation_name_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">0</span>),</span>
-<span id="cb13-29"><a href="#cb13-29" aria-hidden="true"></a>    <span class="dt">annotation_legend_param =</span> <span class="kw">list</span>(</span>
-<span id="cb13-30"><a href="#cb13-30" aria-hidden="true"></a>      <span class="dt">title_gp =</span> <span class="kw">gpar</span>(</span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true"></a>        <span class="dt">fontsize =</span> <span class="dv">6</span>,</span>
-<span id="cb13-32"><a href="#cb13-32" aria-hidden="true"></a>        <span class="dt">fontface =</span> <span class="st">&quot;bold&quot;</span>,</span>
-<span id="cb13-33"><a href="#cb13-33" aria-hidden="true"></a>        <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span></span>
-<span id="cb13-34"><a href="#cb13-34" aria-hidden="true"></a>      ),</span>
-<span id="cb13-35"><a href="#cb13-35" aria-hidden="true"></a>      <span class="dt">labels_gp =</span> <span class="kw">gpar</span>(</span>
-<span id="cb13-36"><a href="#cb13-36" aria-hidden="true"></a>        <span class="dt">fontsize =</span> <span class="dv">6</span>,</span>
-<span id="cb13-37"><a href="#cb13-37" aria-hidden="true"></a>        <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span></span>
-<span id="cb13-38"><a href="#cb13-38" aria-hidden="true"></a>      )</span>
-<span id="cb13-39"><a href="#cb13-39" aria-hidden="true"></a>    ),</span>
-<span id="cb13-40"><a href="#cb13-40" aria-hidden="true"></a>    <span class="dt">col =</span> <span class="kw">list</span>(<span class="dt">Categories =</span> col_an),</span>
-<span id="cb13-41"><a href="#cb13-41" aria-hidden="true"></a>    <span class="dt">simple_anno_size =</span> <span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>)</span>
-<span id="cb13-42"><a href="#cb13-42" aria-hidden="true"></a>  )</span>
-<span id="cb13-43"><a href="#cb13-43" aria-hidden="true"></a></span>
-<span id="cb13-44"><a href="#cb13-44" aria-hidden="true"></a>  axis_name &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;-2.5kb&quot;</span>, <span class="st">&quot;Mid&quot;</span>, <span class="st">&quot;2.5kb&quot;</span>)</span>
-<span id="cb13-45"><a href="#cb13-45" aria-hidden="true"></a></span>
-<span id="cb13-46"><a href="#cb13-46" aria-hidden="true"></a>  mat_as &lt;-<span class="st"> </span><span class="kw">lapply</span>(mat_AS, <span class="cf">function</span>(y) {</span>
-<span id="cb13-47"><a href="#cb13-47" aria-hidden="true"></a>    <span class="cf">if</span> (log) {</span>
-<span id="cb13-48"><a href="#cb13-48" aria-hidden="true"></a>      <span class="kw">return</span>(<span class="kw">log2</span>(y[x, ] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>))</span>
-<span id="cb13-49"><a href="#cb13-49" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
-<span id="cb13-50"><a href="#cb13-50" aria-hidden="true"></a>      <span class="kw">return</span>(y[x, ])</span>
-<span id="cb13-51"><a href="#cb13-51" aria-hidden="true"></a>    }</span>
-<span id="cb13-52"><a href="#cb13-52" aria-hidden="true"></a>  })</span>
-<span id="cb13-53"><a href="#cb13-53" aria-hidden="true"></a></span>
-<span id="cb13-54"><a href="#cb13-54" aria-hidden="true"></a>  col_atac &lt;-<span class="st"> </span><span class="kw">generate_color_fun</span>(<span class="dt">x =</span> mat_as, <span class="dt">col =</span> <span class="st">&quot;red&quot;</span>, <span class="dt">rows =</span> x)</span>
-<span id="cb13-55"><a href="#cb13-55" aria-hidden="true"></a></span>
-<span id="cb13-56"><a href="#cb13-56" aria-hidden="true"></a>  bg_col &lt;-<span class="st"> </span><span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">5</span>, <span class="dt">name =</span> <span class="st">&quot;Set2&quot;</span>)</span>
-<span id="cb13-57"><a href="#cb13-57" aria-hidden="true"></a></span>
-<span id="cb13-58"><a href="#cb13-58" aria-hidden="true"></a>  <span class="co"># ATAC-Seq</span></span>
-<span id="cb13-59"><a href="#cb13-59" aria-hidden="true"></a>  atac_PND15 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-60"><a href="#cb13-60" aria-hidden="true"></a>    <span class="dt">data =</span> mat_AS<span class="op">$</span>PND15_NF[x, ],</span>
-<span id="cb13-61"><a href="#cb13-61" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PND15&quot;</span>,</span>
-<span id="cb13-62"><a href="#cb13-62" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PND15 ATAC&quot;</span>,</span>
-<span id="cb13-63"><a href="#cb13-63" aria-hidden="true"></a>    <span class="dt">color =</span> col_atac,</span>
-<span id="cb13-64"><a href="#cb13-64" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
-<span id="cb13-65"><a href="#cb13-65" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">FALSE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">1</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-66"><a href="#cb13-66" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-67"><a href="#cb13-67" aria-hidden="true"></a>  )</span>
-<span id="cb13-68"><a href="#cb13-68" aria-hidden="true"></a></span>
-<span id="cb13-69"><a href="#cb13-69" aria-hidden="true"></a>  atac_Adult &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-70"><a href="#cb13-70" aria-hidden="true"></a>    <span class="dt">data =</span> mat_AS<span class="op">$</span>Adult_NF[x, ],</span>
-<span id="cb13-71"><a href="#cb13-71" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;Adult&quot;</span>,</span>
-<span id="cb13-72"><a href="#cb13-72" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;Adult ATAC&quot;</span>,</span>
-<span id="cb13-73"><a href="#cb13-73" aria-hidden="true"></a>    <span class="dt">color =</span> col_atac,</span>
-<span id="cb13-74"><a href="#cb13-74" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
-<span id="cb13-75"><a href="#cb13-75" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">1</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-76"><a href="#cb13-76" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-77"><a href="#cb13-77" aria-hidden="true"></a>  )</span>
-<span id="cb13-78"><a href="#cb13-78" aria-hidden="true"></a></span>
-<span id="cb13-79"><a href="#cb13-79" aria-hidden="true"></a>  hm_atac &lt;-<span class="st"> </span>atac_PND15 <span class="op">+</span><span class="st"> </span>atac_Adult</span>
-<span id="cb13-80"><a href="#cb13-80" aria-hidden="true"></a></span>
-<span id="cb13-81"><a href="#cb13-81" aria-hidden="true"></a>  hm_atac<span class="op">@</span>ht_list<span class="op">$</span>PND15<span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(<span class="dt">mm =</span> hm_atac<span class="op">@</span>ht_list<span class="op">$</span>PND15<span class="op">@</span>matrix_color_mapping)</span>
-<span id="cb13-82"><a href="#cb13-82" aria-hidden="true"></a>  hm_atac<span class="op">@</span>ht_list<span class="op">$</span>Adult<span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(<span class="dt">mm =</span> hm_atac<span class="op">@</span>ht_list<span class="op">$</span>Adult<span class="op">@</span>matrix_color_mapping)</span>
-<span id="cb13-83"><a href="#cb13-83" aria-hidden="true"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true"></a></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true"></a>  col_an &lt;-<span class="st"> </span><span class="ot">NULL</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true"></a>  <span class="cf">if</span> (<span class="kw">length</span>(<span class="kw">unique</span>(partition)) <span class="op">&lt;=</span><span class="st"> </span><span class="dv">8</span>) {</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span><span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">8</span>, <span class="dt">name =</span> <span class="st">&quot;Dark2&quot;</span>)</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true"></a>    <span class="kw">names</span>(col_an) &lt;-<span class="st"> </span><span class="kw">unique</span>(partition)</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true"></a></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span>col_an[<span class="op">!</span><span class="kw">is.na</span>(<span class="kw">names</span>(col_an))]</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true"></a>  } <span class="cf">else</span> {</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true"></a>    n &lt;-<span class="st"> </span><span class="kw">length</span>(<span class="kw">unique</span>(partition))</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true"></a>    qual_col_pals &lt;-<span class="st"> </span>brewer.pal.info[brewer.pal.info<span class="op">$</span>category <span class="op">==</span><span class="st"> &quot;qual&quot;</span>, ]</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">mapply</span>(brewer.pal, qual_col_pals<span class="op">$</span>maxcolors, <span class="kw">rownames</span>(qual_col_pals)))</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true"></a>    <span class="kw">names</span>(col_an) &lt;-<span class="st"> </span><span class="kw">unique</span>(partition)</span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true"></a>    col_an &lt;-<span class="st"> </span>col_an[<span class="op">!</span><span class="kw">is.na</span>(<span class="kw">names</span>(col_an))]</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true"></a>    <span class="co"># pie(rep(1,n), col=sample(col_vector, n))</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true"></a>  }</span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true"></a></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true"></a>  hm_an &lt;-<span class="st"> </span><span class="kw">HeatmapAnnotation</span>(</span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true"></a>    <span class="dt">Categories =</span> partition,</span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true"></a>    <span class="dt">which =</span> <span class="st">&quot;row&quot;</span>,</span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true"></a>    <span class="dt">annotation_name_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">0</span>),</span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true"></a>    <span class="dt">annotation_legend_param =</span> <span class="kw">list</span>(</span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true"></a>      <span class="dt">title_gp =</span> <span class="kw">gpar</span>(</span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true"></a>        <span class="dt">fontsize =</span> <span class="dv">6</span>,</span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true"></a>        <span class="dt">fontface =</span> <span class="st">&quot;bold&quot;</span>,</span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true"></a>        <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true"></a>      ),</span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true"></a>      <span class="dt">labels_gp =</span> <span class="kw">gpar</span>(</span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true"></a>        <span class="dt">fontsize =</span> <span class="dv">6</span>,</span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true"></a>        <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span></span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true"></a>      )</span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true"></a>    ),</span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true"></a>    <span class="dt">col =</span> <span class="kw">list</span>(<span class="dt">Categories =</span> col_an),</span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true"></a>    <span class="dt">simple_anno_size =</span> <span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>)</span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true"></a>  )</span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true"></a></span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true"></a>  axis_name &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;-2.5kb&quot;</span>, <span class="st">&quot;Mid&quot;</span>, <span class="st">&quot;2.5kb&quot;</span>)</span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true"></a></span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true"></a>  mat_as &lt;-<span class="st"> </span><span class="kw">lapply</span>(mat_AS, <span class="cf">function</span>(y) {</span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true"></a>    <span class="cf">if</span> (log) {</span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true"></a>      <span class="kw">return</span>(<span class="kw">log2</span>(y[x, ] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>))</span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true"></a>      <span class="kw">return</span>(y[x, ])</span>
+<span id="cb13-67"><a href="#cb13-67" aria-hidden="true"></a>    }</span>
+<span id="cb13-68"><a href="#cb13-68" aria-hidden="true"></a>  })</span>
+<span id="cb13-69"><a href="#cb13-69" aria-hidden="true"></a></span>
+<span id="cb13-70"><a href="#cb13-70" aria-hidden="true"></a>  col_atac &lt;-<span class="st"> </span><span class="kw">generate_color_fun</span>(<span class="dt">x =</span> mat_as, <span class="dt">col =</span> <span class="st">&quot;red&quot;</span>, <span class="dt">rows =</span> x)</span>
+<span id="cb13-71"><a href="#cb13-71" aria-hidden="true"></a></span>
+<span id="cb13-72"><a href="#cb13-72" aria-hidden="true"></a>  bg_col &lt;-<span class="st"> </span><span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">5</span>, <span class="dt">name =</span> <span class="st">&quot;Set2&quot;</span>)</span>
+<span id="cb13-73"><a href="#cb13-73" aria-hidden="true"></a></span>
+<span id="cb13-74"><a href="#cb13-74" aria-hidden="true"></a>  <span class="co"># ATAC-Seq</span></span>
+<span id="cb13-75"><a href="#cb13-75" aria-hidden="true"></a>  atac_PND15 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-76"><a href="#cb13-76" aria-hidden="true"></a>    <span class="dt">data =</span> mat_AS<span class="op">$</span>PND15_NF[x, ],</span>
+<span id="cb13-77"><a href="#cb13-77" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PND15&quot;</span>,</span>
+<span id="cb13-78"><a href="#cb13-78" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PND15 ATAC&quot;</span>,</span>
+<span id="cb13-79"><a href="#cb13-79" aria-hidden="true"></a>    <span class="dt">color =</span> col_atac,</span>
+<span id="cb13-80"><a href="#cb13-80" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
+<span id="cb13-81"><a href="#cb13-81" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">FALSE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">1</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-82"><a href="#cb13-82" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-83"><a href="#cb13-83" aria-hidden="true"></a>  )</span>
 <span id="cb13-84"><a href="#cb13-84" aria-hidden="true"></a></span>
-<span id="cb13-85"><a href="#cb13-85" aria-hidden="true"></a>  chip_col_dat &lt;-<span class="st"> </span><span class="cf">function</span>(z) {</span>
-<span id="cb13-86"><a href="#cb13-86" aria-hidden="true"></a>    <span class="cf">if</span> (log) {</span>
-<span id="cb13-87"><a href="#cb13-87" aria-hidden="true"></a>      <span class="kw">return</span>(<span class="kw">log2</span>(z[x, ] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>))</span>
-<span id="cb13-88"><a href="#cb13-88" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
-<span id="cb13-89"><a href="#cb13-89" aria-hidden="true"></a>      <span class="kw">return</span>(z[x, ])</span>
-<span id="cb13-90"><a href="#cb13-90" aria-hidden="true"></a>    }</span>
-<span id="cb13-91"><a href="#cb13-91" aria-hidden="true"></a>  }</span>
-<span id="cb13-92"><a href="#cb13-92" aria-hidden="true"></a></span>
-<span id="cb13-93"><a href="#cb13-93" aria-hidden="true"></a>  chip_PNW8_H3K4me3 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-94"><a href="#cb13-94" aria-hidden="true"></a>    <span class="dt">data =</span> mat_CS<span class="op">$</span>PNW8_H3K4me3_SRX332343[x, ],</span>
-<span id="cb13-95"><a href="#cb13-95" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 H3K4me3&quot;</span>,</span>
-<span id="cb13-96"><a href="#cb13-96" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 H3K4me3&quot;</span>,</span>
-<span id="cb13-97"><a href="#cb13-97" aria-hidden="true"></a>    <span class="dt">color =</span> <span class="kw">generate_color_fun</span>(<span class="dt">x =</span> <span class="kw">chip_col_dat</span>(<span class="dt">z =</span> mat_CS<span class="op">$</span>PNW8_H3K4me3_SRX332343[x, ]), <span class="dt">rows =</span> x, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>),</span>
-<span id="cb13-98"><a href="#cb13-98" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(H3K4me3 <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(H3K4me3 <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
-<span id="cb13-99"><a href="#cb13-99" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">2</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-100"><a href="#cb13-100" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-101"><a href="#cb13-101" aria-hidden="true"></a>  )</span>
-<span id="cb13-102"><a href="#cb13-102" aria-hidden="true"></a></span>
-<span id="cb13-103"><a href="#cb13-103" aria-hidden="true"></a>  chip_PNW8_H3K27ac &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-104"><a href="#cb13-104" aria-hidden="true"></a>    <span class="dt">data =</span> mat_CS<span class="op">$</span>PNW8_H3K27ac_SRX332351[x, ],</span>
-<span id="cb13-105"><a href="#cb13-105" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 H3K27ac&quot;</span>,</span>
-<span id="cb13-106"><a href="#cb13-106" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 H3K27ac&quot;</span>,</span>
-<span id="cb13-107"><a href="#cb13-107" aria-hidden="true"></a>    <span class="dt">color =</span> <span class="kw">generate_color_fun</span>(<span class="dt">x =</span> <span class="kw">chip_col_dat</span>(<span class="dt">z =</span> mat_CS<span class="op">$</span>PNW8_H3K27ac_SRX332351[x, ]), <span class="dt">rows =</span> x, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>),</span>
-<span id="cb13-108"><a href="#cb13-108" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27ac <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27ac <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
-<span id="cb13-109"><a href="#cb13-109" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">2</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-110"><a href="#cb13-110" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-111"><a href="#cb13-111" aria-hidden="true"></a>  )</span>
-<span id="cb13-112"><a href="#cb13-112" aria-hidden="true"></a></span>
-<span id="cb13-113"><a href="#cb13-113" aria-hidden="true"></a>  chip_PNW8_H3K27me3 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-114"><a href="#cb13-114" aria-hidden="true"></a>    <span class="dt">data =</span> mat_CS<span class="op">$</span>PNW8_H3K27me3_SRX332346[x, ],</span>
-<span id="cb13-115"><a href="#cb13-115" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 H3K27me3&quot;</span>,</span>
-<span id="cb13-116"><a href="#cb13-116" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 H3K27me3&quot;</span>,</span>
-<span id="cb13-117"><a href="#cb13-117" aria-hidden="true"></a>    <span class="dt">color =</span> <span class="kw">generate_color_fun</span>(<span class="dt">x =</span> <span class="kw">chip_col_dat</span>(<span class="dt">z =</span> mat_CS<span class="op">$</span>PNW8_H3K27me3_SRX332346[x, ]), <span class="dt">rows =</span> x, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>),</span>
-<span id="cb13-118"><a href="#cb13-118" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27me3 <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27me3 <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
-<span id="cb13-119"><a href="#cb13-119" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">2</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-120"><a href="#cb13-120" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-121"><a href="#cb13-121" aria-hidden="true"></a>  )</span>
-<span id="cb13-122"><a href="#cb13-122" aria-hidden="true"></a></span>
-<span id="cb13-123"><a href="#cb13-123" aria-hidden="true"></a></span>
-<span id="cb13-124"><a href="#cb13-124" aria-hidden="true"></a>  hm_chip &lt;-<span class="st"> </span>chip_PNW8_H3K4me3 <span class="op">+</span><span class="st"> </span>chip_PNW8_H3K27ac <span class="op">+</span><span class="st"> </span>chip_PNW8_H3K27me3</span>
-<span id="cb13-125"><a href="#cb13-125" aria-hidden="true"></a></span>
-<span id="cb13-126"><a href="#cb13-126" aria-hidden="true"></a>  hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K4me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K4me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping)</span>
-<span id="cb13-127"><a href="#cb13-127" aria-hidden="true"></a>  hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27ac</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27ac</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping)</span>
-<span id="cb13-128"><a href="#cb13-128" aria-hidden="true"></a>  hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping)</span>
-<span id="cb13-129"><a href="#cb13-129" aria-hidden="true"></a></span>
-<span id="cb13-130"><a href="#cb13-130" aria-hidden="true"></a></span>
-<span id="cb13-131"><a href="#cb13-131" aria-hidden="true"></a>  <span class="co"># Methylation color</span></span>
-<span id="cb13-132"><a href="#cb13-132" aria-hidden="true"></a>  meth_col_fun &lt;-<span class="st"> </span><span class="kw">colorRamp2</span>(<span class="kw">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>), <span class="kw">c</span>(<span class="st">&quot;red&quot;</span>, <span class="st">&quot;white&quot;</span>, <span class="st">&quot;blue&quot;</span>))</span>
-<span id="cb13-133"><a href="#cb13-133" aria-hidden="true"></a></span>
-<span id="cb13-134"><a href="#cb13-134" aria-hidden="true"></a></span>
-<span id="cb13-135"><a href="#cb13-135" aria-hidden="true"></a>  <span class="co"># BSseq</span></span>
-<span id="cb13-136"><a href="#cb13-136" aria-hidden="true"></a></span>
-<span id="cb13-137"><a href="#cb13-137" aria-hidden="true"></a>  bs_PND7 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-138"><a href="#cb13-138" aria-hidden="true"></a>    <span class="dt">data =</span> mat_BS<span class="op">$</span>PND7_SRX749887[x, ],</span>
-<span id="cb13-139"><a href="#cb13-139" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PND7 BS&quot;</span>,</span>
-<span id="cb13-140"><a href="#cb13-140" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PND7 BS&quot;</span>,</span>
-<span id="cb13-141"><a href="#cb13-141" aria-hidden="true"></a>    <span class="dt">color =</span> meth_col_fun,</span>
-<span id="cb13-142"><a href="#cb13-142" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(DNAme)),</span>
-<span id="cb13-143"><a href="#cb13-143" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> <span class="ot">FALSE</span>, <span class="dt">bg_col =</span> bg_col[<span class="dv">4</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-144"><a href="#cb13-144" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-145"><a href="#cb13-145" aria-hidden="true"></a>  )</span>
+<span id="cb13-85"><a href="#cb13-85" aria-hidden="true"></a>  atac_Adult &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-86"><a href="#cb13-86" aria-hidden="true"></a>    <span class="dt">data =</span> mat_AS<span class="op">$</span>Adult_NF[x, ],</span>
+<span id="cb13-87"><a href="#cb13-87" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;Adult&quot;</span>,</span>
+<span id="cb13-88"><a href="#cb13-88" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;Adult ATAC&quot;</span>,</span>
+<span id="cb13-89"><a href="#cb13-89" aria-hidden="true"></a>    <span class="dt">color =</span> col_atac,</span>
+<span id="cb13-90"><a href="#cb13-90" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(ATAC <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
+<span id="cb13-91"><a href="#cb13-91" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">1</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-92"><a href="#cb13-92" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-93"><a href="#cb13-93" aria-hidden="true"></a>  )</span>
+<span id="cb13-94"><a href="#cb13-94" aria-hidden="true"></a></span>
+<span id="cb13-95"><a href="#cb13-95" aria-hidden="true"></a>  hm_atac &lt;-<span class="st"> </span>atac_PND15 <span class="op">+</span><span class="st"> </span>atac_Adult</span>
+<span id="cb13-96"><a href="#cb13-96" aria-hidden="true"></a></span>
+<span id="cb13-97"><a href="#cb13-97" aria-hidden="true"></a>  hm_atac<span class="op">@</span>ht_list<span class="op">$</span>PND15<span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(<span class="dt">mm =</span> hm_atac<span class="op">@</span>ht_list<span class="op">$</span>PND15<span class="op">@</span>matrix_color_mapping)</span>
+<span id="cb13-98"><a href="#cb13-98" aria-hidden="true"></a>  hm_atac<span class="op">@</span>ht_list<span class="op">$</span>Adult<span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(<span class="dt">mm =</span> hm_atac<span class="op">@</span>ht_list<span class="op">$</span>Adult<span class="op">@</span>matrix_color_mapping)</span>
+<span id="cb13-99"><a href="#cb13-99" aria-hidden="true"></a></span>
+<span id="cb13-100"><a href="#cb13-100" aria-hidden="true"></a></span>
+<span id="cb13-101"><a href="#cb13-101" aria-hidden="true"></a>  chip_col_dat &lt;-<span class="st"> </span><span class="cf">function</span>(z) {</span>
+<span id="cb13-102"><a href="#cb13-102" aria-hidden="true"></a>    <span class="cf">if</span> (log) {</span>
+<span id="cb13-103"><a href="#cb13-103" aria-hidden="true"></a>      <span class="kw">return</span>(<span class="kw">log2</span>(z[x, ] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>))</span>
+<span id="cb13-104"><a href="#cb13-104" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
+<span id="cb13-105"><a href="#cb13-105" aria-hidden="true"></a>      <span class="kw">return</span>(z[x, ])</span>
+<span id="cb13-106"><a href="#cb13-106" aria-hidden="true"></a>    }</span>
+<span id="cb13-107"><a href="#cb13-107" aria-hidden="true"></a>  }</span>
+<span id="cb13-108"><a href="#cb13-108" aria-hidden="true"></a></span>
+<span id="cb13-109"><a href="#cb13-109" aria-hidden="true"></a>  chip_PNW8_H3K4me3 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-110"><a href="#cb13-110" aria-hidden="true"></a>    <span class="dt">data =</span> mat_CS<span class="op">$</span>PNW8_H3K4me3_SRX332343[x, ],</span>
+<span id="cb13-111"><a href="#cb13-111" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 H3K4me3&quot;</span>,</span>
+<span id="cb13-112"><a href="#cb13-112" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 H3K4me3&quot;</span>,</span>
+<span id="cb13-113"><a href="#cb13-113" aria-hidden="true"></a>    <span class="dt">color =</span> <span class="kw">generate_color_fun</span>(<span class="dt">x =</span> <span class="kw">chip_col_dat</span>(<span class="dt">z =</span> mat_CS<span class="op">$</span>PNW8_H3K4me3_SRX332343[x, ]), <span class="dt">rows =</span> x, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>),</span>
+<span id="cb13-114"><a href="#cb13-114" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(H3K4me3 <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(H3K4me3 <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
+<span id="cb13-115"><a href="#cb13-115" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">2</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-116"><a href="#cb13-116" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-117"><a href="#cb13-117" aria-hidden="true"></a>  )</span>
+<span id="cb13-118"><a href="#cb13-118" aria-hidden="true"></a></span>
+<span id="cb13-119"><a href="#cb13-119" aria-hidden="true"></a>  chip_PNW8_H3K27ac &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-120"><a href="#cb13-120" aria-hidden="true"></a>    <span class="dt">data =</span> mat_CS<span class="op">$</span>PNW8_H3K27ac_SRX332351[x, ],</span>
+<span id="cb13-121"><a href="#cb13-121" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 H3K27ac&quot;</span>,</span>
+<span id="cb13-122"><a href="#cb13-122" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 H3K27ac&quot;</span>,</span>
+<span id="cb13-123"><a href="#cb13-123" aria-hidden="true"></a>    <span class="dt">color =</span> <span class="kw">generate_color_fun</span>(<span class="dt">x =</span> <span class="kw">chip_col_dat</span>(<span class="dt">z =</span> mat_CS<span class="op">$</span>PNW8_H3K27ac_SRX332351[x, ]), <span class="dt">rows =</span> x, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>),</span>
+<span id="cb13-124"><a href="#cb13-124" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27ac <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27ac <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
+<span id="cb13-125"><a href="#cb13-125" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">2</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-126"><a href="#cb13-126" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-127"><a href="#cb13-127" aria-hidden="true"></a>  )</span>
+<span id="cb13-128"><a href="#cb13-128" aria-hidden="true"></a></span>
+<span id="cb13-129"><a href="#cb13-129" aria-hidden="true"></a>  chip_PNW8_H3K27me3 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-130"><a href="#cb13-130" aria-hidden="true"></a>    <span class="dt">data =</span> mat_CS<span class="op">$</span>PNW8_H3K27me3_SRX332346[x, ],</span>
+<span id="cb13-131"><a href="#cb13-131" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 H3K27me3&quot;</span>,</span>
+<span id="cb13-132"><a href="#cb13-132" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 H3K27me3&quot;</span>,</span>
+<span id="cb13-133"><a href="#cb13-133" aria-hidden="true"></a>    <span class="dt">color =</span> <span class="kw">generate_color_fun</span>(<span class="dt">x =</span> <span class="kw">chip_col_dat</span>(<span class="dt">z =</span> mat_CS<span class="op">$</span>PNW8_H3K27me3_SRX332346[x, ]), <span class="dt">rows =</span> x, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>),</span>
+<span id="cb13-134"><a href="#cb13-134" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">ifelse</span>(log, <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27me3 <span class="op">~</span><span class="st"> </span>log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>)), <span class="kw">expression</span>(<span class="kw">bold</span>(H3K27me3 <span class="op">~</span><span class="st"> &quot;RPKM&quot;</span>))),</span>
+<span id="cb13-135"><a href="#cb13-135" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> log, <span class="dt">bg_col =</span> bg_col[<span class="dv">2</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-136"><a href="#cb13-136" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-137"><a href="#cb13-137" aria-hidden="true"></a>  )</span>
+<span id="cb13-138"><a href="#cb13-138" aria-hidden="true"></a></span>
+<span id="cb13-139"><a href="#cb13-139" aria-hidden="true"></a></span>
+<span id="cb13-140"><a href="#cb13-140" aria-hidden="true"></a>  hm_chip &lt;-<span class="st"> </span>chip_PNW8_H3K4me3 <span class="op">+</span><span class="st"> </span>chip_PNW8_H3K27ac <span class="op">+</span><span class="st"> </span>chip_PNW8_H3K27me3</span>
+<span id="cb13-141"><a href="#cb13-141" aria-hidden="true"></a></span>
+<span id="cb13-142"><a href="#cb13-142" aria-hidden="true"></a>  hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K4me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K4me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping)</span>
+<span id="cb13-143"><a href="#cb13-143" aria-hidden="true"></a>  hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27ac</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27ac</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping)</span>
+<span id="cb13-144"><a href="#cb13-144" aria-hidden="true"></a>  hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(hm_chip<span class="op">@</span>ht_list<span class="op">$</span><span class="st">`</span><span class="dt">PNW8 H3K27me3</span><span class="st">`</span><span class="op">@</span>matrix_color_mapping)</span>
+<span id="cb13-145"><a href="#cb13-145" aria-hidden="true"></a></span>
 <span id="cb13-146"><a href="#cb13-146" aria-hidden="true"></a></span>
-<span id="cb13-147"><a href="#cb13-147" aria-hidden="true"></a>  bs_PND14 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-148"><a href="#cb13-148" aria-hidden="true"></a>    <span class="dt">data =</span> mat_BS<span class="op">$</span>PND14_SRX749892[x, ],</span>
-<span id="cb13-149"><a href="#cb13-149" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PND14 BS&quot;</span>,</span>
-<span id="cb13-150"><a href="#cb13-150" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PND14 BS&quot;</span>,</span>
-<span id="cb13-151"><a href="#cb13-151" aria-hidden="true"></a>    <span class="dt">color =</span> meth_col_fun,</span>
-<span id="cb13-152"><a href="#cb13-152" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(DNAme)),</span>
-<span id="cb13-153"><a href="#cb13-153" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">FALSE</span>, <span class="dt">log2 =</span> <span class="ot">FALSE</span>, <span class="dt">bg_col =</span> bg_col[<span class="dv">4</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-154"><a href="#cb13-154" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-155"><a href="#cb13-155" aria-hidden="true"></a>  )</span>
-<span id="cb13-156"><a href="#cb13-156" aria-hidden="true"></a></span>
-<span id="cb13-157"><a href="#cb13-157" aria-hidden="true"></a>  bs_PNW8 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
-<span id="cb13-158"><a href="#cb13-158" aria-hidden="true"></a>    <span class="dt">data =</span> mat_BS<span class="op">$</span>PNW8[x, ],</span>
-<span id="cb13-159"><a href="#cb13-159" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 BS&quot;</span>,</span>
-<span id="cb13-160"><a href="#cb13-160" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 BS&quot;</span>,</span>
-<span id="cb13-161"><a href="#cb13-161" aria-hidden="true"></a>    <span class="dt">color =</span> meth_col_fun,</span>
-<span id="cb13-162"><a href="#cb13-162" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(DNAme)),</span>
-<span id="cb13-163"><a href="#cb13-163" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">FALSE</span>, <span class="dt">log2 =</span> <span class="ot">FALSE</span>, <span class="dt">bg_col =</span> bg_col[<span class="dv">4</span>], <span class="dt">col_an =</span> col_an,</span>
-<span id="cb13-164"><a href="#cb13-164" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
-<span id="cb13-165"><a href="#cb13-165" aria-hidden="true"></a>  )</span>
-<span id="cb13-166"><a href="#cb13-166" aria-hidden="true"></a></span>
-<span id="cb13-167"><a href="#cb13-167" aria-hidden="true"></a>  hm_bs &lt;-<span class="st"> </span>bs_PND7 <span class="op">+</span><span class="st"> </span>bs_PND14 <span class="op">+</span><span class="st"> </span>bs_PNW8</span>
-<span id="cb13-168"><a href="#cb13-168" aria-hidden="true"></a></span>
-<span id="cb13-169"><a href="#cb13-169" aria-hidden="true"></a>  cols_rna_logFC &lt;-<span class="st"> </span><span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">3</span>, <span class="dt">name =</span> <span class="st">&quot;Dark2&quot;</span>)[<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>]</span>
-<span id="cb13-170"><a href="#cb13-170" aria-hidden="true"></a>  cols_rna_logFC &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>cols_rna_logFC[<span class="dv">1</span>], <span class="st">`</span><span class="dt">PND14 vs PNW8</span><span class="st">`</span> =<span class="st"> </span>cols_rna_logFC[<span class="dv">2</span>])</span>
-<span id="cb13-171"><a href="#cb13-171" aria-hidden="true"></a></span>
-<span id="cb13-172"><a href="#cb13-172" aria-hidden="true"></a>  ta_logFC &lt;-<span class="st"> </span><span class="kw">HeatmapAnnotation</span>(</span>
-<span id="cb13-173"><a href="#cb13-173" aria-hidden="true"></a>    <span class="dt">Comparison =</span> <span class="kw">factor</span>(<span class="kw">c</span>(<span class="st">&quot;PND8 vs PND15&quot;</span>, <span class="st">&quot;PND14 vs PNW8&quot;</span>), <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;PND8 vs PND15&quot;</span>, <span class="st">&quot;PND14 vs PNW8&quot;</span>)),</span>
-<span id="cb13-174"><a href="#cb13-174" aria-hidden="true"></a>    <span class="dt">col =</span> <span class="kw">list</span>(<span class="dt">Comparison =</span> cols_rna_logFC),</span>
-<span id="cb13-175"><a href="#cb13-175" aria-hidden="true"></a>    <span class="dt">simple_anno_size =</span> <span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>),</span>
-<span id="cb13-176"><a href="#cb13-176" aria-hidden="true"></a>    <span class="dt">show_annotation_name =</span> <span class="ot">TRUE</span>,</span>
-<span id="cb13-177"><a href="#cb13-177" aria-hidden="true"></a>    <span class="dt">height =</span> <span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>),</span>
-<span id="cb13-178"><a href="#cb13-178" aria-hidden="true"></a>    <span class="dt">annotation_name_side =</span> <span class="st">&quot;right&quot;</span>,</span>
-<span id="cb13-179"><a href="#cb13-179" aria-hidden="true"></a>    <span class="dt">annotation_name_rot =</span> <span class="dv">0</span>,</span>
-<span id="cb13-180"><a href="#cb13-180" aria-hidden="true"></a>    <span class="dt">annotation_name_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">0</span>),</span>
-<span id="cb13-181"><a href="#cb13-181" aria-hidden="true"></a>    <span class="dt">annotation_legend_param =</span> <span class="kw">list</span>(</span>
-<span id="cb13-182"><a href="#cb13-182" aria-hidden="true"></a>      <span class="dt">title_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontface =</span> <span class="st">&quot;bold&quot;</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>),</span>
-<span id="cb13-183"><a href="#cb13-183" aria-hidden="true"></a>      <span class="dt">labels_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>)</span>
-<span id="cb13-184"><a href="#cb13-184" aria-hidden="true"></a>    )</span>
-<span id="cb13-185"><a href="#cb13-185" aria-hidden="true"></a>  )</span>
-<span id="cb13-186"><a href="#cb13-186" aria-hidden="true"></a></span>
-<span id="cb13-187"><a href="#cb13-187" aria-hidden="true"></a>  hm_rna_counts_logFC &lt;-<span class="st"> </span><span class="kw">Heatmap</span>(</span>
-<span id="cb13-188"><a href="#cb13-188" aria-hidden="true"></a>    <span class="dt">matrix =</span> <span class="kw">data.matrix</span>(mat_RNA_counts_logFC[x, ]),</span>
-<span id="cb13-189"><a href="#cb13-189" aria-hidden="true"></a>    <span class="dt">col =</span> <span class="kw">sqrtCols</span>(mat_RNA_counts_logFC[x, ]),</span>
-<span id="cb13-190"><a href="#cb13-190" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;RNA logFC&quot;</span>,</span>
-<span id="cb13-191"><a href="#cb13-191" aria-hidden="true"></a>    <span class="dt">na_col =</span> <span class="st">&quot;grey&quot;</span>,</span>
-<span id="cb13-192"><a href="#cb13-192" aria-hidden="true"></a>    <span class="dt">show_row_names =</span> <span class="ot">FALSE</span>,</span>
-<span id="cb13-193"><a href="#cb13-193" aria-hidden="true"></a>    <span class="dt">show_column_names =</span> <span class="ot">FALSE</span>,</span>
-<span id="cb13-194"><a href="#cb13-194" aria-hidden="true"></a>    <span class="dt">cluster_rows =</span> F,</span>
-<span id="cb13-195"><a href="#cb13-195" aria-hidden="true"></a>    <span class="dt">cluster_columns =</span> F,</span>
-<span id="cb13-196"><a href="#cb13-196" aria-hidden="true"></a>    <span class="dt">width =</span> <span class="kw">unit</span>(<span class="fl">0.5</span>, <span class="st">&quot;cm&quot;</span>),</span>
-<span id="cb13-197"><a href="#cb13-197" aria-hidden="true"></a>    <span class="dt">height =</span> <span class="kw">unit</span>(ht, <span class="st">&quot;cm&quot;</span>),</span>
-<span id="cb13-198"><a href="#cb13-198" aria-hidden="true"></a>    <span class="dt">use_raster =</span> <span class="ot">FALSE</span>,</span>
-<span id="cb13-199"><a href="#cb13-199" aria-hidden="true"></a>    <span class="dt">row_split =</span> partition,</span>
-<span id="cb13-200"><a href="#cb13-200" aria-hidden="true"></a>    <span class="dt">row_title =</span> <span class="ot">NULL</span>,</span>
-<span id="cb13-201"><a href="#cb13-201" aria-hidden="true"></a>    <span class="dt">top_annotation =</span> ta_logFC,</span>
-<span id="cb13-202"><a href="#cb13-202" aria-hidden="true"></a>    <span class="dt">heatmap_legend_param =</span> <span class="kw">list</span>(</span>
-<span id="cb13-203"><a href="#cb13-203" aria-hidden="true"></a>      <span class="dt">direction =</span> <span class="st">&quot;vertical&quot;</span>,</span>
-<span id="cb13-204"><a href="#cb13-204" aria-hidden="true"></a>      <span class="co"># at = c(-4, -2, 0, 2, 4),</span></span>
-<span id="cb13-205"><a href="#cb13-205" aria-hidden="true"></a>      <span class="dt">title =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(<span class="op">~</span><span class="st"> </span>Log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;fold-change&quot;</span>)),</span>
-<span id="cb13-206"><a href="#cb13-206" aria-hidden="true"></a>      <span class="dt">legend_height =</span> <span class="kw">unit</span>(<span class="fl">0.8</span>, <span class="st">&quot;cm&quot;</span>),</span>
-<span id="cb13-207"><a href="#cb13-207" aria-hidden="true"></a>      <span class="dt">title_position =</span> <span class="st">&quot;topleft&quot;</span>,</span>
-<span id="cb13-208"><a href="#cb13-208" aria-hidden="true"></a>      <span class="dt">title_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>),</span>
-<span id="cb13-209"><a href="#cb13-209" aria-hidden="true"></a>      <span class="dt">labels_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>)</span>
-<span id="cb13-210"><a href="#cb13-210" aria-hidden="true"></a>    )</span>
-<span id="cb13-211"><a href="#cb13-211" aria-hidden="true"></a>  )</span>
-<span id="cb13-212"><a href="#cb13-212" aria-hidden="true"></a></span>
-<span id="cb13-213"><a href="#cb13-213" aria-hidden="true"></a>  hm_rna_counts_logFC<span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(<span class="dt">mm =</span> hm_rna_counts_logFC<span class="op">@</span>matrix_color_mapping)</span>
-<span id="cb13-214"><a href="#cb13-214" aria-hidden="true"></a></span>
-<span id="cb13-215"><a href="#cb13-215" aria-hidden="true"></a>  <span class="cf">if</span> (type <span class="op">==</span><span class="st"> &quot;wo&quot;</span>) {</span>
-<span id="cb13-216"><a href="#cb13-216" aria-hidden="true"></a>    <span class="cf">if</span> (<span class="kw">all</span>(<span class="kw">is.na</span>(mat_RNA_counts[x, ]))) {</span>
-<span id="cb13-217"><a href="#cb13-217" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac</span>
-<span id="cb13-218"><a href="#cb13-218" aria-hidden="true"></a>    } <span class="cf">else</span> <span class="cf">if</span> (name <span class="op">==</span><span class="st"> &quot;distal&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accUp&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accDown&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;proximal_inactive&quot;</span>) {</span>
-<span id="cb13-219"><a href="#cb13-219" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac</span>
-<span id="cb13-220"><a href="#cb13-220" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
-<span id="cb13-221"><a href="#cb13-221" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_rna_counts_logFC</span>
-<span id="cb13-222"><a href="#cb13-222" aria-hidden="true"></a>    }</span>
-<span id="cb13-223"><a href="#cb13-223" aria-hidden="true"></a>  } <span class="cf">else</span> {</span>
-<span id="cb13-224"><a href="#cb13-224" aria-hidden="true"></a>    <span class="cf">if</span> (<span class="kw">all</span>(<span class="kw">is.na</span>(mat_RNA_counts[x, ]))) {</span>
-<span id="cb13-225"><a href="#cb13-225" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip <span class="op">+</span><span class="st"> </span>hm_bs</span>
-<span id="cb13-226"><a href="#cb13-226" aria-hidden="true"></a>    } <span class="cf">else</span> <span class="cf">if</span> (name <span class="op">==</span><span class="st"> &quot;distal&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accUp&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accDown&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;proximal_inactive&quot;</span>) {</span>
-<span id="cb13-227"><a href="#cb13-227" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip <span class="op">+</span><span class="st"> </span>hm_bs</span>
-<span id="cb13-228"><a href="#cb13-228" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
-<span id="cb13-229"><a href="#cb13-229" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip <span class="op">+</span><span class="st"> </span>hm_bs <span class="op">+</span><span class="st"> </span>hm_rna_counts_logFC</span>
-<span id="cb13-230"><a href="#cb13-230" aria-hidden="true"></a>    }</span>
-<span id="cb13-231"><a href="#cb13-231" aria-hidden="true"></a>  }</span>
-<span id="cb13-232"><a href="#cb13-232" aria-hidden="true"></a></span>
-<span id="cb13-233"><a href="#cb13-233" aria-hidden="true"></a></span>
-<span id="cb13-234"><a href="#cb13-234" aria-hidden="true"></a>  ht_opt<span class="op">$</span>TITLE_PADDING &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>)</span>
-<span id="cb13-235"><a href="#cb13-235" aria-hidden="true"></a>  ht_opt<span class="op">$</span>legend_gap &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>)</span>
-<span id="cb13-236"><a href="#cb13-236" aria-hidden="true"></a>  ht_opt<span class="op">$</span>legend_grid_height &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">2</span>, <span class="st">&quot;mm&quot;</span>)</span>
-<span id="cb13-237"><a href="#cb13-237" aria-hidden="true"></a>  ht_opt<span class="op">$</span>legend_grid_width &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">2</span>, <span class="st">&quot;mm&quot;</span>)</span>
-<span id="cb13-238"><a href="#cb13-238" aria-hidden="true"></a>  ht_opt<span class="op">$</span>HEATMAP_LEGEND_PADDING &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>)</span>
-<span id="cb13-239"><a href="#cb13-239" aria-hidden="true"></a></span>
-<span id="cb13-240"><a href="#cb13-240" aria-hidden="true"></a>  <span class="kw">pdf</span>(<span class="dt">file =</span> pdf_file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>)</span>
-<span id="cb13-241"><a href="#cb13-241" aria-hidden="true"></a></span>
-<span id="cb13-242"><a href="#cb13-242" aria-hidden="true"></a>  <span class="kw">grid.newpage</span>()</span>
-<span id="cb13-243"><a href="#cb13-243" aria-hidden="true"></a>  <span class="kw">pushViewport</span>(<span class="kw">viewport</span>(<span class="dt">gp =</span> <span class="kw">gpar</span>(<span class="dt">lwd =</span> <span class="fl">0.5</span>)))</span>
-<span id="cb13-244"><a href="#cb13-244" aria-hidden="true"></a>  <span class="kw">draw</span>(</span>
-<span id="cb13-245"><a href="#cb13-245" aria-hidden="true"></a>    ht_list,</span>
-<span id="cb13-246"><a href="#cb13-246" aria-hidden="true"></a>    <span class="dt">ht_gap =</span> <span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>),</span>
-<span id="cb13-247"><a href="#cb13-247" aria-hidden="true"></a>    <span class="dt">merge_legends =</span> <span class="ot">TRUE</span>,</span>
-<span id="cb13-248"><a href="#cb13-248" aria-hidden="true"></a>    <span class="dt">newpage =</span> <span class="ot">FALSE</span></span>
-<span id="cb13-249"><a href="#cb13-249" aria-hidden="true"></a>  )</span>
-<span id="cb13-250"><a href="#cb13-250" aria-hidden="true"></a>  <span class="kw">popViewport</span>()</span>
-<span id="cb13-251"><a href="#cb13-251" aria-hidden="true"></a></span>
-<span id="cb13-252"><a href="#cb13-252" aria-hidden="true"></a>  <span class="kw">dev.off</span>()</span>
-<span id="cb13-253"><a href="#cb13-253" aria-hidden="true"></a></span>
-<span id="cb13-254"><a href="#cb13-254" aria-hidden="true"></a>  png_file &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;pdf&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;png&quot;</span>, <span class="dt">x =</span> pdf_file)</span>
-<span id="cb13-255"><a href="#cb13-255" aria-hidden="true"></a></span>
-<span id="cb13-256"><a href="#cb13-256" aria-hidden="true"></a>  <span class="kw">png</span>(<span class="dt">filename =</span> png_file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>, <span class="dt">units =</span> <span class="st">&quot;in&quot;</span>, <span class="dt">res =</span> <span class="dv">330</span>)</span>
-<span id="cb13-257"><a href="#cb13-257" aria-hidden="true"></a>  <span class="kw">grid.newpage</span>()</span>
-<span id="cb13-258"><a href="#cb13-258" aria-hidden="true"></a>  <span class="kw">pushViewport</span>(<span class="kw">viewport</span>(<span class="dt">gp =</span> <span class="kw">gpar</span>(<span class="dt">lwd =</span> <span class="fl">0.5</span>)))</span>
-<span id="cb13-259"><a href="#cb13-259" aria-hidden="true"></a>  <span class="kw">draw</span>(</span>
-<span id="cb13-260"><a href="#cb13-260" aria-hidden="true"></a>    ht_list,</span>
-<span id="cb13-261"><a href="#cb13-261" aria-hidden="true"></a>    <span class="dt">ht_gap =</span> <span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>),</span>
-<span id="cb13-262"><a href="#cb13-262" aria-hidden="true"></a>    <span class="dt">merge_legends =</span> <span class="ot">TRUE</span>,</span>
-<span id="cb13-263"><a href="#cb13-263" aria-hidden="true"></a>    <span class="dt">newpage =</span> <span class="ot">FALSE</span></span>
-<span id="cb13-264"><a href="#cb13-264" aria-hidden="true"></a>  )</span>
-<span id="cb13-265"><a href="#cb13-265" aria-hidden="true"></a>  <span class="kw">popViewport</span>()</span>
-<span id="cb13-266"><a href="#cb13-266" aria-hidden="true"></a></span>
-<span id="cb13-267"><a href="#cb13-267" aria-hidden="true"></a>  <span class="kw">dev.off</span>()</span>
-<span id="cb13-268"><a href="#cb13-268" aria-hidden="true"></a></span>
-<span id="cb13-269"><a href="#cb13-269" aria-hidden="true"></a>  <span class="kw">invisible</span>(<span class="kw">gc</span>())</span>
-<span id="cb13-270"><a href="#cb13-270" aria-hidden="true"></a>}</span></code></pre></div>
+<span id="cb13-147"><a href="#cb13-147" aria-hidden="true"></a>  <span class="co"># Methylation color</span></span>
+<span id="cb13-148"><a href="#cb13-148" aria-hidden="true"></a>  meth_col_fun &lt;-<span class="st"> </span><span class="kw">colorRamp2</span>(<span class="kw">c</span>(<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="dv">1</span>), <span class="kw">c</span>(<span class="st">&quot;red&quot;</span>, <span class="st">&quot;white&quot;</span>, <span class="st">&quot;blue&quot;</span>))</span>
+<span id="cb13-149"><a href="#cb13-149" aria-hidden="true"></a></span>
+<span id="cb13-150"><a href="#cb13-150" aria-hidden="true"></a></span>
+<span id="cb13-151"><a href="#cb13-151" aria-hidden="true"></a>  <span class="co"># BSseq</span></span>
+<span id="cb13-152"><a href="#cb13-152" aria-hidden="true"></a></span>
+<span id="cb13-153"><a href="#cb13-153" aria-hidden="true"></a>  bs_PND7 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-154"><a href="#cb13-154" aria-hidden="true"></a>    <span class="dt">data =</span> mat_BS<span class="op">$</span>PND7_SRX749887[x, ],</span>
+<span id="cb13-155"><a href="#cb13-155" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PND7 BS&quot;</span>,</span>
+<span id="cb13-156"><a href="#cb13-156" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PND7 BS&quot;</span>,</span>
+<span id="cb13-157"><a href="#cb13-157" aria-hidden="true"></a>    <span class="dt">color =</span> meth_col_fun,</span>
+<span id="cb13-158"><a href="#cb13-158" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(DNAme)),</span>
+<span id="cb13-159"><a href="#cb13-159" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">TRUE</span>, <span class="dt">log2 =</span> <span class="ot">FALSE</span>, <span class="dt">bg_col =</span> bg_col[<span class="dv">4</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-160"><a href="#cb13-160" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-161"><a href="#cb13-161" aria-hidden="true"></a>  )</span>
+<span id="cb13-162"><a href="#cb13-162" aria-hidden="true"></a></span>
+<span id="cb13-163"><a href="#cb13-163" aria-hidden="true"></a>  bs_PND14 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-164"><a href="#cb13-164" aria-hidden="true"></a>    <span class="dt">data =</span> mat_BS<span class="op">$</span>PND14_SRX749892[x, ],</span>
+<span id="cb13-165"><a href="#cb13-165" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PND14 BS&quot;</span>,</span>
+<span id="cb13-166"><a href="#cb13-166" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PND14 BS&quot;</span>,</span>
+<span id="cb13-167"><a href="#cb13-167" aria-hidden="true"></a>    <span class="dt">color =</span> meth_col_fun,</span>
+<span id="cb13-168"><a href="#cb13-168" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(DNAme)),</span>
+<span id="cb13-169"><a href="#cb13-169" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">FALSE</span>, <span class="dt">log2 =</span> <span class="ot">FALSE</span>, <span class="dt">bg_col =</span> bg_col[<span class="dv">4</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-170"><a href="#cb13-170" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-171"><a href="#cb13-171" aria-hidden="true"></a>  )</span>
+<span id="cb13-172"><a href="#cb13-172" aria-hidden="true"></a></span>
+<span id="cb13-173"><a href="#cb13-173" aria-hidden="true"></a>  bs_PNW8 &lt;-<span class="st"> </span><span class="kw">make_EH</span>(</span>
+<span id="cb13-174"><a href="#cb13-174" aria-hidden="true"></a>    <span class="dt">data =</span> mat_BS<span class="op">$</span>PNW8[x, ],</span>
+<span id="cb13-175"><a href="#cb13-175" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;PNW8 BS&quot;</span>,</span>
+<span id="cb13-176"><a href="#cb13-176" aria-hidden="true"></a>    <span class="dt">column_title =</span> <span class="st">&quot;PNW8 BS&quot;</span>,</span>
+<span id="cb13-177"><a href="#cb13-177" aria-hidden="true"></a>    <span class="dt">color =</span> meth_col_fun,</span>
+<span id="cb13-178"><a href="#cb13-178" aria-hidden="true"></a>    <span class="dt">anno_name =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(DNAme)),</span>
+<span id="cb13-179"><a href="#cb13-179" aria-hidden="true"></a>    <span class="dt">show_legend =</span> <span class="ot">FALSE</span>, <span class="dt">log2 =</span> <span class="ot">FALSE</span>, <span class="dt">bg_col =</span> bg_col[<span class="dv">4</span>], <span class="dt">col_an =</span> col_an,</span>
+<span id="cb13-180"><a href="#cb13-180" aria-hidden="true"></a>    <span class="dt">partition =</span> partition, <span class="dt">axis_name =</span> axis_name, <span class="dt">ht =</span> ht</span>
+<span id="cb13-181"><a href="#cb13-181" aria-hidden="true"></a>  )</span>
+<span id="cb13-182"><a href="#cb13-182" aria-hidden="true"></a></span>
+<span id="cb13-183"><a href="#cb13-183" aria-hidden="true"></a>  hm_bs &lt;-<span class="st"> </span>bs_PND7 <span class="op">+</span><span class="st"> </span>bs_PND14 <span class="op">+</span><span class="st"> </span>bs_PNW8</span>
+<span id="cb13-184"><a href="#cb13-184" aria-hidden="true"></a></span>
+<span id="cb13-185"><a href="#cb13-185" aria-hidden="true"></a>  cols_rna_logFC &lt;-<span class="st"> </span><span class="kw">brewer.pal</span>(<span class="dt">n =</span> <span class="dv">3</span>, <span class="dt">name =</span> <span class="st">&quot;Dark2&quot;</span>)[<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>]</span>
+<span id="cb13-186"><a href="#cb13-186" aria-hidden="true"></a>  cols_rna_logFC &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">`</span><span class="dt">PND8 vs PND15</span><span class="st">`</span> =<span class="st"> </span>cols_rna_logFC[<span class="dv">1</span>], <span class="st">`</span><span class="dt">PND14 vs PNW8</span><span class="st">`</span> =<span class="st"> </span>cols_rna_logFC[<span class="dv">2</span>])</span>
+<span id="cb13-187"><a href="#cb13-187" aria-hidden="true"></a></span>
+<span id="cb13-188"><a href="#cb13-188" aria-hidden="true"></a>  ta_logFC &lt;-<span class="st"> </span><span class="kw">HeatmapAnnotation</span>(</span>
+<span id="cb13-189"><a href="#cb13-189" aria-hidden="true"></a>    <span class="dt">Comparison =</span> <span class="kw">factor</span>(<span class="kw">c</span>(<span class="st">&quot;PND8 vs PND15&quot;</span>, <span class="st">&quot;PND14 vs PNW8&quot;</span>), <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;PND8 vs PND15&quot;</span>, <span class="st">&quot;PND14 vs PNW8&quot;</span>)),</span>
+<span id="cb13-190"><a href="#cb13-190" aria-hidden="true"></a>    <span class="dt">col =</span> <span class="kw">list</span>(<span class="dt">Comparison =</span> cols_rna_logFC),</span>
+<span id="cb13-191"><a href="#cb13-191" aria-hidden="true"></a>    <span class="dt">simple_anno_size =</span> <span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>),</span>
+<span id="cb13-192"><a href="#cb13-192" aria-hidden="true"></a>    <span class="dt">show_annotation_name =</span> <span class="ot">TRUE</span>,</span>
+<span id="cb13-193"><a href="#cb13-193" aria-hidden="true"></a>    <span class="dt">height =</span> <span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>),</span>
+<span id="cb13-194"><a href="#cb13-194" aria-hidden="true"></a>    <span class="dt">annotation_name_side =</span> <span class="st">&quot;right&quot;</span>,</span>
+<span id="cb13-195"><a href="#cb13-195" aria-hidden="true"></a>    <span class="dt">annotation_name_rot =</span> <span class="dv">0</span>,</span>
+<span id="cb13-196"><a href="#cb13-196" aria-hidden="true"></a>    <span class="dt">annotation_name_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">0</span>),</span>
+<span id="cb13-197"><a href="#cb13-197" aria-hidden="true"></a>    <span class="dt">annotation_legend_param =</span> <span class="kw">list</span>(</span>
+<span id="cb13-198"><a href="#cb13-198" aria-hidden="true"></a>      <span class="dt">title_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontface =</span> <span class="st">&quot;bold&quot;</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>),</span>
+<span id="cb13-199"><a href="#cb13-199" aria-hidden="true"></a>      <span class="dt">labels_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>)</span>
+<span id="cb13-200"><a href="#cb13-200" aria-hidden="true"></a>    )</span>
+<span id="cb13-201"><a href="#cb13-201" aria-hidden="true"></a>  )</span>
+<span id="cb13-202"><a href="#cb13-202" aria-hidden="true"></a></span>
+<span id="cb13-203"><a href="#cb13-203" aria-hidden="true"></a>  hm_rna_counts_logFC &lt;-<span class="st"> </span><span class="kw">Heatmap</span>(</span>
+<span id="cb13-204"><a href="#cb13-204" aria-hidden="true"></a>    <span class="dt">matrix =</span> <span class="kw">data.matrix</span>(mat_RNA_counts_logFC[x, ]),</span>
+<span id="cb13-205"><a href="#cb13-205" aria-hidden="true"></a>    <span class="dt">col =</span> <span class="kw">sqrtCols</span>(mat_RNA_counts_logFC[x, ]),</span>
+<span id="cb13-206"><a href="#cb13-206" aria-hidden="true"></a>    <span class="dt">name =</span> <span class="st">&quot;RNA logFC&quot;</span>,</span>
+<span id="cb13-207"><a href="#cb13-207" aria-hidden="true"></a>    <span class="dt">na_col =</span> <span class="st">&quot;grey&quot;</span>,</span>
+<span id="cb13-208"><a href="#cb13-208" aria-hidden="true"></a>    <span class="dt">show_row_names =</span> <span class="ot">FALSE</span>,</span>
+<span id="cb13-209"><a href="#cb13-209" aria-hidden="true"></a>    <span class="dt">show_column_names =</span> <span class="ot">FALSE</span>,</span>
+<span id="cb13-210"><a href="#cb13-210" aria-hidden="true"></a>    <span class="dt">cluster_rows =</span> F,</span>
+<span id="cb13-211"><a href="#cb13-211" aria-hidden="true"></a>    <span class="dt">cluster_columns =</span> F,</span>
+<span id="cb13-212"><a href="#cb13-212" aria-hidden="true"></a>    <span class="dt">width =</span> <span class="kw">unit</span>(<span class="fl">0.5</span>, <span class="st">&quot;cm&quot;</span>),</span>
+<span id="cb13-213"><a href="#cb13-213" aria-hidden="true"></a>    <span class="dt">height =</span> <span class="kw">unit</span>(ht, <span class="st">&quot;cm&quot;</span>),</span>
+<span id="cb13-214"><a href="#cb13-214" aria-hidden="true"></a>    <span class="dt">use_raster =</span> <span class="ot">FALSE</span>,</span>
+<span id="cb13-215"><a href="#cb13-215" aria-hidden="true"></a>    <span class="dt">row_split =</span> partition,</span>
+<span id="cb13-216"><a href="#cb13-216" aria-hidden="true"></a>    <span class="dt">row_title =</span> <span class="ot">NULL</span>,</span>
+<span id="cb13-217"><a href="#cb13-217" aria-hidden="true"></a>    <span class="dt">top_annotation =</span> ta_logFC,</span>
+<span id="cb13-218"><a href="#cb13-218" aria-hidden="true"></a>    <span class="dt">heatmap_legend_param =</span> <span class="kw">list</span>(</span>
+<span id="cb13-219"><a href="#cb13-219" aria-hidden="true"></a>      <span class="dt">direction =</span> <span class="st">&quot;vertical&quot;</span>,</span>
+<span id="cb13-220"><a href="#cb13-220" aria-hidden="true"></a>      <span class="co"># at = c(-4, -2, 0, 2, 4),</span></span>
+<span id="cb13-221"><a href="#cb13-221" aria-hidden="true"></a>      <span class="dt">title =</span> <span class="kw">expression</span>(<span class="kw">bold</span>(<span class="op">~</span><span class="st"> </span>Log[<span class="dv">2</span>] <span class="op">~</span><span class="st"> &quot;fold-change&quot;</span>)),</span>
+<span id="cb13-222"><a href="#cb13-222" aria-hidden="true"></a>      <span class="dt">legend_height =</span> <span class="kw">unit</span>(<span class="fl">0.8</span>, <span class="st">&quot;cm&quot;</span>),</span>
+<span id="cb13-223"><a href="#cb13-223" aria-hidden="true"></a>      <span class="dt">title_position =</span> <span class="st">&quot;topleft&quot;</span>,</span>
+<span id="cb13-224"><a href="#cb13-224" aria-hidden="true"></a>      <span class="dt">title_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>),</span>
+<span id="cb13-225"><a href="#cb13-225" aria-hidden="true"></a>      <span class="dt">labels_gp =</span> <span class="kw">gpar</span>(<span class="dt">fontsize =</span> <span class="dv">6</span>, <span class="dt">fontfamily =</span> <span class="st">&quot;Helvetica&quot;</span>)</span>
+<span id="cb13-226"><a href="#cb13-226" aria-hidden="true"></a>    )</span>
+<span id="cb13-227"><a href="#cb13-227" aria-hidden="true"></a>  )</span>
+<span id="cb13-228"><a href="#cb13-228" aria-hidden="true"></a></span>
+<span id="cb13-229"><a href="#cb13-229" aria-hidden="true"></a>  hm_rna_counts_logFC<span class="op">@</span>matrix_color_mapping &lt;-<span class="st"> </span><span class="kw">get_at</span>(<span class="dt">mm =</span> hm_rna_counts_logFC<span class="op">@</span>matrix_color_mapping)</span>
+<span id="cb13-230"><a href="#cb13-230" aria-hidden="true"></a></span>
+<span id="cb13-231"><a href="#cb13-231" aria-hidden="true"></a>  <span class="cf">if</span> (type <span class="op">==</span><span class="st"> &quot;wo&quot;</span>) {</span>
+<span id="cb13-232"><a href="#cb13-232" aria-hidden="true"></a>    <span class="cf">if</span> (<span class="kw">all</span>(<span class="kw">is.na</span>(mat_RNA_counts[x, ]))) {</span>
+<span id="cb13-233"><a href="#cb13-233" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac</span>
+<span id="cb13-234"><a href="#cb13-234" aria-hidden="true"></a>    } <span class="cf">else</span> <span class="cf">if</span> (name <span class="op">==</span><span class="st"> &quot;distal&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accUp&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accDown&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;proximal_inactive&quot;</span>) {</span>
+<span id="cb13-235"><a href="#cb13-235" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac</span>
+<span id="cb13-236"><a href="#cb13-236" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
+<span id="cb13-237"><a href="#cb13-237" aria-hidden="true"></a>      ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_rna_counts_logFC</span>
+<span id="cb13-238"><a href="#cb13-238" aria-hidden="true"></a>    }</span>
+<span id="cb13-239"><a href="#cb13-239" aria-hidden="true"></a>  } <span class="cf">else</span> {</span>
+<span id="cb13-240"><a href="#cb13-240" aria-hidden="true"></a>    <span class="cf">if</span> (<span class="kw">all</span>(<span class="kw">is.na</span>(mat_RNA_counts[x, ]))) {</span>
+<span id="cb13-241"><a href="#cb13-241" aria-hidden="true"></a>      <span class="cf">if</span> (rm <span class="op">==</span><span class="st"> &quot;meth&quot;</span>) {</span>
+<span id="cb13-242"><a href="#cb13-242" aria-hidden="true"></a>        ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip</span>
+<span id="cb13-243"><a href="#cb13-243" aria-hidden="true"></a>      } <span class="cf">else</span> {</span>
+<span id="cb13-244"><a href="#cb13-244" aria-hidden="true"></a>        ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip <span class="op">+</span><span class="st"> </span>hm_bs</span>
+<span id="cb13-245"><a href="#cb13-245" aria-hidden="true"></a>      }</span>
+<span id="cb13-246"><a href="#cb13-246" aria-hidden="true"></a>    } <span class="cf">else</span> <span class="cf">if</span> (name <span class="op">==</span><span class="st"> &quot;distal&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accUp&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;distal_accDown&quot;</span> <span class="op">|</span><span class="st"> </span>name <span class="op">==</span><span class="st"> &quot;proximal_inactive&quot;</span>) {</span>
+<span id="cb13-247"><a href="#cb13-247" aria-hidden="true"></a>      <span class="cf">if</span> (rm <span class="op">==</span><span class="st"> &quot;meth&quot;</span>) {</span>
+<span id="cb13-248"><a href="#cb13-248" aria-hidden="true"></a>        ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip</span>
+<span id="cb13-249"><a href="#cb13-249" aria-hidden="true"></a>      } <span class="cf">else</span> {</span>
+<span id="cb13-250"><a href="#cb13-250" aria-hidden="true"></a>        ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip <span class="op">+</span><span class="st"> </span>hm_bs</span>
+<span id="cb13-251"><a href="#cb13-251" aria-hidden="true"></a>      }</span>
+<span id="cb13-252"><a href="#cb13-252" aria-hidden="true"></a>    } <span class="cf">else</span> {</span>
+<span id="cb13-253"><a href="#cb13-253" aria-hidden="true"></a>      <span class="cf">if</span> (rm <span class="op">==</span><span class="st"> &quot;meth&quot;</span>) {</span>
+<span id="cb13-254"><a href="#cb13-254" aria-hidden="true"></a>        ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip <span class="op">+</span><span class="st"> </span>hm_rna_counts_logFC</span>
+<span id="cb13-255"><a href="#cb13-255" aria-hidden="true"></a>      } <span class="cf">else</span> {</span>
+<span id="cb13-256"><a href="#cb13-256" aria-hidden="true"></a>        ht_list &lt;-<span class="st"> </span>hm_an <span class="op">+</span><span class="st"> </span>hm_atac <span class="op">+</span><span class="st"> </span>hm_chip <span class="op">+</span><span class="st"> </span>hm_bs <span class="op">+</span><span class="st"> </span>hm_rna_counts_logFC</span>
+<span id="cb13-257"><a href="#cb13-257" aria-hidden="true"></a>      }</span>
+<span id="cb13-258"><a href="#cb13-258" aria-hidden="true"></a>    }</span>
+<span id="cb13-259"><a href="#cb13-259" aria-hidden="true"></a>  }</span>
+<span id="cb13-260"><a href="#cb13-260" aria-hidden="true"></a></span>
+<span id="cb13-261"><a href="#cb13-261" aria-hidden="true"></a></span>
+<span id="cb13-262"><a href="#cb13-262" aria-hidden="true"></a>  ht_opt<span class="op">$</span>TITLE_PADDING &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>)</span>
+<span id="cb13-263"><a href="#cb13-263" aria-hidden="true"></a>  ht_opt<span class="op">$</span>legend_gap &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">3</span>, <span class="st">&quot;mm&quot;</span>)</span>
+<span id="cb13-264"><a href="#cb13-264" aria-hidden="true"></a>  ht_opt<span class="op">$</span>legend_grid_height &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">2</span>, <span class="st">&quot;mm&quot;</span>)</span>
+<span id="cb13-265"><a href="#cb13-265" aria-hidden="true"></a>  ht_opt<span class="op">$</span>legend_grid_width &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">2</span>, <span class="st">&quot;mm&quot;</span>)</span>
+<span id="cb13-266"><a href="#cb13-266" aria-hidden="true"></a>  ht_opt<span class="op">$</span>HEATMAP_LEGEND_PADDING &lt;-<span class="st"> </span><span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>)</span>
+<span id="cb13-267"><a href="#cb13-267" aria-hidden="true"></a></span>
+<span id="cb13-268"><a href="#cb13-268" aria-hidden="true"></a>  <span class="kw">pdf</span>(<span class="dt">file =</span> pdf_file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>)</span>
+<span id="cb13-269"><a href="#cb13-269" aria-hidden="true"></a></span>
+<span id="cb13-270"><a href="#cb13-270" aria-hidden="true"></a>  <span class="kw">grid.newpage</span>()</span>
+<span id="cb13-271"><a href="#cb13-271" aria-hidden="true"></a>  <span class="kw">pushViewport</span>(<span class="kw">viewport</span>(<span class="dt">gp =</span> <span class="kw">gpar</span>(<span class="dt">lwd =</span> <span class="fl">0.5</span>)))</span>
+<span id="cb13-272"><a href="#cb13-272" aria-hidden="true"></a>  <span class="kw">draw</span>(</span>
+<span id="cb13-273"><a href="#cb13-273" aria-hidden="true"></a>    ht_list,</span>
+<span id="cb13-274"><a href="#cb13-274" aria-hidden="true"></a>    <span class="dt">ht_gap =</span> <span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>),</span>
+<span id="cb13-275"><a href="#cb13-275" aria-hidden="true"></a>    <span class="dt">merge_legends =</span> <span class="ot">TRUE</span>,</span>
+<span id="cb13-276"><a href="#cb13-276" aria-hidden="true"></a>    <span class="dt">newpage =</span> <span class="ot">FALSE</span></span>
+<span id="cb13-277"><a href="#cb13-277" aria-hidden="true"></a>  )</span>
+<span id="cb13-278"><a href="#cb13-278" aria-hidden="true"></a>  <span class="kw">popViewport</span>()</span>
+<span id="cb13-279"><a href="#cb13-279" aria-hidden="true"></a></span>
+<span id="cb13-280"><a href="#cb13-280" aria-hidden="true"></a>  <span class="kw">dev.off</span>()</span>
+<span id="cb13-281"><a href="#cb13-281" aria-hidden="true"></a></span>
+<span id="cb13-282"><a href="#cb13-282" aria-hidden="true"></a>  png_file &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;pdf&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;png&quot;</span>, <span class="dt">x =</span> pdf_file)</span>
+<span id="cb13-283"><a href="#cb13-283" aria-hidden="true"></a></span>
+<span id="cb13-284"><a href="#cb13-284" aria-hidden="true"></a>  <span class="kw">png</span>(<span class="dt">filename =</span> png_file, <span class="dt">width =</span> <span class="dv">11</span>, <span class="dt">height =</span> <span class="fl">8.5</span>, <span class="dt">units =</span> <span class="st">&quot;in&quot;</span>, <span class="dt">res =</span> <span class="dv">330</span>)</span>
+<span id="cb13-285"><a href="#cb13-285" aria-hidden="true"></a>  <span class="kw">grid.newpage</span>()</span>
+<span id="cb13-286"><a href="#cb13-286" aria-hidden="true"></a>  <span class="kw">pushViewport</span>(<span class="kw">viewport</span>(<span class="dt">gp =</span> <span class="kw">gpar</span>(<span class="dt">lwd =</span> <span class="fl">0.5</span>)))</span>
+<span id="cb13-287"><a href="#cb13-287" aria-hidden="true"></a>  <span class="kw">draw</span>(</span>
+<span id="cb13-288"><a href="#cb13-288" aria-hidden="true"></a>    ht_list,</span>
+<span id="cb13-289"><a href="#cb13-289" aria-hidden="true"></a>    <span class="dt">ht_gap =</span> <span class="kw">unit</span>(<span class="dv">1</span>, <span class="st">&quot;mm&quot;</span>),</span>
+<span id="cb13-290"><a href="#cb13-290" aria-hidden="true"></a>    <span class="dt">merge_legends =</span> <span class="ot">TRUE</span>,</span>
+<span id="cb13-291"><a href="#cb13-291" aria-hidden="true"></a>    <span class="dt">newpage =</span> <span class="ot">FALSE</span></span>
+<span id="cb13-292"><a href="#cb13-292" aria-hidden="true"></a>  )</span>
+<span id="cb13-293"><a href="#cb13-293" aria-hidden="true"></a>  <span class="kw">popViewport</span>()</span>
+<span id="cb13-294"><a href="#cb13-294" aria-hidden="true"></a></span>
+<span id="cb13-295"><a href="#cb13-295" aria-hidden="true"></a>  <span class="kw">dev.off</span>()</span>
+<span id="cb13-296"><a href="#cb13-296" aria-hidden="true"></a></span>
+<span id="cb13-297"><a href="#cb13-297" aria-hidden="true"></a>  <span class="kw">invisible</span>(<span class="kw">gc</span>())</span>
+<span id="cb13-298"><a href="#cb13-298" aria-hidden="true"></a>}</span></code></pre></div>
 </div>
 </div>
 <div id="enriched-heatmaps" class="section level1">
@@ -3506,8 +3532,8 @@ window.onload = function() {
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true"></a>wo_k_distal &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;distal.&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> wo_distal<span class="op">$</span>anno)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true"></a>wo_k_distal &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">n =</span> wo_k_distal)</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true"></a></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_distal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="fl">6.5</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_distal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="fl">6.5</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_distal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="fl">6.5</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_distal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="fl">6.5</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span></code></pre></div>
 </div>
 <div id="proximal-regions" class="section level3">
 <h3>Proximal regions</h3>
@@ -3518,8 +3544,8 @@ window.onload = function() {
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true"></a>wo_k_proximal &lt;-<span class="st"> </span><span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;proximal.&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> wo_proximal<span class="op">$</span>anno)</span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true"></a>wo_k_proximal &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">n =</span> wo_k_proximal)</span>
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="dv">7</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>)</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="dv">7</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="dv">7</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="dv">7</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span></code></pre></div>
 </div>
 <div id="proximal-active-regions" class="section level3">
 <h3>Proximal active regions</h3>
@@ -3533,9 +3559,9 @@ window.onload = function() {
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true"></a>wo_k_ac &lt;-<span class="st"> </span><span class="kw">factor</span>(<span class="dt">x =</span> wo_k_ac, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;Category 1&quot;</span>, <span class="st">&quot;Category 2&quot;</span>, <span class="st">&quot;Category 3&quot;</span>, <span class="st">&quot;Category 4&quot;</span>))</span>
 <span id="cb17-9"><a href="#cb17-9" aria-hidden="true"></a></span>
 <span id="cb17-10"><a href="#cb17-10" aria-hidden="true"></a></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
 <span id="cb17-12"><a href="#cb17-12" aria-hidden="true"></a></span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span></code></pre></div>
 </div>
 <div id="proximal-inactive-regions" class="section level3">
 <h3>Proximal inactive regions</h3>
@@ -3547,8 +3573,8 @@ window.onload = function() {
 <span id="cb18-6"><a href="#cb18-6" aria-hidden="true"></a>wo_k_inac &lt;-<span class="st"> </span><span class="kw">change_names</span>(<span class="dt">n =</span> wo_k_inac)</span>
 <span id="cb18-7"><a href="#cb18-7" aria-hidden="true"></a>wo_k_inac &lt;-<span class="st"> </span><span class="kw">trimws</span>(<span class="kw">gsub</span>(<span class="dt">pattern =</span> <span class="st">&quot;</span><span class="ch">\\</span><span class="st">(No H3 mark)&quot;</span>, <span class="dt">replacement =</span> <span class="st">&quot;&quot;</span>, <span class="dt">x =</span> wo_k_inac))</span>
 <span id="cb18-8"><a href="#cb18-8" aria-hidden="true"></a></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>)</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wo_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wo_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">5.2</span>, <span class="dt">type =</span> <span class="st">&quot;wo&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;without_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span></code></pre></div>
 </div>
 </div>
 <div id="with-chip-data" class="section level2">
@@ -3564,8 +3590,10 @@ window.onload = function() {
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true"></a></span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true"></a>wi_k_distal &lt;-<span class="st"> </span><span class="kw">factor</span>(wi_k_distal, <span class="kw">unique</span>(wi_k_distal))</span>
 <span id="cb19-9"><a href="#cb19-9" aria-hidden="true"></a></span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>)</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal, <span class="dt">name =</span> <span class="st">&quot;distal&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span></code></pre></div>
 </div>
 <div id="distal-regions-accup" class="section level3">
 <h3>Distal regions accUp</h3>
@@ -3578,8 +3606,10 @@ window.onload = function() {
 <span id="cb20-7"><a href="#cb20-7" aria-hidden="true"></a></span>
 <span id="cb20-8"><a href="#cb20-8" aria-hidden="true"></a>wi_k_distal_acup &lt;-<span class="st"> </span><span class="kw">factor</span>(wi_k_distal_acup, <span class="kw">unique</span>(wi_k_distal_acup))</span>
 <span id="cb20-9"><a href="#cb20-9" aria-hidden="true"></a></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acup<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acup, <span class="dt">name =</span> <span class="st">&quot;distal_accUp&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>)</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acup<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acup, <span class="dt">name =</span> <span class="st">&quot;distal_accUp&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acup<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acup, <span class="dt">name =</span> <span class="st">&quot;distal_accUp&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acup<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acup, <span class="dt">name =</span> <span class="st">&quot;distal_accUp&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acup<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acup, <span class="dt">name =</span> <span class="st">&quot;distal_accUp&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acup<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acup, <span class="dt">name =</span> <span class="st">&quot;distal_accUp&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span></code></pre></div>
 </div>
 <div id="distal-regions-accdown" class="section level3">
 <h3>Distal regions accDown</h3>
@@ -3592,8 +3622,10 @@ window.onload = function() {
 <span id="cb21-7"><a href="#cb21-7" aria-hidden="true"></a></span>
 <span id="cb21-8"><a href="#cb21-8" aria-hidden="true"></a>wi_k_distal_acdn &lt;-<span class="st"> </span><span class="kw">factor</span>(wi_k_distal_acdn, <span class="kw">unique</span>(wi_k_distal_acdn))</span>
 <span id="cb21-9"><a href="#cb21-9" aria-hidden="true"></a></span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acdn<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acdn, <span class="dt">name =</span> <span class="st">&quot;distal_accDown&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>)</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acdn<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acdn, <span class="dt">name =</span> <span class="st">&quot;distal_accDown&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acdn<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acdn, <span class="dt">name =</span> <span class="st">&quot;distal_accDown&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acdn<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acdn, <span class="dt">name =</span> <span class="st">&quot;distal_accDown&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acdn<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acdn, <span class="dt">name =</span> <span class="st">&quot;distal_accDown&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_distal_acdn<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_distal_acdn, <span class="dt">name =</span> <span class="st">&quot;distal_accDown&quot;</span>, <span class="dt">ht =</span> <span class="dv">12</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span></code></pre></div>
 </div>
 <div id="proximal-regions-1" class="section level3">
 <h3>Proximal regions</h3>
@@ -3606,8 +3638,10 @@ window.onload = function() {
 <span id="cb22-7"><a href="#cb22-7" aria-hidden="true"></a></span>
 <span id="cb22-8"><a href="#cb22-8" aria-hidden="true"></a>wi_k_proximal &lt;-<span class="st"> </span><span class="kw">factor</span>(wi_k_proximal, <span class="kw">unique</span>(wi_k_proximal))</span>
 <span id="cb22-9"><a href="#cb22-9" aria-hidden="true"></a></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>)</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_proximal, <span class="dt">name =</span> <span class="st">&quot;proximal&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span></code></pre></div>
 </div>
 <div id="proximal-active-regions-1" class="section level3">
 <h3>Proximal active regions</h3>
@@ -3620,8 +3654,10 @@ window.onload = function() {
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true"></a></span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true"></a>wi_k_ac &lt;-<span class="st"> </span><span class="kw">factor</span>(wi_k_ac, <span class="kw">unique</span>(wi_k_ac)[<span class="kw">c</span>(<span class="dv">7</span>, <span class="dv">9</span>, <span class="dv">8</span>, <span class="dv">3</span>, <span class="dv">6</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">1</span>, <span class="dv">2</span>)])</span>
 <span id="cb23-9"><a href="#cb23-9" aria-hidden="true"></a></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>)</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_active<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_ac, <span class="dt">name =</span> <span class="st">&quot;proximal_active&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span></code></pre></div>
 </div>
 <div id="proximal-inactive-regions-1" class="section level3">
 <h3>Proximal inactive regions</h3>
@@ -3634,8 +3670,10 @@ window.onload = function() {
 <span id="cb24-7"><a href="#cb24-7" aria-hidden="true"></a></span>
 <span id="cb24-8"><a href="#cb24-8" aria-hidden="true"></a>wi_k_inac &lt;-<span class="st"> </span><span class="kw">factor</span>(wi_k_inac, <span class="kw">unique</span>(wi_k_inac)[<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dv">6</span>, <span class="dv">4</span>, <span class="dv">5</span>)])</span>
 <span id="cb24-9"><a href="#cb24-9" aria-hidden="true"></a></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>)</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>)</span></code></pre></div>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">FALSE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true"></a><span class="kw">draw_EH</span>(<span class="dt">x =</span> wi_proximal_inactive<span class="op">$</span>Name, <span class="dt">k =</span> wi_k_inac, <span class="dt">name =</span> <span class="st">&quot;proximal_inactive&quot;</span>, <span class="dt">ht =</span> <span class="fl">14.5</span>, <span class="dt">type =</span> <span class="st">&quot;wi&quot;</span>, <span class="dt">log =</span> <span class="ot">TRUE</span>, <span class="dt">outdir =</span> <span class="st">&quot;with_ChIP_log2&quot;</span>, <span class="dt">rm =</span> <span class="st">&quot;meth&quot;</span>)</span></code></pre></div>
 </div>
 </div>
 </div>
@@ -3669,7 +3707,7 @@ window.onload = function() {
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       Europe/Zurich               
-##  date     2020-10-08                  
+##  date     2020-10-09                  
 ## 
 ## ─ Packages ───────────────────────────────────────────────────────────────────
 ##  package                            * version    date       lib
