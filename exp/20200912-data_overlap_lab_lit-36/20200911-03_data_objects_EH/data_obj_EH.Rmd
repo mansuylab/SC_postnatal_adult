@@ -257,6 +257,13 @@ if (!file.exists(nm_rna_counts_logFC)) {
   rownames(tab) <- tab$Name
   mat_RNA_counts_logFC <- tab[rownames(mat_AS$Adult_NF), -c(1:2)]
 
+  load("input/overlap_tables.RData")
+  
+  wo <- ldply(sp_df_s1, data.frame)[, -1]
+# wo <- inner_join(res_lp, wo)
+wi <- ldply(sp_df_s2, data.frame)[, -1]
+# wi <- inner_join(res_lp, wi)
+  
   save(mat_RNA_counts_logFC, file = nm_rna_counts_logFC)
 } else {
   load(nm_rna_counts_logFC)
