@@ -38,14 +38,14 @@ source("input/findMotif.R")
 # Data
 
 ```{r 2020-homer-2 }
-allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
-  header = F,
-  col.names = c(
-    "Chr", "Start", "End", "Name", "Score", "Strand",
-    "FoldChange", "negLog10pvalue", "negLog10qvalue",
-    "Summit"
-  ), stringsAsFactors = F
-))
+# allAtac <- GRanges(read.table("input/PND_Adult_NF_peaks.narrowPeak",
+#   header = F,
+#   col.names = c(
+#     "Chr", "Start", "End", "Name", "Score", "Strand",
+#     "FoldChange", "negLog10pvalue", "negLog10qvalue",
+#     "Summit"
+#   ), stringsAsFactors = F
+# ))
 
 load("./input/atac_diff_chromatin_accessibility.RData")
 da <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
@@ -281,11 +281,11 @@ annoMotif <- "input/MOUSE_mono_motifs_HOCOMOCO.tsv"
 
 ## Analysis HOCOMOCO DB
 ```{r 2020-homer-5, warning=FALSE, message=FALSE, eval=T}
-perform_homer(
-  df = da_f, FC = "all", bg = bg,
-  fName = "PND_Adult", out = "output/hocomocoDB/",
-  DB = motifFile, split = F, anno = annoMotif,
-)
+# perform_homer(
+#   df = da_f, FC = "all", bg = bg,
+#   fName = "PND_Adult", out = "output/hocomocoDB/",
+#   DB = motifFile, split = F, anno = annoMotif,
+# )
 
 perform_homer(
   df = da_f, FC = "neg", bg = bg,
@@ -303,7 +303,7 @@ perform_homer(
 ```
 
 ## Split
-```{r 2020-homer-6, warning=FALSE, message=FALSE, eval=T}
+```{r 2020-homer-6, warning=FALSE, message=FALSE, eval=F}
 perform_homer(
   df = da_f, FC = "all", bg = bg,
   fName = "PND_Adult", out = "output/hocomocoDB/",
@@ -354,7 +354,7 @@ perform_homer(
 ```
 
 ## Split all background
-```{r 2020-homer-7, warning=FALSE, message=FALSE, eval=T}
+```{r 2020-homer-7, warning=FALSE, message=FALSE, eval=F}
 perform_homer(
   df = da_f, FC = "all", bg = bg,
   fName = "PND_Adult", out = "output/hocomocoDB/",
