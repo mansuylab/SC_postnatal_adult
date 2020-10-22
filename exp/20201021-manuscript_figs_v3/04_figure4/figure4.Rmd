@@ -1,0 +1,187 @@
+---
+title: "Figure4"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-10-14 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+# Libraries and functions
+```{r}
+source("../bin/functions.R")
+```
+
+
+# A
+```{r}
+tf_pos <- data.frame(read_xlsx("input/Table.S4_Dev_Paper_Data.overlap_GO.enrichment.and.TF.motifs.for.DARs.xlsx", sheet = "G"))
+
+tf_pos$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_pos$Motif.Name)))
+tf_pos$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_pos$Motif.Name)
+
+tf_neg <- data.frame(read_xlsx("input/Table.S4_Dev_Paper_Data.overlap_GO.enrichment.and.TF.motifs.for.DARs.xlsx", sheet = "J"))
+
+tf_neg$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_neg$Motif.Name)))
+tf_neg$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_neg$Motif.Name)
+
+
+load("input/limma_SC_Controls_lab_lit.RData")
+dea <- dea.limma$`pnd14 vs pnw8`
+
+tf_dea_pos <- merge(tf_pos, dea)
+tf_dea_pos$Group <- "More accessible in adult spermatogonial cells"
+
+tf_dea_neg <- merge(tf_neg, dea)
+tf_dea_neg$Group <- "Less accessible in adult spermatogonial cells"
+
+tf_dea <- rbind(tf_dea_pos[, c(1:6, 11:18)], tf_dea_neg[, c(1:6, 11:18)])
+tf_dea$q.value..Benjamini.[tf_dea$q.value..Benjamini. == 0] <- 0.00001
+
+tf_dea$Group <- plgINS::breakStrings(x = tf_dea$Group, minSizeForBreak = 25)
+
+a <- ggplot(tf_dea, aes(x = Motif, y = Group)) +
+  geom_point(aes(size = -log10(q.value..Benjamini.), color = logFC), alpha = 0.6) +
+  scale_colour_gradient2(low = "#313695", mid = "grey", high = "#A50026", 
+                         limits = c(floor(min(tf_dea$logFC)), ceiling(max(tf_dea$logFC))), breaks = c(-5, 0, 5)) +
+  # scale_colour_gradientn(colors = c("#BC3C29FF","grey", "#0072B5FF"), guide=guide_colorbar(reverse=FALSE))+
+  xlab("") +
+  ylab("") +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90),
+    legend.title.align = 0.5
+  ) +
+  labs(color = expression(Log[2] ~ FC ~ "(RNA-seq)"), size = expression(-Log[10] ~ adjusted ~ italic(P) ~ "(Motif enrichment)")) +
+  guides(
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 0.5, size = 8
+    ),
+    size = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5, title.vjust = 0.5,
+      nrow = 1, size = 8,
+      order = 2,
+      label.hjust = 0.5, label.vjust = 0.5
+    )
+  ) +theme(legend.spacing = unit(0.5, "cm"))
+
+
+ag <- gridExtra::grid.arrange(egg::set_panel_size(p = a, width = unit(17.25, "cm"), height = unit(2.5, "cm")))
+ggsave(plot = ag, filename = "output/a.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# D
+```{r}
+tf_pos_gb <- data.frame(read_xlsx("input/Table.S4_Dev_Paper_Data.overlap_GO.enrichment.and.TF.motifs.for.DARs.xlsx", sheet = "I"))
+
+tf_pos_gb$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_pos_gb$Motif.Name)))
+tf_pos_gb$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_pos_gb$Motif.Name)
+tf_pos_gb$subGroup <- "Gene body"
+
+tf_pos_in <- data.frame(read_xlsx("input/Table.S4_Dev_Paper_Data.overlap_GO.enrichment.and.TF.motifs.for.DARs.xlsx", sheet = "H"))
+
+tf_pos_in$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_pos_in$Motif.Name)))
+tf_pos_in$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_pos_in$Motif.Name)
+tf_pos_in$subGroup <- "Intergenic"
+
+tf_dea_sb_pos <- rbind(tf_pos_gb[, c(1:5, 10:12)], tf_pos_in[, c(1:5, 10:12)])
+
+tf_dea_sb_pos <- merge(tf_dea_sb_pos, dea)
+tf_dea_sb_pos$Group <- "More accessible in adult spermatogonial cells"
+
+
+
+tf_neg_gb <- data.frame(read_xlsx("input/Table.S4_Dev_Paper_Data.overlap_GO.enrichment.and.TF.motifs.for.DARs.xlsx", sheet = "L"))
+
+tf_neg_gb$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_neg_gb$Motif.Name)))
+tf_neg_gb$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_neg_gb$Motif.Name)
+tf_neg_gb$subGroup <- "Gene body"
+
+tf_neg_in <- data.frame(read_xlsx("input/Table.S4_Dev_Paper_Data.overlap_GO.enrichment.and.TF.motifs.for.DARs.xlsx", sheet = "K"))
+
+tf_neg_in$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_neg_in$Motif.Name)))
+tf_neg_in$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_neg_in$Motif.Name)
+tf_neg_in$subGroup <- "Intergenic"
+
+tf_dea_sb_neg <- rbind(tf_neg_gb[, c(1:5, 10:12)], tf_neg_in[, c(1:5, 10:12)])
+
+tf_dea_sb_neg <- merge(tf_dea_sb_neg, dea)
+tf_dea_sb_neg$Group <- "Less accessible in adult spermatogonial cells"
+
+tf_dea_sb <- rbind(tf_dea_sb_pos, tf_dea_sb_neg)
+tf_dea_sb$q.value..Benjamini.[tf_dea_sb$q.value..Benjamini. == 0] <- 0.00001
+
+# tf_dea_sb$Group <- plgINS::breakStrings(x = tf_dea_sb$Group, minSizeForBreak = 25)
+
+tf_dea_sb$Group <- factor(x = tf_dea_sb$Group, levels = unique(tf_dea_sb$Group))
+# tf_dea_sb$Motif <- fct_rev(tf_dea_sb$Motif)
+
+d <- ggplot(tf_dea_sb, aes(x = Motif, y = subGroup)) +
+  geom_point(aes(size = -log10(q.value..Benjamini.), color = logFC), alpha = 0.6) +
+  scale_colour_gradient2(low = "#313695", mid = "grey", high = "#A50026", limits = c(floor(min(tf_dea_sb$logFC)), ceiling(max(tf_dea_sb$logFC))), breaks = c(-5, 0, 5)) +
+  # scale_colour_gradientn(colors = c("#BC3C29FF","grey", "#0072B5FF"), guide=guide_colorbar(reverse=FALSE))+
+  xlab("") +
+  ylab("") +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90),
+    legend.title.align = 0.5
+  ) +
+  labs(color = expression(Log[2] ~ FC ~ "(RNA-seq)"), size = expression(-Log[10] ~ adjusted ~ italic(P) ~ "(Motif enrichment)")) +
+  facet_wrap(~Group, nrow = 2, scales = "free_x", labeller = label_wrap_gen(width = 50)) +
+  # coord_flip() +
+  guides(
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 0.5, size = 8
+    ),
+    size = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5, title.vjust = 0.5,
+      nrow = 1, size = 8,
+      order = 2,
+      label.hjust = 0.5, label.vjust = 0.5
+    )
+  )+theme(legend.spacing = unit(0.5, "cm"))
+
+dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(8.5, "cm"), height = unit(3.25, "cm")))
+ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```
