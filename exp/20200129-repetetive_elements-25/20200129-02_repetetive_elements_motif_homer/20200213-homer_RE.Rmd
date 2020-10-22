@@ -419,7 +419,7 @@ adult_sp_subcat <- perform_homer(
 
 
 ## Split Category
-```{r 20200213-homer-RE-9, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-9, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_subcat1 <- perform_homer(
   df = df_ca, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -686,7 +686,7 @@ adult_sp_subcat_bg_all <- perform_homer(
 ```
 
 ## Split RE sub category (all background)
-```{r 20200213-homer-RE-17, message=FALSE, warning=FALSE}
+```{r 20200213-homer-RE-17, message=FALSE, warning=FALSE, eval = FALSE}
 all_sp_subcat1_bg_all <- perform_homer(
   df = df_ca, FC = "all", bg = bg,
   fName = "PND15_Adult",
@@ -855,15 +855,15 @@ adult_sp_anno_subcat_bg_all <- perform_homer(
 
 ## Split RE sub category (specific)
 ```{r 20200213-homer-RE-22, message=FALSE, warning=FALSE}
-all_sp_subcat1_bg_LTR_cat_1_5 <- perform_homer(
-  df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T),], FC = "all", bg = bg_LTR,
-  fName = "PND15_Adult",
-  split = T, sp_col = "Category",
-  split_bg = FALSE,
-  out = "output/subcategory_bg_LTR/",
-  DB = motifFile,
-  anno = annoMotif
-)
+# all_sp_subcat1_bg_LTR_cat_1_5 <- perform_homer(
+#   df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T),], FC = "all", bg = bg_LTR,
+#   fName = "PND15_Adult",
+#   split = T, sp_col = "Category",
+#   split_bg = FALSE,
+#   out = "output/subcategory_bg_LTR/",
+#   DB = motifFile,
+#   anno = annoMotif
+# )
 
 pnd15_sp_subcat1_bg_LTR_cat_1_5 <- perform_homer(
   df = df_ca[grep(pattern = "_6", x = df_ca$Category, invert = T),], FC = "neg",
@@ -886,15 +886,15 @@ adult_sp_subcat1_bg_LTR_cat_1_5 <- perform_homer(
 )
 
 
-all_sp_subcat1_bg_LINE_cat_6 <- perform_homer(
-  df = df_ca[grep(pattern = "_6", x = df_ca$Category),], FC = "all", bg = bg_LINE,
-  fName = "PND15_Adult",
-  split = T, sp_col = "Category",
-  split_bg = FALSE,
-  out = "output/subcategory_bg_LINE/",
-  DB = motifFile,
-  anno = annoMotif
-)
+# all_sp_subcat1_bg_LINE_cat_6 <- perform_homer(
+#   df = df_ca[grep(pattern = "_6", x = df_ca$Category),], FC = "all", bg = bg_LINE,
+#   fName = "PND15_Adult",
+#   split = T, sp_col = "Category",
+#   split_bg = FALSE,
+#   out = "output/subcategory_bg_LINE/",
+#   DB = motifFile,
+#   anno = annoMotif
+# )
 
 pnd15_sp_subcat1_bg_LINE_cat_6 <- perform_homer(
   df = df_ca[grep(pattern = "_6", x = df_ca$Category),], FC = "neg",
