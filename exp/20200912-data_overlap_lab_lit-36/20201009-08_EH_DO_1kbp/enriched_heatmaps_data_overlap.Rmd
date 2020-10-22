@@ -85,6 +85,9 @@ wo <- ldply(sp_df_s1, data.frame)[, -1]
 wo <- inner_join(res_lp, wo)
 wi <- ldply(sp_df_s2, data.frame)[, -1]
 wi <- inner_join(res_lp, wi)
+
+rownames(wo) <- wo$name
+rownames(wi) <- wi$name
 ```
 
 
@@ -101,6 +104,9 @@ load(nm_rna_counts)
 load(nm_rna_logFC)
 load(nm_chip)
 load(nm_bs)
+
+inactive <- wo$Name[grep(pattern = "inactive", x = wo$anno)]
+mat_RNA_counts_logFC[inactive,2] <- NA
 ```
 
 # Heatmaps functions
@@ -168,16 +174,19 @@ sqrtCols <- function(x, cols = NULL) {
 ## Enriched Heatmap creating function
 ```{r enriched-heatmaps-data-overlap-10 }
 make_EH <- function(data, name, color, column_title, anno_name, show_legend,
-                    log2 = FALSE, bg_col, col_an, partition, axis_name, ht) {
+                    log2 = FALSE, bg_col, col_an, partition, axis_name, ht, la = NULL) {
   if (log2) {
     data <- log2(data + 1)
   }
 
+  # ifelse(test = is.null(la), yes = NA, no = la)
+  
   h <- EnrichedHeatmap(
     mat = data,
     name = name,
     col = color,
     column_title = column_title,
+    left_annotation = la,
     top_annotation = HeatmapAnnotation(
       lines = anno_enriched(
         height = unit(1, "cm"),
@@ -233,7 +242,9 @@ make_EH <- function(data, name, color, column_title, anno_name, show_legend,
     use_raster = FALSE,
     row_split = partition,
     row_gap = unit(0.5, "mm"),
-    row_title = NULL,
+    # row_title = NULL,
+    row_title_gp = gpar(fontfamily = "Helvetica", fontsize = 6, col = "black"),
+    row_title_rot = 0,
     axis_name = axis_name,
     width = unit(1.8, "cm"),
     height = unit(ht, "cm"),
@@ -248,7 +259,8 @@ make_EH <- function(data, name, color, column_title, anno_name, show_legend,
       labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
     )
   )
-  return(h)
+  
+   return(h) 
 }
 ```
 
@@ -280,20 +292,76 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
   }
 
 
-  col_an <- NULL
-  if (length(unique(partition)) <= 8) {
-    col_an <- brewer.pal(n = 8, name = "Dark2")
-    names(col_an) <- unique(partition)
+  cnl <- rcartocolor::carto_pal(n = 8, name = "Safe")[c(1:5,8,6,7)]
+  names(cnl) <- c("Category 1", "Category 2", "Category 3", "Category 4", "Category 5", "Category 6", "More acc.", "Less acc.")
+  
+  u <- as.character(unique(partition))
+  names(u) <- u
+  
+  u[grep(pattern = "Category 1", x = names(u))] <- cnl[1]
+  u[grep(pattern = "Category 2", x = names(u))] <- cnl[2]
+  u[grep(pattern = "Category 3", x = names(u))] <- cnl[3]
+  u[grep(pattern = "Category 4", x = names(u))] <- cnl[4]
+  u[grep(pattern = "Category 5", x = names(u))] <- cnl[5]
+  u[grep(pattern = "Category 6", x = names(u))] <- cnl[6]
+  u[grep(pattern = "More acc.", x = names(u))] <- cnl[7]
+  u[grep(pattern = "Less acc.", x = names(u))] <- cnl[8]
+  
+  col_an <- u
+  
+  par <- gsub(pattern = "\\(", replacement = "\n(", x = partition)
+  
+  hm_an <-Heatmap(matrix = partition, 
+                   col = col_an, 
+                   split = par, 
+                   show_row_names = F, 
+                   row_title_rot = 0,
+                   row_title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
+                   show_heatmap_legend = FALSE, 
+                   column_names_gp  = gpar(fontsize = 0, fontfamily = "Helvetica"),
+                   width = unit(3, "mm") )
 
-    col_an <- col_an[!is.na(names(col_an))]
-  } else {
-    n <- length(unique(partition))
-    qual_col_pals <- brewer.pal.info[brewer.pal.info$category == "qual", ]
-    col_an <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
-    names(col_an) <- unique(partition)
-    col_an <- col_an[!is.na(names(col_an))]
-    # pie(rep(1,n), col=sample(col_vector, n))
+  l <- levels(partition)
+  l <- sort(unique(trimws(gsub(pattern = "\\(.*", replacement = "", x = partition))))
+  
+  if(length(l) == 2){
+    l <- rev(l)
   }
+  
+  lgd = Legend(at = l, title = "Categories", 
+               legend_gp = gpar(fill = cnl[l]), 
+               labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica"), 
+               title_gp = gpar(fontsize = 6, fontface = "bold", fontfamily = "Helvetica")
+  
+  
+  
+  
+  la <- HeatmapAnnotation(
+  Categories = partition,
+  which = "row"
+)
+
+  draw(la +hm_atac)
+  
+  
+  
+  # col_an <- NULL
+  # 
+  # 
+  # if (length(unique(partition)) <= 8) {
+  #   col_an <- brewer.pal(n = 8, name = "Dark2")
+  #   names(col_an) <- unique(partition)
+  # 
+  #   col_an <- col_an[!is.na(names(col_an))]
+  # } else {
+  #   n <- length(unique(partition))
+  #   qual_col_pals <- brewer.pal.info[brewer.pal.info$category == "qual", ]
+  #   col_an <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+  #   names(col_an) <- unique(partition)
+  #   col_an <- col_an[!is.na(names(col_an))]
+  #   # pie(rep(1,n), col=sample(col_vector, n))
+  # }
+  
 
   hm_an <- HeatmapAnnotation(
     Categories = partition,
@@ -326,25 +394,25 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
 
   col_atac <- generate_color_fun(x = mat_as, col = "red", rows = x)
 
-  bg_col <- brewer.pal(n = 5, name = "Set2")
+  bg_col <- brewer.pal(n = 8, name = "Set2")[c(3,4,6,5)]
 
   # ATAC-Seq
   atac_PND15 <- make_EH(
     data = mat_AS$PND15_NF[x, ],
     name = "PND15",
-    column_title = "PND15 ATAC",
+    column_title = "PND15 ATAC-seq",
     color = col_atac,
-    anno_name = ifelse(log, expression(bold(ATAC ~ log[2] ~ "RPKM")), expression(bold(ATAC ~ "RPKM"))),
+    anno_name = ifelse(log, expression(bold(paste("ATAC-seq (", log[2], " RPKM)"))), expression(bold(ATAC-seq ~ "(RPKM)"))),
     show_legend = FALSE, log2 = log, bg_col = bg_col[1], col_an = col_an,
-    partition = partition, axis_name = axis_name, ht = ht
+    partition = partition, axis_name = axis_name, ht = ht, la = hm_an
   )
 
   atac_Adult <- make_EH(
     data = mat_AS$Adult_NF[x, ],
     name = "Adult",
-    column_title = "Adult ATAC",
+    column_title = "Adult ATAC-seq",
     color = col_atac,
-    anno_name = ifelse(log, expression(bold(ATAC ~ log[2] ~ "RPKM")), expression(bold(ATAC ~ "RPKM"))),
+    anno_name = ifelse(log, expression(bold(paste("ATAC-seq (", log[2], " RPKM)"))), expression(bold(ATAC-seq ~ "(RPKM)"))),
     show_legend = TRUE, log2 = log, bg_col = bg_col[1], col_an = col_an,
     partition = partition, axis_name = axis_name, ht = ht
   )
@@ -368,7 +436,7 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     name = "PNW8 H3K4me3",
     column_title = "PNW8 H3K4me3",
     color = generate_color_fun(x = chip_col_dat(z = mat_CS$PNW8_H3K4me3_SRX332343[x, ]), rows = x, col = "blue"),
-    anno_name = ifelse(log, expression(bold(H3K4me3 ~ log[2] ~ "RPKM")), expression(bold(H3K4me3 ~ "RPKM"))),
+    anno_name = ifelse(log, expression(bold(paste("H3K4me3 (", log[2], " RPKM)"))), expression(bold(H3K4me3 ~ "(RPKM)"))),
     show_legend = TRUE, log2 = log, bg_col = bg_col[2], col_an = col_an,
     partition = partition, axis_name = axis_name, ht = ht
   )
@@ -378,7 +446,7 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     name = "PNW8 H3K27ac",
     column_title = "PNW8 H3K27ac",
     color = generate_color_fun(x = chip_col_dat(z = mat_CS$PNW8_H3K27ac_SRX332351[x, ]), rows = x, col = "blue"),
-    anno_name = ifelse(log, expression(bold(H3K27ac ~ log[2] ~ "RPKM")), expression(bold(H3K27ac ~ "RPKM"))),
+    anno_name = ifelse(log, expression(bold(paste("H3K27ac (", log[2], " RPKM)"))), expression(bold(H3K27ac ~ "(RPKM)"))),
     show_legend = TRUE, log2 = log, bg_col = bg_col[2], col_an = col_an,
     partition = partition, axis_name = axis_name, ht = ht
   )
@@ -388,7 +456,7 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     name = "PNW8 H3K27me3",
     column_title = "PNW8 H3K27me3",
     color = generate_color_fun(x = chip_col_dat(z = mat_CS$PNW8_H3K27me3_SRX332346[x, ]), rows = x, col = "blue"),
-    anno_name = ifelse(log, expression(bold(H3K27me3 ~ log[2] ~ "RPKM")), expression(bold(H3K27me3 ~ "RPKM"))),
+    anno_name = ifelse(log, expression(bold(paste("H3K27me3 (", log[2], " RPKM)"))), expression(bold(H3K27me3 ~ "(RPKM)"))),
     show_legend = TRUE, log2 = log, bg_col = bg_col[2], col_an = col_an,
     partition = partition, axis_name = axis_name, ht = ht
   )
@@ -412,7 +480,7 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     name = "PND7 BS",
     column_title = "PND7 BS",
     color = meth_col_fun,
-    anno_name = expression(bold(DNAme)),
+    anno_name = expression(bold(paste("BS (DNAme)"))),
     show_legend = TRUE, log2 = FALSE, bg_col = bg_col[4], col_an = col_an,
     partition = partition, axis_name = axis_name, ht = ht
   )
@@ -422,7 +490,7 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     name = "PND14 BS",
     column_title = "PND14 BS",
     color = meth_col_fun,
-    anno_name = expression(bold(DNAme)),
+    anno_name = expression(bold(paste("BS (DNAme)"))),
     show_legend = FALSE, log2 = FALSE, bg_col = bg_col[4], col_an = col_an,
     partition = partition, axis_name = axis_name, ht = ht
   )
@@ -432,7 +500,7 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     name = "PNW8 BS",
     column_title = "PNW8 BS",
     color = meth_col_fun,
-    anno_name = expression(bold(DNAme)),
+    anno_name = expression(bold(paste("BS (DNAme)"))),
     show_legend = FALSE, log2 = FALSE, bg_col = bg_col[4], col_an = col_an,
     partition = partition, axis_name = axis_name, ht = ht
   )
@@ -475,7 +543,7 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     heatmap_legend_param = list(
       direction = "vertical",
       # at = c(-4, -2, 0, 2, 4),
-      title = expression(bold(~ Log[2] ~ "fold-change")),
+      title = expression(bold(paste("RNA-seq (", log[2], " FC)"))),
       legend_height = unit(0.8, "cm"),
       title_position = "topleft",
       title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
@@ -487,24 +555,24 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
 
   if (type == "wo") {
     if (all(is.na(mat_RNA_counts[x, ]))) {
-      ht_list <- hm_an + hm_atac
+      ht_list <- hm_atac
     } else if (name == "distal" | name == "distal_accUp" | name == "distal_accDown" | name == "proximal_inactive") {
-      ht_list <- hm_an + hm_atac
+      ht_list <- hm_atac
     } else {
-      ht_list <- hm_an + hm_atac + hm_rna_counts_logFC
+      ht_list <- hm_atac + hm_rna_counts_logFC
     }
   } else {
     if (all(is.na(mat_RNA_counts[x, ]))) {
       if (rm == "meth") {
-        ht_list <- hm_an + hm_atac + hm_chip
+        ht_list <- hm_atac + hm_chip
       } else {
-        ht_list <- hm_an + hm_atac + hm_chip + hm_bs
+        ht_list <- hm_atac + hm_chip + hm_bs
       }
     } else if (name == "distal" | name == "distal_accUp" | name == "distal_accDown" | name == "proximal_inactive") {
       if (rm == "meth") {
-        ht_list <- hm_an + hm_atac + hm_chip
+        ht_list <- hm_atac + hm_chip
       } else {
-        ht_list <- hm_an + hm_atac + hm_chip + hm_bs
+        ht_list <- hm_atac + hm_chip + hm_bs
       }
     } else {
       if (rm == "meth") {
@@ -530,7 +598,8 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     ht_list,
     ht_gap = unit(1, "mm"),
     merge_legends = TRUE,
-    newpage = FALSE
+    newpage = FALSE,
+    annotation_legend_list = lgd
   )
   popViewport()
 
@@ -545,7 +614,8 @@ draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
     ht_list,
     ht_gap = unit(1, "mm"),
     merge_legends = TRUE,
-    newpage = FALSE
+    newpage = FALSE,
+    annotation_legend_list = lgd
   )
   popViewport()
 
@@ -572,6 +642,8 @@ change_names <- function(n) {
   n <- gsub(pattern = "More Acc & Less Expr", replacement = "Category 2", x = n)
   n <- gsub(pattern = "Less Acc & Less Expr", replacement = "Category 3", x = n)
   n <- gsub(pattern = "Less Acc & More Expr", replacement = "Category 4", x = n)
+  n <- gsub(pattern = "Inactive & More Acc", replacement = "Category 5", x = n)
+  n <- gsub(pattern = "Inactive & Less Acc", replacement = "Category 6", x = n)
   n <- gsub(pattern = "Acc", replacement = "acc.", x = n)
   n <- gsub(pattern = "& H3K27me3", replacement = "(H3K27me3)", x = n)
   n <- gsub(pattern = "& H3K4me3", replacement = "(H3K4me3)", x = n)
@@ -582,6 +654,8 @@ change_names <- function(n) {
   n <- gsub(pattern = "Category 2$", replacement = "Category 2 (No H3 mark)", x = n)
   n <- gsub(pattern = "Category 3$", replacement = "Category 3 (No H3 mark)", x = n)
   n <- gsub(pattern = "Category 4$", replacement = "Category 4 (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 5$", replacement = "Category 5 (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 6$", replacement = "Category 6 (No H3 mark)", x = n)
 
   return(n)
 }
@@ -594,6 +668,9 @@ change_names <- function(n) {
 wo_distal <- wo[grep(pattern = "distal", x = wo$anno), ]
 wo_k_distal <- gsub(pattern = "distal.", replacement = "", x = wo_distal$anno)
 wo_k_distal <- change_names(n = wo_k_distal)
+wo_k_distal <- trimws(gsub(pattern = "\\(No H3 mark)", replacement = "", x = wo_k_distal))
+
+wo_k_distal <- factor(wo_k_distal, unique(wo_k_distal))
 
 draw_EH(x = wo_distal$Name, k = wo_k_distal, name = "distal", ht = 6.5, type = "wo", log = FALSE, outdir = "without_ChIP", rm = "none")
 draw_EH(x = wo_distal$Name, k = wo_k_distal, name = "distal", ht = 6.5, type = "wo", log = TRUE, outdir = "without_ChIP_log2", rm = "none")
@@ -607,6 +684,9 @@ wo_pr <- wo_pr[lapply(wo_pr, nrow) > 10]
 wo_proximal <- plyr::ldply(wo_pr, data.frame)[, -1]
 wo_k_proximal <- gsub(pattern = "proximal.", replacement = "", x = wo_proximal$anno)
 wo_k_proximal <- change_names(n = wo_k_proximal)
+wo_k_proximal <- trimws(gsub(pattern = "\\(No H3 mark)|Active & ", replacement = "", x = wo_k_proximal))
+
+wo_k_proximal <- factor(wo_k_proximal, sort(unique(wo_k_proximal)))
 
 draw_EH(x = wo_proximal$Name, k = wo_k_proximal, name = "proximal", ht = 7, type = "wo", log = FALSE, outdir = "without_ChIP", rm = "none")
 draw_EH(x = wo_proximal$Name, k = wo_k_proximal, name = "proximal", ht = 7, type = "wo", log = TRUE, outdir = "without_ChIP_log2", rm = "none")
@@ -639,6 +719,10 @@ wo_proximal_inactive <- plyr::ldply(wo_pr_inac, data.frame)[, -1]
 wo_k_inac <- gsub(pattern = "proximal.inactive.", replacement = "", x = wo_proximal_inactive$anno)
 wo_k_inac <- change_names(n = wo_k_inac)
 wo_k_inac <- trimws(gsub(pattern = "\\(No H3 mark)", replacement = "", x = wo_k_inac))
+wo_k_inac <- gsub(pattern = "More acc.", replacement = "Category 5", x = wo_k_inac)
+wo_k_inac <- gsub(pattern = "Less acc.", replacement = "Category 6", x = wo_k_inac)
+
+wo_k_inac <- factor(wo_k_inac, rev(unique(wo_k_inac)))
 
 draw_EH(x = wo_proximal_inactive$Name, k = wo_k_inac, name = "proximal_inactive", ht = 5.2, type = "wo", log = FALSE, outdir = "without_ChIP", rm = "none")
 draw_EH(x = wo_proximal_inactive$Name, k = wo_k_inac, name = "proximal_inactive", ht = 5.2, type = "wo", log = TRUE, outdir = "without_ChIP_log2", rm = "none")
@@ -656,7 +740,7 @@ wi_distal <- plyr::ldply(wi_dis, data.frame)[, -1]
 wi_k_distal <- gsub(pattern = "distal.", replacement = "", x = wi_distal$anno)
 wi_k_distal <- change_names(n = wi_k_distal)
 
-wi_k_distal <- factor(wi_k_distal, unique(wi_k_distal))
+wi_k_distal <- factor(wi_k_distal, unique(wi_k_distal)[c(7,5,6,4,3,2,1)])
 
 draw_EH(x = wi_distal$Name, k = wi_k_distal, name = "distal", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
 draw_EH(x = wi_distal$Name, k = wi_k_distal, name = "distal", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
@@ -673,7 +757,7 @@ wi_distal_acup <- plyr::ldply(wi_dis_acup, data.frame)[, -1]
 wi_k_distal_acup <- gsub(pattern = "distal.", replacement = "", x = wi_distal_acup$anno)
 wi_k_distal_acup <- change_names(n = wi_k_distal_acup)
 
-wi_k_distal_acup <- factor(wi_k_distal_acup, unique(wi_k_distal_acup))
+wi_k_distal_acup <- factor(wi_k_distal_acup, unique(wi_k_distal_acup)[c(4,2,3,1)])
 
 draw_EH(x = wi_distal_acup$Name, k = wi_k_distal_acup, name = "distal_accUp", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
 draw_EH(x = wi_distal_acup$Name, k = wi_k_distal_acup, name = "distal_accUp", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
@@ -690,7 +774,7 @@ wi_distal_acdn <- plyr::ldply(wi_dis_acdn, data.frame)[, -1]
 wi_k_distal_acdn <- gsub(pattern = "distal.", replacement = "", x = wi_distal_acdn$anno)
 wi_k_distal_acdn <- change_names(wi_k_distal_acdn)
 
-wi_k_distal_acdn <- factor(wi_k_distal_acdn, unique(wi_k_distal_acdn))
+wi_k_distal_acdn <- factor(wi_k_distal_acdn, rev(unique(wi_k_distal_acdn)))
 
 draw_EH(x = wi_distal_acdn$Name, k = wi_k_distal_acdn, name = "distal_accDown", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
 draw_EH(x = wi_distal_acdn$Name, k = wi_k_distal_acdn, name = "distal_accDown", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
@@ -707,8 +791,8 @@ wi_pr <- wi_pr[lapply(wi_pr, nrow) > 10]
 wi_proximal <- plyr::ldply(wi_pr, data.frame)[, -1]
 wi_k_proximal <- gsub(pattern = "proximal.", replacement = "", x = wi_proximal$anno)
 wi_k_proximal <- change_names(wi_k_proximal)
-
-wi_k_proximal <- factor(wi_k_proximal, unique(wi_k_proximal))
+wi_k_proximal <- trimws(gsub(pattern = "Active & ", replacement = "", x = wi_k_proximal))
+wi_k_proximal <- factor(wi_k_proximal, sort(unique(wi_k_proximal))[c(2,1,3,6,4,5,7,8,9,12,10,11,13,14,15)])
 
 draw_EH(x = wi_proximal$Name, k = wi_k_proximal, name = "proximal", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
 draw_EH(x = wi_proximal$Name, k = wi_k_proximal, name = "proximal", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
@@ -725,7 +809,7 @@ wi_proximal_active <- plyr::ldply(wi_pr_ac, data.frame)[, -1]
 wi_k_ac <- gsub(pattern = "proximal.active.", replacement = "", x = wi_proximal_active$anno)
 wi_k_ac <- change_names(wi_k_ac)
 
-wi_k_ac <- factor(wi_k_ac, unique(wi_k_ac)[c(7, 9, 8, 3, 6, 4, 5, 1, 2)])
+wi_k_ac <- factor(wi_k_ac, sort(unique(wi_k_ac))[c(2,1,3,6,4,5,7,8,9)])
 
 draw_EH(x = wi_proximal_active$Name, k = wi_k_ac, name = "proximal_active", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
 draw_EH(x = wi_proximal_active$Name, k = wi_k_ac, name = "proximal_active", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
@@ -741,14 +825,17 @@ wi_pr_inac <- wi_pr_inac[lapply(wi_pr_inac, nrow) > 10]
 wi_proximal_inactive <- plyr::ldply(wi_pr_inac, data.frame)[, -1]
 wi_k_inac <- gsub(pattern = "proximal.inactive.", replacement = "", x = wi_proximal_inactive$anno)
 wi_k_inac <- change_names(n = wi_k_inac)
+wi_k_inac <- gsub(pattern = "More acc.", replacement = "Category 5", x = wi_k_inac)
+wi_k_inac <- gsub(pattern = "Less acc.", replacement = "Category 6", x = wi_k_inac)
 
-wi_k_inac <- factor(wi_k_inac, unique(wi_k_inac)[c(1:3, 6, 4, 5)])
+wi_k_inac <- factor(wi_k_inac, sort(unique(wi_k_inac))[c(5,3,4,6,1,2)])
 
 draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
 draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
 draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "meth")
 draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "meth")
 ```
+
 
 
 # References
