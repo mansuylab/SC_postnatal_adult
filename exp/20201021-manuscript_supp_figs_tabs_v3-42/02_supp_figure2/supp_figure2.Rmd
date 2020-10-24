@@ -53,6 +53,8 @@ rd$anno[rd$anno == "tss_prox_1kbp"] <- "TSS +/- 1kbp"
 
 rd$anno <- factor(rd$anno, unique(rd$anno)[c(4, 2, 1, 3)])
 
+rd$Name <- factor(rd$Name, unique(rd$Name))
+
 b <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
   geom_bar(position = "dodge", stat = "count") +
   geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, size = 3.5, fontface = "bold") +
