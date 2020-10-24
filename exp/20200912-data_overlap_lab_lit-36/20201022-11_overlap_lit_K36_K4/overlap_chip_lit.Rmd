@@ -1,0 +1,122 @@
+---
+title: "Overlap ChIP data from 10.1038/nature07672"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-09-22 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+# Library
+```{r overlap-chip-lit-1, warning = F, message = F}
+library(SummarizedExperiment)
+library(rtracklayer)
+library(readxl)
+library(writexl)
+library(plyr)
+library(gUtils)
+library(plgINS)
+library(dplyr)
+```
+
+# Chain file
+```{r overlap-chip-lit-2, warning = F, message = F}
+if (!file.exists("./input/mm8ToMm10.over.chain")) {
+  url <- "http://hgdownload.cse.ucsc.edu/goldenpath/mm8/liftOver/mm8ToMm10.over.chain.gz"
+  system(paste("wget", url, "&& mv mm8ToMm10.over.chain.gz ./input && gunzip ./input/mm8ToMm10.over.chain.gz"))
+}
+```
+
+# Supp file
+```{r overlap-chip-lit-3, warning = F, message = F}
+if (!file.exists("./input/41586_2009_BFnature07672_MOESM281_ESM.xls")) {
+  supp <- "https://static-content.springer.com/esm/art%3A10.1038%2Fnature07672/MediaObjects/41586_2009_BFnature07672_MOESM281_ESM.xls"
+  system(paste("wget", supp, "&& mv *.xls ./input"))
+}
+```
+
+# Overlap data
+```{r overlap-chip-lit-4, warning = F, message = F}
+load("./input/overlap_tables.RData")
+load("./input/atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(res) <- gsub(pattern = "Peak-", replacement = "", x = colnames(res))
+res_p <- res[res$`diffAccessibility-qvalue` <= 0.05, ]
+res_lp <- res[res$`diffAccessibility-qvalue` <= 0.05 & abs(res$`diffAccessibility-logFC`) > 1, ]
+
+tss_mm10 <- gr.mid(GRanges(res_lp))
+names(tss_mm10) <- tss_mm10$Name
+
+tss_5k <- promoters(tss_mm10, upstream = 2500, downstream = 2500)
+names(tss_5k) <- tss_5k$Name
+
+wo <- ldply(sp_df_s1, data.frame)[, -1]
+wo <- inner_join(res_lp, wo)
+wi <- ldply(sp_df_s2, data.frame)[, -1]
+wi <- inner_join(res_lp, wi)
+
+rownames(wo) <- wo$name
+rownames(wi) <- wi$name
+```
+
+# Data from lit
+```{r overlap-chip-lit-5, warning = F, message = F}
+chip <- data.frame(read_xls("./input/41586_2009_BFnature07672_MOESM281_ESM.xls"))
+colnames(chip) <- c("seqnames", "start", "end")
+chip_GR <- GRanges(chip)
+
+chain <- import.chain("./input/mm8ToMm10.over.chain")
+lf <- liftOver(x = chip_GR, chain = chain)
+
+lf_GR <- reduce(unlist(lf))
+```
+
+
+# Perform overlap
+```{r overlap-chip-lit-6, warning = F, message = F}
+o_wo <- data.frame(metaGR(gr1 = lf_GR, gr2 = GRanges(wo), minOverlap = 5))[, -c(11:31)]
+o_wi <- data.frame(metaGR(gr1 = lf_GR, gr2 = GRanges(wi), minOverlap = 5))[, -c(11:34)]
+
+colnames(o_wo)[6:10] <- colnames(o_wi)[6:10] <- gsub(pattern = "GRanges.", replacement = "", x = colnames(o_wo)[6:10])
+colnames(o_wo)[1:5] <- colnames(o_wi)[1:5] <- paste(colnames(o_wi)[1:5], "K4_K36", sep = "_")
+```
+
+# Save data
+```{r overlap-chip-lit-7, warning = F, message = F}
+ll <- list(without_ChIP = o_wo, with_ChIP = o_wi)
+write_xlsx(x = ll, path = "./output/overlap_with_lit_chip.xlsx", col_names = T, format_headers = T)
+```
+
+
+# References
+```{r overlap-chip-lit-8 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-chip-lit-9 }
+devtools::session_info() %>%
+  details::details()
+```
