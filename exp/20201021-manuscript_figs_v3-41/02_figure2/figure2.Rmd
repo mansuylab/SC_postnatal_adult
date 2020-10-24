@@ -206,20 +206,22 @@ pos_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = pos_gsea$pathway
 pos_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "E"))[,1, drop = FALSE]
 
 pos_tab <- merge(pos_gsea_go, pos_gsea)
-pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:20,]
+pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:10,]
 
 neg_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "C"))
 neg_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = neg_gsea$pathway)
 neg_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "F"))[,1, drop = FALSE]
 
 neg_tab <- merge(neg_gsea_go, neg_gsea)
-neg_tab <- neg_tab[order(neg_tab$NES),][1:20,]
+neg_tab <- neg_tab[order(neg_tab$NES),][1:10,]
 colnames(neg_tab)[ncol(neg_tab)] <- "size"
 
 tab <- rbind(pos_tab, neg_tab)
 tab <- tab[order(tab$NES, decreasing = T),]
 tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
 tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
+
+# tab$pathway <- plgINS:::breakStrings(x = as.character(tab$pathway), minSizeForBreak = 35)
 
 tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
 
@@ -239,9 +241,9 @@ c <- ggplot(tab, mapping = aes(
     colors = rev(myPalette(n = nrow(tab))),
     # colors = rev(cividis(n = nrow(go_df))),
     # guide = guide_colorbar(reverse = TRUE),
-    breaks = c(1e-7, 0.019)
+    breaks = c(1e-7, 0.004)
   ) +
-  scale_size_continuous(breaks = c(100, 300, 500)) +
+  scale_size_continuous(breaks = c(200, 500)) +
   xlab("") +
   ylab("Normalized enrichment score") +
   # facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 20), nrow = 2) +
@@ -265,10 +267,10 @@ c <- ggplot(tab, mapping = aes(
   labs(
     color = expression("adjusted" ~ italic(P) ~ " "),
     size = "Annotated genes"
-  )
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
 
 
-cg <- gridExtra::grid.arrange(egg::set_panel_size(p = c, width = unit(3.5, "cm"), height = unit(9, "cm")))
+cg <- gridExtra::grid.arrange(egg::set_panel_size(p = c, width = unit(3.5, "cm"), height = unit(6, "cm")))
 
 ggsave(plot = cg, filename = "output/c.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
@@ -280,20 +282,22 @@ pos_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results
 pos_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = pos_gsea$pathway)
 
 pos_tab <- pos_gsea
-pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:20,]
+pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:10,]
 
 neg_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "G"))
 neg_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = neg_gsea$pathway)
 neg_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "I"))[,1, drop = FALSE]
 
 neg_tab <- merge(neg_gsea_go, neg_gsea)
-neg_tab <- neg_tab[order(neg_tab$NES),][1:20,]
+neg_tab <- neg_tab[order(neg_tab$NES),][1:10,]
 colnames(neg_tab)[ncol(neg_tab)] <- "size"
 
 tab <- rbind(pos_tab, neg_tab)
 tab <- tab[order(tab$NES, decreasing = T),]
 tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
 tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
+
+# tab$pathway <- plgINS:::breakStrings(x = as.character(tab$pathway), minSizeForBreak = 35)
 
 tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
 
@@ -311,9 +315,9 @@ d <- ggplot(tab, mapping = aes(
     colors = rev(myPalette(n = nrow(tab))),
     # colors = rev(cividis(n = nrow(go_df))),
     # guide = guide_colorbar(reverse = TRUE),
-    breaks = c(1e-7, 0.04)
+    breaks = c(1e-7, 0.02)
   ) +
-  scale_size_continuous(breaks = c(100, 300, 500)) +
+  scale_size_continuous(breaks = c(50, 200)) +
   xlab("") +
   ylab("Normalized enrichment score") +
   # facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 20), nrow = 2) +
@@ -337,11 +341,164 @@ d <- ggplot(tab, mapping = aes(
   labs(
     color = expression("adjusted" ~ italic(P) ~ " "),
     size = "Annotated genes"
-  )
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
 
-dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(3.5, "cm"), height = unit(9, "cm")))
+dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(3.5, "cm"), height = unit(6, "cm")))
 
 ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+
+
+
+# C 1
+```{r}
+pos_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "D"))
+pos_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = pos_gsea$pathway)
+pos_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "E"))[,1, drop = FALSE]
+
+pos_tab <- merge(pos_gsea_go, pos_gsea)
+pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:10,]
+
+neg_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "C"))
+neg_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = neg_gsea$pathway)
+neg_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "F"))[,1, drop = FALSE]
+
+neg_tab <- merge(neg_gsea_go, neg_gsea)
+neg_tab <- neg_tab[order(neg_tab$NES),][1:10,]
+colnames(neg_tab)[ncol(neg_tab)] <- "size"
+
+tab <- rbind(pos_tab, neg_tab)
+tab <- tab[order(tab$NES, decreasing = T),]
+tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
+tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
+
+tab$pathway <- plgINS:::breakStrings(x = as.character(tab$pathway), minSizeForBreak = 40)
+
+tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
+
+ont_col <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
+
+
+c1 <- ggplot(tab, mapping = aes(
+  x = pathway,
+  y = NES,
+  color = padj,
+  size = size
+)) +
+  geom_point(show.legend = T, alpha = 0.6) +
+  coord_flip(expand = T) +
+  # scale_fill_distiller(palette = "Spectral") +
+  scale_colour_gradientn(
+    colors = rev(myPalette(n = nrow(tab))),
+    # colors = rev(cividis(n = nrow(go_df))),
+    # guide = guide_colorbar(reverse = TRUE),
+    breaks = c(1e-7, 0.004)
+  ) +
+  scale_size_continuous(breaks = c(200, 500)) +
+  xlab("") +
+  ylab("Normalized enrichment score") +
+  # facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 20), nrow = 2) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(legend.box = "vertical") +
+  guides(
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "left", title.hjust = 0.5, title.vjust = 0.8,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 0.5, size = 8
+    ),
+    size = guide_legend(
+      title.position = "left", 
+      title.hjust = 0.5, title.vjust = 0.5, 
+      nrow = 1, size = 8, 
+      order = 2,
+      label.hjust = 0.5, label.vjust = 0.5)
+  ) +
+  labs(
+    color = expression("adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
+
+
+cg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = c1, width = unit(3.5, "cm"), height = unit(9, "cm")))
+
+ggsave(plot = cg1, filename = "output/c1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# D 1
+```{r}
+pos_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "H"))
+pos_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = pos_gsea$pathway)
+
+pos_tab <- pos_gsea
+pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:10,]
+
+neg_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "G"))
+neg_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = neg_gsea$pathway)
+neg_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "I"))[,1, drop = FALSE]
+
+neg_tab <- merge(neg_gsea_go, neg_gsea)
+neg_tab <- neg_tab[order(neg_tab$NES),][1:10,]
+colnames(neg_tab)[ncol(neg_tab)] <- "size"
+
+tab <- rbind(pos_tab, neg_tab)
+tab <- tab[order(tab$NES, decreasing = T),]
+tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
+tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
+
+tab$pathway <- plgINS:::breakStrings(x = as.character(tab$pathway), minSizeForBreak = 40)
+
+tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
+
+
+d1 <- ggplot(tab, mapping = aes(
+  x = pathway,
+  y = NES,
+  color = padj,
+  size = size
+)) +
+  geom_point(show.legend = T, alpha = 0.6) +
+  coord_flip(expand = T) +
+  # scale_fill_distiller(palette = "Spectral") +
+  scale_colour_gradientn(
+    colors = rev(myPalette(n = nrow(tab))),
+    # colors = rev(cividis(n = nrow(go_df))),
+    # guide = guide_colorbar(reverse = TRUE),
+    breaks = c(1e-7, 0.02)
+  ) +
+  scale_size_continuous(breaks = c(50, 200)) +
+  xlab("") +
+  ylab("Normalized enrichment score") +
+  # facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 20), nrow = 2) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(legend.box = "vertical") +
+  guides(
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "left", title.hjust = 0.5, title.vjust = 0.8,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 1, size = 8
+    ),
+    size = guide_legend(
+      title.position = "left", 
+      title.hjust = 0.5, title.vjust = 0.5, 
+      nrow = 1, size = 8, 
+      order = 2,
+      label.hjust = 0.5, label.vjust = 0.5)
+  ) +
+  labs(
+    color = expression("adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
+
+dg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = d1, width = unit(3.5, "cm"), height = unit(9, "cm")))
+
+ggsave(plot = dg1, filename = "output/d1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 

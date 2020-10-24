@@ -145,6 +145,8 @@ rd$anno[rd$anno == "tss_prox_1kbp"] <- "TSS +/- 1kbp"
 
 rd$anno <- factor(rd$anno, unique(rd$anno)[c(4, 1, 2, 3)])
 
+rd$Name <- factor(rd$Name, unique(rd$Name))
+
 b <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
   geom_bar(position = "dodge", stat = "count") +
   geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, size = 3, fontface = "bold") +
@@ -181,11 +183,18 @@ names(go_files) <- gsub(pattern = "input/|\\.xlsx.*|_bg_all.*|_GO.*", replacemen
 go <- lapply(go_files, function(x) {
   df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
   df <- df[df$Hyper_Adjp_BH <= 0.05 & df$Total_Genes_Annotated > 50 & df$Total_Genes_Annotated < 1000, ]
-  df <- df[order(df$Hyper_Adjp_BH), ][1:20, ]
+  df <- df[order(df$Hyper_Adjp_BH), ]
   return(df[complete.cases(df), ])
 })
 go_df <- ldply(go, data.frame)
 colnames(go_df)[1] <- "Samples_ID"
+
+
+tmp1 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 1))[,1]
+tmp2 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 2))[,1]
+tmp <- c(tmp1,tmp2)
+
+go_df <- go_df[go_df$ID %in% tmp,]
 
 go_df$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df$Samples_ID))
 go_df <- go_df %>% map_df(rev)
@@ -197,7 +206,7 @@ go_df$Group[go_df$Group == "Adult Negative"] <- "Less accessible in adult sperma
 
 go_df <- arrange(go_df, Hyper_Adjp_BH)
 go_df$name <- factor(go_df$name, rev(as.character(go_df$name)))
-go_df <- go_df[-c(9, 17), ]
+# go_df <- go_df[-c(9, 17), ]
 go_df$Group <- factor(go_df$Group, unique(go_df$Group))
 
 ont_col <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
@@ -254,11 +263,20 @@ names(go_files_s) <- gsub(pattern = "Proximal_1000_TSS", replacement = "tss_prox
 go_s <- lapply(go_files_s, function(x) {
   df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
   df <- df[df$Hyper_Adjp_BH <= 0.05 & df$Total_Genes_Annotated > 50 & df$Total_Genes_Annotated < 1000, ]
-  df <- df[order(df$Hyper_Adjp_BH), ][1:20, ]
+  df <- df[order(df$Hyper_Adjp_BH), ]
   return(df[complete.cases(df), ])
 })
 go_df_s <- ldply(go_s, data.frame)
 colnames(go_df_s)[1] <- "Samples_ID"
+
+subset(go_df_s, Samples_ID %in% c("Adult_Positive-tss_prox_1kbp", "Adult_Positive-gene_body")) -> go_df_s
+
+tmp1 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 3))[,1]
+tmp2 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 4))[,1]
+tmp <- c(tmp1,tmp2)
+
+go_df_s <- go_df_s[go_df_s$ID %in% tmp,]
+
 
 go_df_s$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df_s$Samples_ID))
 
@@ -270,17 +288,18 @@ go_df_s$Group <- gsub(pattern = "Adult Negative", replacement = "Less accessible
 # go_df_s$Group <- gsub(pattern = "gene body", replacement = "gene body", x = go_df_s$Group)
 go_df_s$Group <- gsub(pattern = "tss prox 1kbp", replacement = "(TSS +/- 1kbp)", x = go_df_s$Group)
 
-subset(go_df_s, Group %in% c("More accessible in adult spermatogonial cells (TSS +/- 1kbp)", "More accessible in adult spermatogonial cells gene body")) -> go_df_s
+# subset(go_df_s, Group %in% c("More accessible in adult spermatogonial cells (TSS +/- 1kbp)", "More accessible in adult spermatogonial cells gene body")) -> go_df_s
 go_df_s$Group <- gsub(pattern = "gene body", replacement = "(gene body)", x = go_df_s$Group)
 # go_df_s$Group <- gsub(pattern = "TSS +/- 1kbp", replacement = "(TSS +/- 1kbp)", x = go_df_s$Group)
 
 go_df_s <- arrange(go_df_s, Hyper_Adjp_BH)
+go_df_s <- go_df_s[-17,]
 go_df_s$name <- factor(go_df_s$name, rev(as.character(go_df_s$name)))
 
 # go_df_s <- go_df_s %>%
 #   mutate(name = fct_reorder(name, Hyper_Adjp_BH))
 
-go_df_s <- go_df_s[-c(13, 30), ]
+# go_df_s <- go_df_s[-c(13, 30), ]
 
 
 d <- ggplot(data = go_df_s, mapping = aes(
@@ -317,6 +336,181 @@ dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(3.5, "cm")
 
 ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
+
+
+
+
+# C1
+
+```{r}
+go_files <- list.files(path = "input", pattern = "ive_GO_BP", full.names = T)
+names(go_files) <- gsub(pattern = "input/|\\.xlsx.*|_bg_all.*|_GO.*", replacement = "", x = go_files)
+
+go <- lapply(go_files, function(x) {
+  df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
+  df <- df[df$Hyper_Adjp_BH <= 0.05 & df$Total_Genes_Annotated > 50 & df$Total_Genes_Annotated < 1000, ]
+  df <- df[order(df$Hyper_Adjp_BH), ]
+  return(df[complete.cases(df), ])
+})
+go_df <- ldply(go, data.frame)
+colnames(go_df)[1] <- "Samples_ID"
+
+
+tmp1 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 1))[,1]
+tmp2 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 2))[,1]
+tmp <- c(tmp1,tmp2)
+
+go_df <- go_df[go_df$ID %in% tmp,]
+
+go_df$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df$Samples_ID))
+go_df <- go_df %>% map_df(rev)
+
+go_df$Group[go_df$Group == "Adult Positive"] <- "More accessible in adult spermatogonial cells"
+go_df$Group[go_df$Group == "Adult Negative"] <- "Less accessible in adult spermatogonial cells"
+
+go_df$name <- plgINS:::breakStrings(x = as.character(go_df$name), minSizeForBreak = 40)
+
+# go_df$name <- plgINS:::breakStrings(x = as.character(go_df$name), minSizeForBreak = 30)
+
+go_df <- arrange(go_df, Hyper_Adjp_BH)
+go_df$name <- factor(go_df$name, rev(as.character(go_df$name)))
+# go_df <- go_df[-c(9, 17), ]
+go_df$Group <- factor(go_df$Group, unique(go_df$Group))
+
+ont_col <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
+
+c1 <- ggplot(data = arrange(go_df, Hyper_Fold_Enrichment), mapping = aes(
+  x = name,
+  y = Hyper_Fold_Enrichment,
+  color = Hyper_Adjp_BH,
+  size = Total_Genes_Annotated
+)) +
+  geom_point(show.legend = T, alpha = 0.6) +
+  coord_flip(expand = T) +
+  # scale_fill_distiller(palette = "Spectral") +
+  scale_colour_gradientn(
+    colors = rev(myPalette(n = nrow(go_df))),
+    # colors = rev(cividis(n = nrow(go_df))),
+    # guide = guide_colorbar(reverse = TRUE),
+    breaks = c(0.001, 0.02)
+  ) +
+  xlab("") +
+  ylab("Fold enrichment") +
+  facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 25), nrow = 2) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  guides(
+    size = guide_legend(title.position = "top", title.hjust = 0.5, title.vjust = 0.5, nrow = 1, size = 8, order = 2),
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 1, size = 8
+    )
+  ) +
+  labs(
+    color = expression("adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  ) + theme(axis.text.y = element_text(lineheight = 0.8))
+
+cg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = c1, width = unit(3.5, "cm"), height = unit(7.5, "cm")))
+
+ggsave(plot = cg1, filename = "output/c1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# D
+
+```{r}
+go_files_s <- list.files(path = "input", pattern = "-", full.names = T)
+
+names(go_files_s) <- gsub(pattern = "input/|\\.xlsx.*|_bg_all.*|_GO.*", replacement = "", x = go_files_s)
+names(go_files_s) <- gsub(pattern = "intronic_exonic", replacement = "gene_body", x = names(go_files_s))
+names(go_files_s) <- gsub(pattern = "Proximal_1000_TSS", replacement = "tss_prox_1kbp", x = names(go_files_s))
+
+go_s <- lapply(go_files_s, function(x) {
+  df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
+  df <- df[df$Hyper_Adjp_BH <= 0.05 & df$Total_Genes_Annotated > 50 & df$Total_Genes_Annotated < 1000, ]
+  df <- df[order(df$Hyper_Adjp_BH), ]
+  return(df[complete.cases(df), ])
+})
+go_df_s <- ldply(go_s, data.frame)
+colnames(go_df_s)[1] <- "Samples_ID"
+
+subset(go_df_s, Samples_ID %in% c("Adult_Positive-tss_prox_1kbp", "Adult_Positive-gene_body")) -> go_df_s
+
+tmp1 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 3))[,1]
+tmp2 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 4))[,1]
+tmp <- c(tmp1,tmp2)
+
+go_df_s <- go_df_s[go_df_s$ID %in% tmp,]
+
+
+go_df_s$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df_s$Samples_ID))
+
+# go_df_s <- go_df_s %>% map_df(rev)
+# go_df_s$name <- factor(go_df_s$name, levels = unique(go_df_s$name))
+
+go_df_s$Group <- gsub(pattern = "Adult Positive", replacement = "More accessible in adult spermatogonial cells", x = go_df_s$Group)
+go_df_s$Group <- gsub(pattern = "Adult Negative", replacement = "Less accessible in adult spermatogonial cells", x = go_df_s$Group)
+
+go_df_s$name <- plgINS:::breakStrings(x = as.character(go_df_s$name), minSizeForBreak = 40)
+
+# go_df_s$Group <- gsub(pattern = "gene body", replacement = "gene body", x = go_df_s$Group)
+go_df_s$Group <- gsub(pattern = "tss prox 1kbp", replacement = "(TSS +/- 1kbp)", x = go_df_s$Group)
+
+
+
+# subset(go_df_s, Group %in% c("More accessible in adult spermatogonial cells (TSS +/- 1kbp)", "More accessible in adult spermatogonial cells gene body")) -> go_df_s
+go_df_s$Group <- gsub(pattern = "gene body", replacement = "(gene body)", x = go_df_s$Group)
+# go_df_s$Group <- gsub(pattern = "TSS +/- 1kbp", replacement = "(TSS +/- 1kbp)", x = go_df_s$Group)
+
+go_df_s <- arrange(go_df_s, Hyper_Adjp_BH)
+go_df_s <- go_df_s[-17,]
+go_df_s$name <- factor(go_df_s$name, rev(as.character(go_df_s$name)))
+
+# go_df_s <- go_df_s %>%
+#   mutate(name = fct_reorder(name, Hyper_Adjp_BH))
+
+# go_df_s <- go_df_s[-c(13, 30), ]
+
+d1 <- ggplot(data = go_df_s, mapping = aes(
+  x = name,
+  y = Hyper_Fold_Enrichment, color = Hyper_Adjp_BH,
+  size = Total_Genes_Annotated,
+)) +
+  geom_point(show.legend = T, alpha = 0.6) +
+  coord_flip(expand = T) +
+  scale_colour_gradientn(
+    colors = rev(myPalette(n = nrow(go_df_s))),
+    guide = guide_colorbar(reverse = TRUE),
+    breaks = c(0.001, 0.03)
+  ) +
+  xlab("") +
+  ylab("Fold enrichment") +
+  facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 25), nrow = 2) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  guides(
+    size = guide_legend(title.position = "top", title.hjust = 0.5, title.vjust = 0.5, nrow = 1, size = 8, order = 2),
+    colour = guide_colorbar(
+      title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 1, size = 8, order = 1
+    )
+  ) +
+  labs(
+    color = expression("adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  ) + theme(axis.text.y = element_text(lineheight = 0.8))
+
+dg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = d1, width = unit(3.5, "cm"), height = unit(7.5, "cm")))
+
+ggsave(plot = dg1, filename = "output/d1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+
 
 
 # References

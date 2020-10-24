@@ -41,7 +41,7 @@ tf_pos <- ldply(files[3:5], .id = "Group")
 tf_pos$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_pos$Motif.Name)))
 tf_pos$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_pos$Motif.Name)
 
-tf_pos$Group <- gsub(pattern = "More accessible", replacement = "More accessible in adult spermatogonial cells", x = tf_pos$Group)
+tf_pos$Group <- paste(tf_pos$Group, "in adult spermatogonial cells")
 
 load("input/limma_SC_Controls_lab_lit.RData")
 dea <- dea.limma$`pnd14 vs pnw8`
@@ -93,7 +93,7 @@ tf_neg <- ldply(files[1:2], .id = "Group")
 tf_neg$Genes <- str_to_title(tolower(gsub(pattern = "_.*", replacement = "", x = tf_neg$Motif.Name)))
 tf_neg$Motif <- gsub(pattern = "_.*", replacement = "", x = tf_neg$Motif.Name)
 
-tf_neg$Group <- gsub(pattern = "Less accessible", replacement = "Less accessible in adult spermatogonial cells", x = tf_neg$Group)
+tf_neg$Group <- paste(tf_neg$Group, "in adult spermatogonial cells")
 
 tf_dea_neg <- merge(tf_neg, dea)
 
