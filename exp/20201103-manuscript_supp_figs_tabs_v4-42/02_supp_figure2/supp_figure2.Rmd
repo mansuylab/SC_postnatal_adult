@@ -1,0 +1,95 @@
+---
+title: "Supp. Figure2"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-10-22 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+# Libraries and functions
+```{r}
+source("../bin/functions.R")
+```
+
+# B
+```{r}
+load("input/atac_diff_chromatin_accessibility.RData")
+
+rd <- data.frame(rowData(data), check.names = F)
+rownames(rd) <- rd$`Peak-Name`
+# rd <- rd[abs(rd$`diffAccessibility-logFC`) >= 1 & rd$`diffAccessibility-qvalue` <= 0.05, ]
+rd$Name <- "Adult Positive"
+rd$Name[rd$`diffAccessibility-logFC` < 0] <- "Adult Negative"
+
+rd$Name[rd$Name == "Adult Positive"] <- "More accessible in adult spermatogpnial cells"
+rd$Name[rd$Name == "Adult Negative"] <- "Less accessible in adult spermatogpnial cells"
+
+rd$anno <- as.character(rd$`Peak-class`)
+# rd$anno[rd$anno == "intronic" | rd$anno == "exonic"] <- "gene_body"
+rd$anno[rd$anno == "intronic"] <- "Intronic"
+rd$anno[rd$anno == "exonic"] <- "Exonic"
+rd$anno[rd$anno == "TSS" | rd$anno == "proximal <=1000bp"] <- "tss_prox_1kbp"
+# rd$anno[rd$anno == "gene_body"] <- "Gene body"
+rd$anno[rd$anno == "intergenic"] <- "Intergenic"
+rd$anno[rd$anno == "tss_prox_1kbp"] <- "TSS +/- 1kb"
+
+rd$anno <- factor(rd$anno, unique(rd$anno)[c(4, 2, 1, 3)])
+
+rd$Name <- factor(rd$Name, unique(rd$Name))
+
+b <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
+  geom_bar(position = "dodge", stat = "count") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, size = 4, fontface = "plain") +
+  scale_y_continuous(limits = c(0, 32000), breaks = c(0, 4000, 8000, 12000, 16000, 20000, 24000, 28000, 32000)) +
+  fill_palette(palet = "Dark2") +
+  facet_wrap(~Name, labeller = label_wrap_gen(width = 25)) +
+  ggtitle("") +
+  xlab("") +
+  ylab("Number of regions") +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    legend.title = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.key.height = unit(3, "mm"),
+    legend.key.width = unit(3, "mm"),
+    plot.margin = grid::unit(c(1, 5, 1, 1), "mm")
+  ) +
+  guides(fill = guide_legend(nrow = 1))
+
+bg <- gridExtra::grid.arrange(egg::set_panel_size(p = b, width = unit(4.5, "cm"), height = unit(6.37, "cm")))
+
+ggsave(plot = bg, filename = "output/b.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = bg, filename = "output/b.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```
