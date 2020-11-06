@@ -7,4 +7,4 @@
 
 all: task1
 task1:
-	Rscript -e 'rmarkdown::render("20191008-change_names_files.Rmd")' 2> log >> log
+	Rscript -e 'rmarkdown::render("change_names_files.Rmd")' 2> log >> log
