@@ -1,0 +1,426 @@
+---
+title: "Figure1"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-11-10 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+# Libraries and functions
+```{r}
+source("../bin/functions.R")
+```
+
+# A
+```{r}
+load("input/atac_diff_chromatin_accessibility.RData")
+tab <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+tab_lfc <- tab[abs(tab$`diffAccessibility-logFC`) >= 1, ]
+tab_fdr <- tab[tab$`diffAccessibility-qvalue` <= 0.05, ]
+tab_lfc_fdr <- tab[abs(tab$`diffAccessibility-logFC`) >= 1 & tab$`diffAccessibility-qvalue` <= 0.05, ]
+
+
+tab$Significant <- "Not significant"
+tab$Significant[tab$`diffAccessibility-qvalue` <= 0.05 & abs(tab$`diffAccessibility-logFC`) >= 1] <- "Negative"
+# tab$Significant[tab$`diffAccessibility-qvalue` <= 0.05 & tab$`diffAccessibility-logFC` >= 1] <- "Positive"
+
+tab$Significant[tab$Significant == "Negative"] <- ifelse(tab$`diffAccessibility-logFC`[tab$Significant == "Negative"] > 0, "Positive", "Negative")
+
+tab$Significant[tab$Significant == "Negative"] <- "Less accessible in adult spermatogonia"
+tab$Significant[tab$Significant == "Positive"] <- "More accessible in adult spermatogonia"
+
+tab$Significant <- factor(x = tab$Significant, levels = unique(tab$Significant)[c(1, 3, 2)])
+
+anno <- data.frame(x = c(-3.9, 3.7), y = c(5, 5), label = c("n = 760", "n = 2452"), col = c("#0072B5FF", "#BC3C29FF"))
+
+a <- ggplot(tab, aes(x = `diffAccessibility-logFC`, y = -log10(`diffAccessibility-qvalue`))) +
+  geom_point(aes(color = Significant), size = 2, alpha = 0.5) +
+  scale_color_manual(values = c("black", "#0072B5FF", "#BC3C29FF")) +
+  xlim(
+    -(ceiling(max(abs(tab$`diffAccessibility-logFC`)))),
+    ceiling(max(abs(tab$`diffAccessibility-logFC`)))
+  ) +
+  ylim(0, max(-log10(tab$`diffAccessibility-qvalue`), na.rm = TRUE) + 1) +
+  xlab(bquote(~ Log[2] ~ "FC")) +
+  ylab(bquote(~ -Log[10] ~ adjusted ~ italic(P))) +
+  labs(
+    title = "",
+    subtitle = "", caption = paste0("Total = ", scales::comma(nrow(tab)), " tested regions")
+  ) +
+  # theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    legend.title = element_blank(),
+    legend.justification = "bottom",
+    legend.margin = margin(0, 0, 0, 0),
+    # legend.box.margin = margin(0, 0, -20, 0),
+    plot.margin = grid::unit(c(1, 5, 1, 1), "mm"),
+    legend.key.size = unit(0, "cm")
+  ) +
+  geom_vline(
+    xintercept = c(-1, 1),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  ) +
+  geom_hline(
+    yintercept = -log10(0.05),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  ) +
+  guides(
+    colour = guide_legend(
+      order = 1,
+      override.aes = list(
+        size = 5
+      )
+    )
+  ) +
+  scale_shape_manual(
+    values = c(
+      `Not significant` = 19,
+      Positive = 19,
+      Negative = 19
+    ),
+    labels = c(
+      `Not significant` = "Not significant",
+      Positive = "More acc. in Adult",
+      Negative = "Less acc. in Adult"
+    )
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1), label.hjust = 0, label.vjust = 0, nrow = 3)) +
+  geom_label(
+    data = anno, aes(x = x, y = y, label = label),
+    color = c("#0072B5FF", "#BC3C29FF"),
+    size = 4, angle = 45, fontface = "plain", family = "Helvetica"
+  )
+
+a1 <- a + theme(legend.text = element_text(
+  colour = "black",
+  size = 9,
+  margin = margin(r = 0, t = 0, b = 2, l = 0, unit = "pt"),
+  vjust = 0, hjust = 0
+), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+a2 <- a + theme(legend.text = element_text(
+  colour = "black",
+  size = 9,
+  margin = margin(r = 0, t = 0, b = 2, l = 0, unit = "pt"),
+  vjust = 0, hjust = 0
+), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+
+ag <- gridExtra::grid.arrange(egg::set_panel_size(p = a, width = unit(6.2, "cm"), height = unit(5.62, "cm")))
+ag1 <- gridExtra::grid.arrange(egg::set_panel_size(p = a1, width = unit(6.2, "cm"), height = unit(5.62, "cm")))
+ag2 <- gridExtra::grid.arrange(egg::set_panel_size(p = a2, width = unit(6.2, "cm"), height = unit(5.62, "cm")))
+
+ggsave(plot = ag, filename = "output/a.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = ag, filename = "output/a.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = ag1, filename = "output/a_no_grid.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = ag2, filename = "output/a_no_grid_no_axis.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+
+## B
+
+```{r}
+rd <- data.frame(rowData(data), check.names = F)
+rownames(rd) <- rd$`Peak-Name`
+rd <- rd[abs(rd$`diffAccessibility-logFC`) >= 1 & rd$`diffAccessibility-qvalue` <= 0.05, ]
+rd$Name <- "Adult Positive"
+rd$Name[rd$`diffAccessibility-logFC` < 0] <- "Adult Negative"
+
+rd$Name[rd$Name == "Adult Positive"] <- "More accessible in adult spermatogonia"
+rd$Name[rd$Name == "Adult Negative"] <- "Less accessible in adult spermatogonia"
+
+rd$anno <- as.character(rd$`Peak-class`)
+# rd$anno[rd$anno == "intronic" | rd$anno == "exonic"] <- "gene_body"
+rd$anno[rd$anno == "intronic"] <- "Intronic"
+rd$anno[rd$anno == "exonic"] <- "Exonic"
+rd$anno[rd$anno == "TSS" | rd$anno == "proximal <=1000bp"] <- "tss_prox_1kb"
+# rd$anno[rd$anno == "gene_body"] <- "Gene body"
+rd$anno[rd$anno == "intergenic"] <- "Intergenic"
+rd$anno[rd$anno == "tss_prox_1kb"] <- "TSS +/- 1kb"
+
+rd$anno <- factor(rd$anno, unique(rd$anno)[c(4, 1, 2, 3)])
+
+rd$Name <- factor(rd$Name, unique(rd$Name))
+
+b <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
+  geom_bar(position = "dodge", stat = "count") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, size = 4, fontface = "plain") +
+  scale_y_continuous(limits = c(0, 1100), breaks = c(0, 200, 400, 600, 800, 1000)) +
+  fill_palette(palet = "Dark2") +
+  facet_wrap(~Name, labeller = label_wrap_gen(width = 22)) +
+  ggtitle("") +
+  xlab("") +
+  ylab("Number of regions") +
+  # theme_bw(base_family = "Helvetica") +
+  th +
+  theme(
+    legend.title = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.key.height = unit(3, "mm"),
+    legend.key.width = unit(3, "mm"),
+    plot.margin = grid::unit(c(1, 5, 1, 1), "mm")
+  ) +
+  guides(fill = guide_legend(nrow = 2))
+
+b1 <- b + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+b2 <- b + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+bg <- gridExtra::grid.arrange(egg::set_panel_size(p = b, width = unit(3.5, "cm"), height = unit(5.62, "cm")))
+bg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = b1, width = unit(3.5, "cm"), height = unit(5.62, "cm")))
+bg2 <- gridExtra::grid.arrange(egg::set_panel_size(p = b2, width = unit(3.5, "cm"), height = unit(5.62, "cm")))
+
+ggsave(plot = bg, filename = "output/b.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = bg, filename = "output/b.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = bg1, filename = "output/b_no_grid.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = bg2, filename = "output/b_no_grid_no_axis.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+# C
+
+```{r}
+go_files <- list.files(path = "input", pattern = "ive_GO_BP", full.names = T)
+names(go_files) <- gsub(pattern = "input/|\\.xlsx.*|_bg_all.*|_GO.*", replacement = "", x = go_files)
+
+go <- lapply(go_files, function(x) {
+  df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
+  df <- df[df$Hyper_Adjp_BH <= 0.05 & df$Total_Genes_Annotated > 50 & df$Total_Genes_Annotated < 1000, ]
+  df <- df[order(df$Hyper_Adjp_BH), ]
+  return(df[complete.cases(df), ])
+})
+go_df <- ldply(go, data.frame)
+colnames(go_df)[1] <- "Samples_ID"
+
+
+tmp1 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 1))[, 1]
+tmp2 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 2))[, 1]
+tmp <- c(tmp1, tmp2)
+
+go_df <- go_df[go_df$ID %in% tmp, ]
+go_df$name <- stringr::str_to_sentence(go_df$name)
+go_df$name <- gsub(pattern = "dna", replacement = "DNA", x = go_df$name)
+go_df$name <- gsub(pattern = "rna", replacement = "RNA", x = go_df$name)
+
+
+go_df$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df$Samples_ID))
+go_df <- go_df %>% map_df(rev)
+
+go_df$Group[go_df$Group == "Adult Positive"] <- "More accessible in adult spermatogonia"
+go_df$Group[go_df$Group == "Adult Negative"] <- "Less accessible in adult spermatogonia"
+
+# go_d <- go_df
+
+
+go_df$name[nchar(go_df$name) <= 60] <- breakStrings(go_df$name[nchar(go_df$name) <= 60], nb = 2)
+go_df$name[nchar(go_df$name) > 60] <- breakStrings(go_df$name[nchar(go_df$name) > 60], nb = 2)
+
+# go_d$name <- plgINS:::breakStrings(x = as.character(go_d$name), minSizeForBreak = 20)
+# go_d$name <- plgINS:::breakStrings(x = as.character(go_d$name), minSizeForBreak = 30)
+
+# go_d$name
+
+# go_df <- go_d
+
+# go_df$name <- plgINS:::breakStrings(x = as.character(go_df$name), minSizeForBreak = 30)
+
+go_df <- arrange(go_df, Hyper_Adjp_BH)
+go_df$name <- factor(go_df$name, rev(as.character(go_df$name)))
+# go_df <- go_df[-c(9, 17), ]
+go_df$Group <- factor(go_df$Group, unique(go_df$Group))
+
+ont_col <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
+
+c <- ggplot(data = arrange(go_df, Hyper_Fold_Enrichment), mapping = aes(
+  x = name,
+  y = Hyper_Fold_Enrichment,
+  color = -log10(Hyper_Adjp_BH),
+  size = Total_Genes_Annotated
+)) +
+  geom_point(show.legend = T, alpha = 0.7, stroke = 1.5) +
+  coord_flip(expand = T) +
+  # scale_fill_distiller(palette = "Spectral") +
+  scale_colour_gradientn(
+    colors = myPalette(n = nrow(go_df)),
+    # colors = rev(cividis(n = nrow(go_df))),
+    # guide = guide_colorbar(reverse = TRUE),
+    breaks = c(ceiling(min(-log10(go_df$Hyper_Adjp_BH))), floor(max(-log10(go_df$Hyper_Adjp_BH))))
+  ) +
+  scale_size_continuous(breaks = c(200, 800)) +
+  xlab("") +
+  ylab("Fold enrichment") +
+  facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 22), nrow = 1) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  guides(
+    size = guide_legend(
+      title.position = "left",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      nrow = 1, size = 10,
+      label.hjust = 0.5, label.vjust = 0.5,
+      order = 2
+    ),
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "left", title.hjust = 0.5, title.vjust = 1,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 0.5, size = 10
+    )
+  ) +
+  labs(
+    color = expression(-Log[10] ~ "adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  ) +
+  theme(axis.text.y = element_text(lineheight = 0.8), legend.spacing = unit(1, "cm"))
+
+cg <- gridExtra::grid.arrange(egg::set_panel_size(p = c, width = unit(3.5, "cm"), height = unit(10, "cm")))
+
+ggsave(plot = cg, filename = "output/c.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = cg, filename = "output/c.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# D
+
+```{r}
+go_files_s <- list.files(path = "input", pattern = "-", full.names = T)
+
+names(go_files_s) <- gsub(pattern = "input/|\\.xlsx.*|_bg_all.*|_GO.*", replacement = "", x = go_files_s)
+names(go_files_s) <- gsub(pattern = "intronic_exonic", replacement = "gene_body", x = names(go_files_s))
+names(go_files_s) <- gsub(pattern = "Proximal_1000_TSS", replacement = "tss_prox_1kbp", x = names(go_files_s))
+
+go_s <- lapply(go_files_s, function(x) {
+  df <- data.frame(read_xlsx(path = x), stringsAsFactors = F, check.names = F)
+  df <- df[df$Hyper_Adjp_BH <= 0.05 & df$Total_Genes_Annotated > 50 & df$Total_Genes_Annotated < 1000, ]
+  df <- df[order(df$Hyper_Adjp_BH), ]
+  return(df[complete.cases(df), ])
+})
+go_df_s <- ldply(go_s, data.frame)
+colnames(go_df_s)[1] <- "Samples_ID"
+
+subset(go_df_s, Samples_ID %in% c("Adult_Positive-tss_prox_1kbp", "Adult_Positive-gene_body")) -> go_df_s
+
+tmp1 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 3))[, 1]
+tmp2 <- data.frame(read_xlsx("input/REVIGO_GO_BPs_Fig_1C_and_1D.xlsx", sheet = 4))[, 1]
+tmp <- c(tmp1, tmp2)
+
+go_df_s <- go_df_s[go_df_s$ID %in% tmp, ]
+go_df_s$name <- stringr::str_to_sentence(go_df_s$name)
+go_df_s$name <- gsub(pattern = "dna", replacement = "DNA", x = go_df_s$name)
+go_df_s$name <- gsub(pattern = "rna", replacement = "RNA", x = go_df_s$name)
+
+
+go_df_s$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df_s$Samples_ID))
+
+# go_df_s <- go_df_s %>% map_df(rev)
+# go_df_s$name <- factor(go_df_s$name, levels = unique(go_df_s$name))
+
+go_df_s$Group <- gsub(pattern = "Adult Positive", replacement = "More accessible in adult spermatogonia", x = go_df_s$Group)
+go_df_s$Group <- gsub(pattern = "Adult Negative", replacement = "Less accessible in adult spermatogonia", x = go_df_s$Group)
+
+
+go_df_s$name[nchar(go_df_s$name) <= 60] <- breakStrings(go_df_s$name[nchar(go_df_s$name) <= 60], nb = 2)
+go_df_s$name[nchar(go_df_s$name) > 60] <- breakStrings(go_df_s$name[nchar(go_df_s$name) > 60], nb = 3)
+
+
+
+# go_df_s$Group <- gsub(pattern = "gene body", replacement = "gene body", x = go_df_s$Group)
+go_df_s$Group <- gsub(pattern = "tss prox 1kbp", replacement = "(TSS +/- 1kbp)", x = go_df_s$Group)
+
+
+
+# subset(go_df_s, Group %in% c("More accessible in adult spermatogonial cells (TSS +/- 1kbp)", "More accessible in adult spermatogonial cells gene body")) -> go_df_s
+go_df_s$Group <- gsub(pattern = "gene body", replacement = "(gene body)", x = go_df_s$Group)
+# go_df_s$Group <- gsub(pattern = "TSS +/- 1kbp", replacement = "(TSS +/- 1kbp)", x = go_df_s$Group)
+
+go_df_s <- arrange(go_df_s, Hyper_Adjp_BH)
+go_df_s <- go_df_s[-17, ]
+go_df_s$name <- factor(go_df_s$name, rev(as.character(go_df_s$name)))
+
+# go_df_s <- go_df_s %>%
+#   mutate(name = fct_reorder(name, Hyper_Adjp_BH))
+
+# go_df_s <- go_df_s[-c(13, 30), ]
+
+d <- ggplot(data = go_df_s, mapping = aes(
+  x = name,
+  y = Hyper_Fold_Enrichment,
+  color = -log10(Hyper_Adjp_BH),
+  size = Total_Genes_Annotated,
+)) +
+  geom_point(show.legend = T, alpha = 0.7, stroke = 1.5) +
+  coord_flip(expand = T) +
+  scale_colour_gradientn(
+    colors = rev(myPalette(n = nrow(go_df_s))),
+    guide = guide_colorbar(reverse = TRUE),
+    breaks = c(ceiling(min(-log10(go_df_s$Hyper_Adjp_BH))), floor(max(-log10(go_df_s$Hyper_Adjp_BH))))
+  ) +
+  scale_size_continuous(breaks = c(250, 750)) +
+  xlab("") +
+  ylab("Fold enrichment") +
+  facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 22), nrow = 1) +
+  theme_bw(base_family = "Helvetica") +
+  th +
+  guides(
+    size = guide_legend(
+      title.position = "left",
+      title.hjust = 0.5,
+      title.vjust = 0.5,
+      nrow = 1, size = 10,
+      label.hjust = 0.5, label.vjust = 0.5,
+      order = 2
+    ),
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "left", title.hjust = 0.5, title.vjust = 1,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 0.5, size = 10
+    )
+  ) +
+  labs(
+    color = expression(-Log[10] ~ "adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  ) +
+  theme(axis.text.y = element_text(lineheight = 0.8), legend.spacing = unit(1, "cm"))
+
+dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(3.5, "cm"), height = unit(12, "cm")))
+
+ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = dg, filename = "output/d.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```

@@ -1,0 +1,372 @@
+---
+title: "Figure2"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-11-10 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+
+# Libraries and functions
+```{r}
+source("../bin/functions.R")
+```
+
+
+# A
+```{r}
+load("input/data_pData.RData")
+load("input/limma_SC_Controls_lab_lit.RData")
+
+ge <- dea.limma$`pnd8 vs pnd15`
+ge <- ge[abs(ge$logFC) >= 1 & ge$adj.P.Val <= 0.05,1]
+
+mat <- data$cpm[ge,]
+mat <- mat[,grep(pattern = "PND8|PND15", x = colnames(mat))]
+mat <- data.matrix(mat - rowMeans(mat[, grep(pattern = "PND8", x = colnames(mat), value = T)]))
+
+o <- seriate(max(mat) - mat)
+# o <- seriate(dist(mat), method = "MDS_angle")
+
+mat <- mat[get_order(o), ]
+
+cd <- data$pData[colnames(mat), 1, drop = FALSE]
+cd$Group <- factor(cd$Group, levels = unique(cd$Group))
+
+
+set.seed(1100)
+a <- Heatmap(
+  matrix = mat,km = 2,
+  col = hm_cols(x = mat),
+  cluster_rows = F,
+  cluster_columns = T,
+  clustering_method_columns = "ward.D2",
+  show_row_names = F,
+  show_column_names = F,
+  name = "Enrichment (log)",
+  # row_split = ge$Group,
+  column_split = cd[, 1, drop = FALSE],
+  cluster_column_slices = F,
+  show_parent_dend_line = FALSE,
+  row_title = NULL,
+  row_names_gp = gpar(fontsize = 9, fontfamily = "Helvetica"),
+  column_title = NULL,
+  column_dend_height = unit(0.5, "cm"),
+  use_raster = FALSE,
+  top_annotation = HeatmapAnnotation(
+    df = cd[, 1, drop = FALSE],
+    col = list(Group = cols[1:2]),
+    simple_anno_size = unit(3, "mm"),
+    show_annotation_name = TRUE,
+    annotation_name_side = "right",
+    annotation_name_rot = 0,                                                                                                    
+    annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 10, fontface = "plain", fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 9, fontfamily = "Helvetica")
+    )
+  ),
+  height = unit(x = 8, units = "cm"), width = unit(x = 6, units = "cm"),
+  heatmap_legend_param = list(
+    at = c(-4,0,4),
+    title = expression(Log[2] ~ "FC"),
+    legend_height = unit(1, "cm"),
+    # title_position = "leftcenter-rot",
+    title_gp = gpar(fontsize = 10, fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 9, fontfamily = "Helvetica")
+  )
+)
+
+
+pdf(file = "output/a.pdf", width = 8.5, height = 11)
+draw(
+  object = a,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE,
+  align_annotation_legend = ""
+)
+dev.off()
+
+png(filename = "output/a.png", width = 8.5, height = 11, units = "in", res = 330)
+draw(
+  object = a,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE,
+  align_annotation_legend = ""
+)
+dev.off()
+```
+
+
+# B
+```{r}
+ge <- dea.limma$`pnd14 vs pnw8`
+ge <- as.character(ge[abs(ge$logFC) >= 1 & ge$AveExpr >= 1, 1])
+
+mat <- data$cpm[ge,]
+mat <- mat[,grep(pattern = "PND14|PNW8", x = colnames(mat))]
+mat <- data.matrix(mat - mat[, grep(pattern = "PND14", x = colnames(mat), value = T)])
+
+o <- seriate(max(mat) - mat)
+# o <- seriate(dist(mat), method = "MDS_angle")
+
+mat <- mat[get_order(o), ]
+
+cd <- data$pData[colnames(mat), 1, drop = FALSE]
+cd$Group <- factor(cd$Group, levels = unique(cd$Group))
+
+
+set.seed(1100)
+b <- Heatmap(
+  matrix = mat,km = 2,
+  col = hm_cols(x = mat),
+  cluster_rows = F,
+  cluster_columns = T,
+  clustering_method_columns = "ward.D2",
+  show_row_names = F,
+  show_column_names = F,
+  name = "Enrichment (log)",
+  # row_split = ge$Group,
+  column_split = cd[, 1, drop = FALSE],
+  cluster_column_slices = T,
+  show_parent_dend_line = FALSE,
+  row_title = NULL,
+  row_names_gp = gpar(fontsize = 11, fontfamily = "Helvetica"),
+  column_title = NULL,
+  column_dend_height = unit(0.5, "cm"),
+  use_raster = FALSE,
+  top_annotation = HeatmapAnnotation(
+    df = cd[, 1, drop = FALSE],
+    col = list(Group = cols[3:4]),
+    simple_anno_size = unit(3, "mm"),
+    show_annotation_name = TRUE,
+    annotation_name_side = "right",
+    annotation_name_rot = 0,                                                                                                    
+    annotation_name_gp = gpar(fontsize = 0, fontfamily = "Helvetica"),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 11, fontface = "plain", fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 10, fontfamily = "Helvetica")
+    )
+  ),
+  height = unit(x = 8.5, units = "cm"), width = unit(x = 4, units = "cm"),
+  heatmap_legend_param = list(
+    title = expression(Log[2] ~ "FC"),
+    legend_height = unit(1, "cm"),
+    # title_position = "leftcenter-rot",
+    title_gp = gpar(fontsize = 11, fontfamily = "Helvetica"),
+    labels_gp = gpar(fontsize = 10, fontfamily = "Helvetica")
+  )
+)
+
+
+pdf(file = "output/b.pdf", width = 8.5, height = 11)
+draw(
+  object = b,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE,
+  align_annotation_legend = ""
+)
+dev.off()
+
+
+png(filename = "output/b.png", width = 8.5, height = 11, units = "in", res = 330)
+draw(
+  object = b,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  merge_legends = TRUE,
+  align_annotation_legend = ""
+)
+dev.off()
+```
+
+
+# C
+```{r}
+pos_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "D"))
+pos_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = pos_gsea$pathway)
+pos_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "E"))[,1, drop = FALSE]
+
+pos_tab <- merge(pos_gsea_go, pos_gsea)
+pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:10,]
+
+neg_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "C"))
+neg_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = neg_gsea$pathway)
+neg_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "F"))[,1, drop = FALSE]
+
+neg_tab <- merge(neg_gsea_go, neg_gsea)
+neg_tab <- neg_tab[order(neg_tab$NES),][1:10,]
+colnames(neg_tab)[ncol(neg_tab)] <- "size"
+
+tab <- rbind(pos_tab, neg_tab)
+tab <- tab[order(tab$NES, decreasing = T),]
+tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
+tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
+tab$pathway <- stringr::str_to_sentence(tab$pathway)
+tab$pathway <- gsub(pattern = "dna", replacement = "DNA", x = tab$pathway)
+tab$pathway <- gsub(pattern = "rna", replacement = "RNA", x = tab$pathway)
+
+
+tab$pathway <- breakStrings(tab$pathway, nb = 2, minSizeForBreak = 30)
+
+
+tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
+
+ont_col <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
+
+
+c <- ggplot(tab, mapping = aes(
+  x = pathway,
+  y = NES,
+  color = -log10(padj),
+  size = size
+)) +
+  geom_point(show.legend = T, alpha = 0.7, stroke = 1.5) +
+  coord_flip(expand = T) +
+  # scale_fill_distiller(palette = "Spectral") +
+  scale_colour_gradientn(
+    colors = myPalette(n = nrow(tab)),
+    # colors = rev(cividis(n = nrow(go_df))),
+    # guide = guide_colorbar(reverse = TRUE),
+    breaks = c(ceiling(min(-log10(tab$padj))), floor(max(-log10(tab$padj))))
+  ) +
+  scale_size_continuous(breaks = c(200, 500)) +
+  xlab("") +
+  ylab("Normalized enrichment score") +
+  # facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 20), nrow = 2) +
+  # theme_bw(base_family = "Helvetica") +
+  th +
+  theme(legend.box = "vertical") +
+  guides(
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "left", title.hjust = 0.5, title.vjust = 0.8,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 0.5, size = 8
+    ),
+    size = guide_legend(
+      title.position = "left", 
+      title.hjust = 0.5, title.vjust = 0.5, 
+      nrow = 1, size = 8, 
+      order = 2,
+      label.hjust = 0.5, label.vjust = 0.5)
+  ) +
+  labs(
+    color = expression(-Log[10] ~ "adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
+
+
+cg <- gridExtra::grid.arrange(egg::set_panel_size(p = c, width = unit(3.5, "cm"), height = unit(12, "cm")))
+
+ggsave(plot = cg, filename = "output/c.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = cg, filename = "output/c.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# D
+```{r}
+pos_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "H"))
+pos_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = pos_gsea$pathway)
+
+pos_tab <- pos_gsea
+pos_tab <- pos_tab[order(pos_tab$NES, decreasing = T),][1:10,]
+
+neg_gsea <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "G"))
+neg_gsea$term.ID <- gsub(pattern = "_.*", replacement = "", x = neg_gsea$pathway)
+neg_gsea_go <- data.frame(read_xlsx("input/Table.S2_Dev_Paper_DGE.and.fGSEA.results_RNA-seq.xlsx", sheet = "I"))[,1, drop = FALSE]
+
+neg_tab <- merge(neg_gsea_go, neg_gsea)
+neg_tab <- neg_tab[order(neg_tab$NES),][1:10,]
+colnames(neg_tab)[ncol(neg_tab)] <- "size"
+
+tab <- rbind(pos_tab, neg_tab)
+tab <- tab[order(tab$NES, decreasing = T),]
+tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
+tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
+tab$pathway <- stringr::str_to_sentence(tab$pathway)
+tab$pathway <- gsub(pattern = "dna", replacement = "DNA", x = tab$pathway)
+tab$pathway <- gsub(pattern = "rna", replacement = "RNA", x = tab$pathway)
+
+tab$pathway <- breakStrings(tab$pathway, nb = 2, minSizeForBreak = 30)
+tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
+
+
+d <- ggplot(tab, mapping = aes(
+  x = pathway,
+  y = NES,
+  color = -log10(padj),
+  size = size
+)) +
+  geom_point(show.legend = T, alpha = 0.7, stroke = 1.5) +
+  coord_flip(expand = T) +
+  # scale_fill_distiller(palette = "Spectral") +
+  scale_colour_gradientn(
+    colors = myPalette(n = nrow(tab)),
+    # colors = rev(cividis(n = nrow(go_df))),
+    # guide = guide_colorbar(reverse = TRUE),
+    breaks = c(ceiling(min(-log10(tab$padj))), floor(max(-log10(tab$padj))))
+  ) +
+  scale_size_continuous(breaks = c(50, 200)) +
+  xlab("") +
+  ylab("Normalized enrichment score") +
+  # facet_wrap(~Group, scales = "free_y", labeller = label_wrap_gen(width = 20), nrow = 2) +
+  # theme_bw(base_family = "Helvetica") +
+  th +
+  theme(legend.box = "vertical") +
+  guides(
+    colour = guide_colorbar(
+      nrow = 1, order = 1,
+      title.position = "left", title.hjust = 0.5, title.vjust = 0.8,
+      barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
+      label.hjust = 0.5, label.vjust = 1, size = 8
+    ),
+    size = guide_legend(
+      title.position = "left", 
+      title.hjust = 0.5, title.vjust = 0.5, 
+      nrow = 1, size = 8, 
+      order = 2,
+      label.hjust = 0.5, label.vjust = 0.5)
+  ) +
+  labs(
+    color = expression(-Log[10]~"adjusted" ~ italic(P) ~ " "),
+    size = "Annotated genes"
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
+
+dg <- gridExtra::grid.arrange(egg::set_panel_size(p = d, width = unit(3.5, "cm"), height = unit(12, "cm")))
+
+ggsave(plot = dg, filename = "output/d.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = dg, filename = "output/d.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+```
+
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```
