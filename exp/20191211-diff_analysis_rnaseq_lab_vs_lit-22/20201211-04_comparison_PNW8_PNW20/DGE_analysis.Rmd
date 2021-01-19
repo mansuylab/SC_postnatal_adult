@@ -1,0 +1,284 @@
+---
+title: "RNA-Seq: differential expression analysis of controls (PNW8 vs PNW20)"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-12-11 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(limma)
+library(edgeR)
+library(plgINS)
+library(sva)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(SummarizedExperiment)
+library(reshape2)
+library(autoplotly)
+library(pheatmap)
+library(viridis)
+library(RColorBrewer)
+library(ggplotify)
+```
+
+# Load salmon objects
+```{r, message=FALSE, warning=FALSE}
+load("input/SC_controls_rnaseq_salmon.tds.RData")
+lab <- salmon
+
+load("input/SC_controls_rnaseq_lit_salmon.tds.RData")
+lit <- salmon
+
+counts_lab <- lab@tx.counts
+counts_lit <- lit@tx.counts
+
+counts_lab <- counts_lab[,grep(pattern = "Adult", x = colnames(counts_lab))]
+counts_lab <- data.frame(Genes = rownames(counts_lab), counts_lab)
+
+counts_lit <- counts_lit[,grep(pattern = "PNW8", x = colnames(counts_lit)), drop = FALSE]
+counts_lit <- data.frame(Genes = rownames(counts_lit), counts_lit)
+
+counts <- merge(counts_lab, counts_lit)
+rownames(counts) <- counts$Genes
+
+counts <- counts[,-1]
+
+pdata <- data.frame(Samples = colnames(counts), Group = c(rep("PNW20", 6), "PNW8"))
+```
+
+# Differeitial analysis using `limma`
+
+## PNW8 vs PNW20
+```{r }
+design <- model.matrix(~ 0 + Group, data = pdata)
+colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
+
+y <- DGEList(counts = counts)
+keep <- filterByExpr(y, design, min.count = 10)
+y <- y[keep, ]
+
+dds <- calcNormFactors(y)
+v <- voom(dds, design = design)
+
+contrast.matrix <- makeContrasts(PNW20 - PNW8, levels = design)
+fit <- lmFit(v)
+
+fit2 <- contrasts.fit(fit, contrast.matrix)
+fit2 <- eBayes(fit2)
+
+pnw8.pnw20 <- as.data.frame(topTable(fit2, coef = 1, number = Inf))
+pnw8.pnw20 <- data.frame(Genes = rownames(pnw8.pnw20), pnw8.pnw20, stringsAsFactors = F)
+pnw8.pnw20_sig <- pnw8.pnw20[abs(pnw8.pnw20$logFC) >= 1 & pnw8.pnw20$adj.P.Val <= 0.05, ]
+```
+
+
+
+# `cpm` Counts data and pData
+
+```{r }
+y <- DGEList(counts = counts)
+dds <- calcNormFactors(y)
+cpm <- cpm(dds, log = T)
+
+data <- list(cpm = cpm, pData = pdata)
+
+save(data,
+  file = "./output/data_pData.RData", compress = T,
+  compression_level = 3
+)
+```
+
+# Results
+```{r }
+dea.list <- list(
+  `pnw20 vs pnw8` = as.DEA(pnw8.pnw20)
+)
+
+dea.limma <- list(
+  `pnw20 vs pnw8` = pnw8.pnw20
+)
+```
+
+
+## Save RData files
+```{r }
+save(dea.list,
+  file = "./output/dea_SC_Controls_pnw8_pnw20.DEA.RData", compress = T,
+  compression_level = 3
+)
+
+save(dea.limma,
+  file = "./output/limma_SC_Controls_pnw8_pnw20.RData", compress = T,
+  compression_level = 3
+)
+
+writexl::write_xlsx(x = dea.limma, path = "output/dea_results_pnw8_pnw20.xlsx", col_names = T, format_headers = T)
+```
+
+
+# MA plots
+```{r }
+res <- pnw8.pnw20
+res$threshold <- as.factor(res$adj.P.Val < 0.05)
+
+p1 <- ggplot(data = res, aes(
+  x = res$AveExpr,
+  y = res$logFC,
+  colour = threshold
+)) +
+  geom_point(alpha = 0.5, size = 1.8) +
+  geom_hline(aes(yintercept = 0), colour = "blue", size = 1) +
+  ylim(c(
+    -ceiling(max(abs(res$logFC))),
+    ceiling(max(abs(res$logFC)))
+  )) +
+  ggtitle("PNW20 vs PNW8") +
+  labs(subtitle = "loess fit") +
+  xlab("Mean expression") +
+  ylab("Log2 Fold Change") +
+  theme(
+    plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
+    plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"),
+    axis.title.x = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(face = "bold", size = 12),
+    legend.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 14)
+  ) +
+  scale_colour_discrete(name = "p.adjusted < 0.05") +
+  stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1)
+```
+
+
+```{r, fig.height=5, fig.width=11}
+p1
+```
+
+
+# Heatmap of most variable genes
+```{r}
+xvar <- apply((data$cpm + 1), 1, var)
+genes500 <- head(sort(xvar, decreasing = TRUE), n = 500)
+x500 <- data$cpm[rownames(data$cpm) %in% names(genes500), ]
+
+pheatmap(mat = x500, scale = "row", show_rownames = F, col = viridis(100), 
+         show_colnames = T,
+         main = "Clustering of samples based on top 500 variable genes")
+```
+
+# PCA
+```{r, fig.height=8.5, fig.width=11}
+pca <- prcomp(t(data$cpm))
+# ggplotly(
+  autoplot(pca,
+  data = data$pData, colour = "Group",
+  frame = TRUE, frame.type = "norm", size = 2
+) +
+  ggtitle("") + 
+    theme(axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        plot.title = element_text(size = 25, face = "bold"),
+        legend.text=element_text(size=20),
+        legend.title=element_text(size=20, face = "bold"))
+```
+
+# Volcano plots
+```{r}
+tab <- lab@tx.info
+tab <- tab[,c(4,6,8,12)]
+rownames(tab) <- NULL
+tab <- tab[!duplicated(tab),]
+
+tab <- merge(tab, pnw8.pnw20, by.x = "transcript", "Genes")
+
+tab$Significant <- "Not significant"
+tab$Significant[tab$adj.P.Val <= 0.05 & abs(tab$logFC) >= 1] <- "PNW8"
+tab$Significant[tab$Significant == "PNW8"] <- ifelse(tab$logFC[tab$Significant == "PNW8"] > 0, "PNW20", "PNW8")
+
+tab$Significant[tab$Significant == "PNW8"] <- "Ribo0"
+tab$Significant[tab$Significant == "PNW20"] <- "polyA"
+
+
+a <- ggplot(tab, aes(x = logFC, y = -log10(adj.P.Val))) +
+  geom_point(aes(color = Significant), size = 2, alpha = 0.5) +
+  scale_color_manual(values = c("black", "#0072B5FF", "#BC3C29FF")) +
+  xlim(
+    -(ceiling(max(abs(tab$logFC)))),
+    ceiling(max(abs(tab$logFC)))
+  ) +
+  ylim(0, max(-log10(tab$adj.P.Val), na.rm = TRUE) + 1) +
+  xlab(bquote(~ Log[2] ~ "FC")) +
+  ylab(bquote(~ -Log[10] ~ adjusted ~ italic(P))) +
+  labs(
+    title = "PNW20 vs PNW8"
+  ) +
+  theme_bw(base_family = "Helvetica") +
+  geom_vline(
+    xintercept = c(-1, 1),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  ) +
+  geom_hline(
+    yintercept = -log10(0.05),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  )
+
+a1 <- a + facet_wrap(~type, scales = "free_y")
+a2 <- a + facet_wrap(~type2, scales = "free_y")
+```
+
+
+```{r, fig.height=8.5, fig.width=11}
+a
+```
+
+```{r, fig.height=8.5, fig.width=11}
+a1
+```
+
+```{r, fig.height=8.5, fig.width=11}
+a2
+```
+
+
+
+# References
+```{r }
+report::cite_packages(session = sessionInfo())
+```
+
+
+# SessionInfo
+```{r }
+devtools::session_info() %>%
+  details::details()
+```
