@@ -49,7 +49,7 @@ tab$Significant[tab$Significant == "Positive"] <- "More accessible in adult sper
 
 tab$Significant <- factor(x = tab$Significant, levels = unique(tab$Significant)[c(1, 3, 2)])
 
-anno <- data.frame(x = c(-4, 4), y = c(5, 5), label = c("n = 760", "n = 2452"), col = c("#0072B5FF", "#BC3C29FF"))
+anno <- data.frame(x = c(-3.9, 3.7), y = c(5, 5), label = c("n = 760", "n = 2452"), col = c("#0072B5FF", "#BC3C29FF"))
 
 a <- ggplot(tab, aes(x = `diffAccessibility-logFC`, y = -log10(`diffAccessibility-qvalue`))) +
   geom_point(aes(color = Significant), size = 2, alpha = 0.5) +
@@ -114,10 +114,28 @@ a <- ggplot(tab, aes(x = `diffAccessibility-logFC`, y = -log10(`diffAccessibilit
     size = 4, angle = 45, fontface = "plain", family = "Helvetica"
   )
 
+a1 <- a + theme(legend.text = element_text(
+      colour = "black",
+      size = 9,
+      margin = margin(r = 0, t = 0, b = 2, l = 0, unit = "pt"),
+      vjust = 0, hjust = 0
+    ),panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+a2 <- a + theme(legend.text = element_text(
+      colour = "black",
+      size = 9,
+      margin = margin(r = 0, t = 0, b = 2, l = 0, unit = "pt"),
+      vjust = 0, hjust = 0
+    ), panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+
 ag <- gridExtra::grid.arrange(egg::set_panel_size(p = a, width = unit(6.2, "cm"), height = unit(5.62, "cm")))
+ag1 <- gridExtra::grid.arrange(egg::set_panel_size(p = a1, width = unit(6.2, "cm"), height = unit(5.62, "cm")))
+ag2 <- gridExtra::grid.arrange(egg::set_panel_size(p = a2, width = unit(6.2, "cm"), height = unit(5.62, "cm")))
 
 ggsave(plot = ag, filename = "output/a.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ggsave(plot = ag, filename = "output/a.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = ag1, filename = "output/a_no_grid.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = ag2, filename = "output/a_no_grid_no_axis.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 
@@ -168,10 +186,17 @@ b <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
   ) +
   guides(fill = guide_legend(nrow = 2))
 
+b1 <- b + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+b2 <- b + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
 bg <- gridExtra::grid.arrange(egg::set_panel_size(p = b, width = unit(3.5, "cm"), height = unit(5.62, "cm")))
+bg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = b1, width = unit(3.5, "cm"), height = unit(5.62, "cm")))
+bg2 <- gridExtra::grid.arrange(egg::set_panel_size(p = b2, width = unit(3.5, "cm"), height = unit(5.62, "cm")))
 
 ggsave(plot = bg, filename = "output/b.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ggsave(plot = bg, filename = "output/b.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = bg1, filename = "output/b_no_grid.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = bg2, filename = "output/b_no_grid_no_axis.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 
@@ -362,6 +387,9 @@ tmp <- c(tmp1,tmp2)
 
 go_df <- go_df[go_df$ID %in% tmp,]
 go_df$name <- stringr::str_to_sentence(go_df$name)
+go_df$name <- gsub(pattern = "dna", replacement = "DNA", x = go_df$name)
+go_df$name <- gsub(pattern = "rna", replacement = "RNA", x = go_df$name)
+
 
 go_df$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df$Samples_ID))
 go_df <- go_df %>% map_df(rev)
@@ -369,7 +397,18 @@ go_df <- go_df %>% map_df(rev)
 go_df$Group[go_df$Group == "Adult Positive"] <- "More accessible in adult spermatogonia"
 go_df$Group[go_df$Group == "Adult Negative"] <- "Less accessible in adult spermatogonia"
 
-go_df$name <- plgINS:::breakStrings(x = as.character(go_df$name), minSizeForBreak = 43)
+# go_d <- go_df
+
+
+go_df$name[nchar(go_df$name) <= 60] <- breakStrings(go_df$name[nchar(go_df$name) <= 60], nb = 2)
+go_df$name[nchar(go_df$name) > 60] <- breakStrings(go_df$name[nchar(go_df$name) > 60], nb = 2)
+
+# go_d$name <- plgINS:::breakStrings(x = as.character(go_d$name), minSizeForBreak = 20)
+# go_d$name <- plgINS:::breakStrings(x = as.character(go_d$name), minSizeForBreak = 30)
+
+# go_d$name
+
+# go_df <- go_d
 
 # go_df$name <- plgINS:::breakStrings(x = as.character(go_df$name), minSizeForBreak = 30)
 
@@ -383,17 +422,17 @@ ont_col <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
 c1 <- ggplot(data = arrange(go_df, Hyper_Fold_Enrichment), mapping = aes(
   x = name,
   y = Hyper_Fold_Enrichment,
-  color = Hyper_Adjp_BH,
+  color = -log10(Hyper_Adjp_BH),
   size = Total_Genes_Annotated
 )) +
-  geom_point(show.legend = T, alpha = 0.7) +
+  geom_point(show.legend = T, alpha = 0.7, stroke=1.5) +
   coord_flip(expand = T) +
   # scale_fill_distiller(palette = "Spectral") +
   scale_colour_gradientn(
-    colors = rev(myPalette(n = nrow(go_df))),
+    colors = myPalette(n = nrow(go_df)),
     # colors = rev(cividis(n = nrow(go_df))),
     # guide = guide_colorbar(reverse = TRUE),
-    breaks = c(0.001, 0.02)
+    # breaks = c(2,7)
   ) +
   scale_size_continuous(breaks = c(200, 800)) +
   xlab("") +
@@ -417,11 +456,11 @@ c1 <- ggplot(data = arrange(go_df, Hyper_Fold_Enrichment), mapping = aes(
     )
   ) +
   labs(
-    color = expression("adjusted" ~ italic(P) ~ " "),
+    color = expression(-log[10]~"adjusted" ~ italic(P) ~ " "),
     size = "Annotated genes"
-  ) + theme(axis.text.y = element_text(lineheight = 0.65), legend.spacing = unit(1, "cm"))
+  ) + theme(axis.text.y = element_text(lineheight = 0.8), legend.spacing = unit(1, "cm"))
 
-cg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = c1, width = unit(3.25, "cm"), height = unit(7.5, "cm")))
+cg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = c1, width = unit(3.5, "cm"), height = unit(10, "cm")))
 
 ggsave(plot = cg1, filename = "output/c1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ggsave(plot = cg1, filename = "output/c1.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
@@ -454,6 +493,9 @@ tmp <- c(tmp1,tmp2)
 
 go_df_s <- go_df_s[go_df_s$ID %in% tmp,]
 go_df_s$name <- stringr::str_to_sentence(go_df_s$name)
+go_df_s$name <- gsub(pattern = "dna", replacement = "DNA", x = go_df_s$name)
+go_df_s$name <- gsub(pattern = "rna", replacement = "RNA", x = go_df_s$name)
+
 
 go_df_s$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_df_s$Samples_ID))
 
@@ -463,7 +505,11 @@ go_df_s$Group <- trimws(gsub(pattern = "_GO_.*|_|-", replacement = " ", x = go_d
 go_df_s$Group <- gsub(pattern = "Adult Positive", replacement = "More accessible in adult spermatogonia", x = go_df_s$Group)
 go_df_s$Group <- gsub(pattern = "Adult Negative", replacement = "Less accessible in adult spermatogonia", x = go_df_s$Group)
 
-go_df_s$name <- plgINS:::breakStrings(x = as.character(go_df_s$name), minSizeForBreak = 43)
+
+go_df_s$name[nchar(go_df_s$name) <= 60] <- breakStrings(go_df_s$name[nchar(go_df_s$name) <= 60], nb = 2)
+go_df_s$name[nchar(go_df_s$name) > 60] <- breakStrings(go_df_s$name[nchar(go_df_s$name) > 60], nb = 3)
+
+
 
 # go_df_s$Group <- gsub(pattern = "gene body", replacement = "gene body", x = go_df_s$Group)
 go_df_s$Group <- gsub(pattern = "tss prox 1kbp", replacement = "(TSS +/- 1kbp)", x = go_df_s$Group)
@@ -519,9 +565,9 @@ d1 <- ggplot(data = go_df_s, mapping = aes(
   labs(
     color = expression("adjusted" ~ italic(P) ~ " "),
     size = "Annotated genes"
-  ) + theme(axis.text.y = element_text(lineheight = 0.65), legend.spacing = unit(1, "cm"))
+  ) + theme(axis.text.y = element_text(lineheight = 0.8), legend.spacing = unit(1, "cm"))
 
-dg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = d1, width = unit(3.25, "cm"), height = unit(7, "cm")))
+dg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = d1, width = unit(3.5, "cm"), height = unit(12, "cm")))
 
 ggsave(plot = dg1, filename = "output/d1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ggsave(plot = dg1, filename = "output/d1.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)

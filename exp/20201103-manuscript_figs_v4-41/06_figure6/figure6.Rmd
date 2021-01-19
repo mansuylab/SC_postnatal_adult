@@ -63,7 +63,7 @@ c <- ggplot(tf_dea_pos, aes(x = Motif, y = Group)) +
   # theme_bw(base_family = "Helvetica") +
   th +
   theme(
-    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90, size = 8),
+    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90, size = 7),
     legend.title.align = 0.5
   ) +
   labs(color = expression(Log[2] ~ FC ~ "(RNA-seq)"), size = expression(-Log[10] ~ adjusted ~ italic(P) ~ "(Motif enrichment)")) +
@@ -72,7 +72,7 @@ c <- ggplot(tf_dea_pos, aes(x = Motif, y = Group)) +
       nrow = 1, order = 1,
       title.position = "top", title.hjust = 0.5, title.vjust = 0.5,
       barwidth = unit(2, "cm"), barheight = unit(0.3, "cm"),
-      label.hjust = 0.5, label.vjust = 0.5, size = 8
+      label.hjust = 0.5, label.vjust = 0.5, size = 10
     ),
     size = guide_legend(
       title.position = "top",
@@ -114,7 +114,7 @@ a <- ggplot(tf_dea_neg, aes(x = Motif, y = Group)) +
   # theme_bw(base_family = "Helvetica") +
   th +
   theme(
-    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90),
+    axis.text.x = element_text(hjust = 1, vjust = 0.5, angle = 90, size = 7),
     legend.title.align = 0.5
   ) +
   labs(color = expression(Log[2] ~ FC ~ "(RNA-seq)"), size = expression(-Log[10] ~ adjusted ~ italic(P) ~ "(Motif enrichment)")) +

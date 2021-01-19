@@ -118,10 +118,19 @@ c <- ggplot(data = rd, mapping = aes(x = anno, fill = anno)) +
   ) +
   guides(fill = guide_legend(nrow = 1, byrow = F))
 
+
+c1 <- c + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+c2 <- c + theme(panel.border = element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+
 cg <- gridExtra::grid.arrange(egg::set_panel_size(p = c, width = unit(4, "cm"), height = unit(4, "cm")))
+cg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = c1, width = unit(4, "cm"), height = unit(4, "cm")))
+cg2 <- gridExtra::grid.arrange(egg::set_panel_size(p = c2, width = unit(4, "cm"), height = unit(4, "cm")))
 
 ggsave(plot = cg, filename = "output/c.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ggsave(plot = cg, filename = "output/c.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = cg1, filename = "output/c_no_grid.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
+ggsave(plot = cg2, filename = "output/c_no_grid_no_axis.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ```
 
 

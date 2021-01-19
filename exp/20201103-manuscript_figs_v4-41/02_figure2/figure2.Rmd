@@ -376,8 +376,12 @@ tab <- tab[order(tab$NES, decreasing = T),]
 tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
 tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
 tab$pathway <- stringr::str_to_sentence(tab$pathway)
+tab$pathway <- gsub(pattern = "dna", replacement = "DNA", x = tab$pathway)
+tab$pathway <- gsub(pattern = "rna", replacement = "RNA", x = tab$pathway)
 
-tab$pathway <- plgINS:::breakStrings(x = as.character(tab$pathway), minSizeForBreak = 45)
+
+tab$pathway <- breakStrings(tab$pathway, nb = 2, minSizeForBreak = 30)
+
 
 tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
 
@@ -387,17 +391,17 @@ ont_col <- RColorBrewer::brewer.pal(n = 3, name = "Dark2")
 c1 <- ggplot(tab, mapping = aes(
   x = pathway,
   y = NES,
-  color = padj,
+  color = -log10(padj),
   size = size
 )) +
-  geom_point(show.legend = T, alpha = 0.6) +
+  geom_point(show.legend = T, alpha = 0.7, stroke = 1.5) +
   coord_flip(expand = T) +
   # scale_fill_distiller(palette = "Spectral") +
   scale_colour_gradientn(
-    colors = rev(myPalette(n = nrow(tab))),
+    colors = myPalette(n = nrow(tab)),
     # colors = rev(cividis(n = nrow(go_df))),
     # guide = guide_colorbar(reverse = TRUE),
-    breaks = c(1e-7, 0.004)
+    # breaks = c(1e-7, 0.004)
   ) +
   scale_size_continuous(breaks = c(200, 500)) +
   xlab("") +
@@ -421,12 +425,12 @@ c1 <- ggplot(tab, mapping = aes(
       label.hjust = 0.5, label.vjust = 0.5)
   ) +
   labs(
-    color = expression("adjusted" ~ italic(P) ~ " "),
+    color = expression(-log[10]~"adjusted" ~ italic(P) ~ " "),
     size = "Annotated genes"
-  )+ theme(axis.text.y = element_text(lineheight = 0.65))
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
 
 
-cg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = c1, width = unit(3.5, "cm"), height = unit(10, "cm")))
+cg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = c1, width = unit(3.5, "cm"), height = unit(12, "cm")))
 
 ggsave(plot = cg1, filename = "output/c1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ggsave(plot = cg1, filename = "output/c1.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
@@ -454,26 +458,27 @@ tab <- tab[order(tab$NES, decreasing = T),]
 tab$pathway <- gsub(pattern = "_", replacement = " ", x = tab$pathway)
 tab$pathway <- gsub(pattern = "GO:[0-9]+ ", replacement = "", x = tab$pathway)
 tab$pathway <- stringr::str_to_sentence(tab$pathway)
+tab$pathway <- gsub(pattern = "dna", replacement = "DNA", x = tab$pathway)
+tab$pathway <- gsub(pattern = "rna", replacement = "RNA", x = tab$pathway)
 
-tab$pathway <- plgINS:::breakStrings(x = as.character(tab$pathway), minSizeForBreak = 40)
-
+tab$pathway <- breakStrings(tab$pathway, nb = 2, minSizeForBreak = 30)
 tab$pathway <- factor(tab$pathway, rev(as.character(tab$pathway)))
 
 
 d1 <- ggplot(tab, mapping = aes(
   x = pathway,
   y = NES,
-  color = padj,
+  color = -log10(padj),
   size = size
 )) +
-  geom_point(show.legend = T, alpha = 0.6) +
+  geom_point(show.legend = T, alpha = 0.7, stroke = 1.5) +
   coord_flip(expand = T) +
   # scale_fill_distiller(palette = "Spectral") +
   scale_colour_gradientn(
-    colors = rev(myPalette(n = nrow(tab))),
+    colors = myPalette(n = nrow(tab)),
     # colors = rev(cividis(n = nrow(go_df))),
     # guide = guide_colorbar(reverse = TRUE),
-    breaks = c(1e-7, 0.02)
+    # breaks = c(1e-7, 0.02)
   ) +
   scale_size_continuous(breaks = c(50, 200)) +
   xlab("") +
@@ -497,11 +502,11 @@ d1 <- ggplot(tab, mapping = aes(
       label.hjust = 0.5, label.vjust = 0.5)
   ) +
   labs(
-    color = expression("adjusted" ~ italic(P) ~ " "),
+    color = expression(-log[10]~"adjusted" ~ italic(P) ~ " "),
     size = "Annotated genes"
-  )+ theme(axis.text.y = element_text(lineheight = 0.65))
+  )+ theme(axis.text.y = element_text(lineheight = 0.8))
 
-dg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = d1, width = unit(3.5, "cm"), height = unit(10, "cm")))
+dg1 <- gridExtra::grid.arrange(egg::set_panel_size(p = d1, width = unit(3.5, "cm"), height = unit(12, "cm")))
 
 ggsave(plot = dg1, filename = "output/d1.pdf", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
 ggsave(plot = dg1, filename = "output/d1.png", width = unit(8.5, "in"), height = unit(11, "in"), dpi = 320)
