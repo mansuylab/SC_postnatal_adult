@@ -919,7 +919,6 @@ adult_sp_subcat1_bg_LINE_cat_6 <- perform_homer(
 
 
 
-
 # References
 ```{r 20200213-homer-RE-23 }
 report::cite_packages(sessionInfo())
