@@ -1,5 +1,19 @@
 #!/bin/bash
 
-#samtools merge -n -@ 8 ./output/pnd_adult.bam ./input/*.bam &&  samtools sort -o ./output/PND_Adult.bam -O BAM -@ 8 ./output/pnd_adult.bam && rm -rf ./output/pnd_adult.bam && samtools index ./output/PND_Adult.bam
-samtools merge -n -@ 8 ./output/PND15.bam ./input/PND*.bam &&  samtools sort -o ./output/PND15.bam -O BAM -@ 8 ./output/pnd15.bam && rm -rf ./output/pnd15.bam && samtools index ./output/PND15.bam
-samtools merge -n -@ 8 ./output/adult.bam ./input/Adult*.bam &&  samtools sort -o ./output/Adult.bam -O BAM -@ 8 ./output/adult.bam && rm -rf ./output/adult.bam && samtools index ./output/Adult.bam
+## All samples
+samtools merge -n -@ 16 --write-index -O BAM ./output/pnd_adult.bam ./output/*.bam &&\
+ samtools sort -m 8G -O BAM -@ 16 -o ./output/PND_Adult.bam ./output/pnd_adult.bam &&\
+ rm -rf ./output/pnd_adult.ba* &&\
+ samtools index ./output/PND_Adult.bam
+
+## PND15 samples
+samtools merge -n -@ 16 --write-index -O BAM ./output/PND15.bam ./output/PND*.bam &&\
+ samtools sort -m 8G -O BAM -@ 16 -o ./output/PND15.bam ./output/pnd15.bam &&\
+ rm -rf ./output/pnd15.ba* &&\
+ samtools index ./output/PND15.bam
+
+## Adult samples
+samtools merge -n -@ 16 --write-index -O BAM ./output/adult.bam ./output/Adult*.bam &&\
+ samtools sort -m 8G -O BAM -@ 16 -o ./output/Adult.bam ./output/adult.bam &&\
+ rm -rf ./output/adult.ba* &&\
+ samtools index ./output/Adult.bam

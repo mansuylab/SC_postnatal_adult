@@ -15,4 +15,4 @@ targets := $(patsubst $(source_dir)/%.bam, $(target_dir)/%.bam, $(files))
 all: $(targets)
 
 $(target_dir)/%.bam: $(source_dir)/%.bam
-	alignmentSieve --version 2> ./log/$(basename $(notdir $@)).log >> ./log/$(basename $(notdir $@)).log && alignmentSieve --ATACshift --blackListFileName ./input/atac_blacklist_mm10.bed --filterMetrics $(basename $@).filterMetricBlacklist.txt -p 8 -b $< -o /dev/stdout 2>> ./log/$(basename $(notdir $@)).log | samtools sort -@ 8 -O BAM -o $@ && samtools index $@ && rm -rf /tmp/_deep*
+	alignmentSieve --version 2> ./log/$(basename $(notdir $@)).log >> ./log/$(basename $(notdir $@)).log && alignmentSieve --ATACshift --blackListFileName ./input/atac_blacklist_mm10.bed --filterMetrics $(basename $@).filterMetricBlacklist.txt -p 8 -b $< -o /dev/stdout 2>> ./log/$(basename $(notdir $@)).log | samtools sort -m 8G -@ 8 -O BAM -o $@ && samtools index $@ && rm -rf /tmp/_deep*
