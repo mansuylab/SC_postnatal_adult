@@ -1,0 +1,98 @@
+---
+title: "ATAC-Seq: Softlink files and change names"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-12-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(plyr)
+library(readr)
+```
+
+# Files and desc tables
+
+## Files
+```{r }
+files1 <- list.files(path = "input", pattern = "_1.fastq.gz", full.names = TRUE, recursive = TRUE)
+files2 <- list.files(path = "input", pattern = "_2.fastq.gz", full.names = TRUE, recursive = TRUE)
+files <- data.frame(Files1 = files1, Files2 = files2, stringsAsFactors = F)
+files$Run <- gsub(pattern = "_1.fastq.gz", replacement = "", x = basename(files$Files1))
+```
+
+## Description file
+```{r }
+datasets <- list.files(path = "input", pattern = "csv", full.names = TRUE, recursive = TRUE)
+datasets <- lapply(datasets, function(x) {
+  read.delim(x,
+    header = TRUE, sep = ",",
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+})
+datasets <- ldply(datasets, data.frame, stringsAsFactors = FALSE, check.names = FALSE)
+```
+
+### Merging files and info
+```{r }
+# Merging files with information
+data <- merge(files, datasets)
+data$Samples <- paste(data$Group, data$Replicate, sep = "_")
+```
+
+### Full table with runs
+```{r }
+data.all <- data
+write_tsv(data.all, path = "output/dataset.tsv")
+```
+
+### Final table to be used
+```{r }
+data.final <- data[, c("Run", "Group", "Replicate")]
+write_tsv(data.final, path = "output/dataset_pnd_adult.tsv")
+```
+
+# Creating soft links
+```{r }
+for (i in 1:nrow(data.all)) {
+  
+  cmd1 <- paste0("ln -sr ./", data.all$Files1[i], " ./output/", data.all$Samples[i], "_R1.fq.gz")
+  cmd2 <- paste0("ln -sr ./", data.all$Files2[i], " ./output/", data.all$Samples[i], "_R2.fq.gz")
+
+  system(cmd1)
+  system(cmd2)
+}
+```
+
+
+# References
+```{r}
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r }
+devtools::session_info()
+```
