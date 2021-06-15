@@ -1,0 +1,68 @@
+---
+title: "short RNA-Seq: find adapters using `tryAdapters`"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-03-03 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r 20200330-tryAdapters-1, warning = F, message = F}
+library(plgINS)
+```
+
+# FastQ files
+```{r 20200330-tryAdapters-2 }
+fq <- list.files(path = "input", pattern = ".gz", full.names = T)
+```
+
+# `tryAdapter`
+
+## Function
+```{r 20200330-tryAdapters-3 }
+ta <- function(fq_files = NULL, adapters_fa = NULL, out_file = getwd()) {
+  try_adapter <- NULL
+  if (!file.exists(out_file)) {
+    if (is.null(adapters_fa)) {
+      try_adapter <- mylapply(fq, tryAdapters)
+    } else {
+      try_adapter <- mylapply(fq, tryAdapters, adapters_fa)
+    }
+    saveRDS(object = try_adapter, file = out_file)
+  } else {
+    print("Results exists!")
+  }
+}
+```
+
+## Raw files without adapters
+```{r 20200330-tryAdapters-4 }
+ta(fq_files = fq, out_file = "output/try_adapters.rds")
+```
+
+## Raw files with adapters from kit
+```{r 20200330-tryAdapters-5 }
+ta(fq_files = fq, adapters_fa = "input/adapter.fa", out_file = "output/try_adapters_kit.rds")
+```
+
+# SessionInfo
+```{r 20200330-tryAdapters-6 }
+devtools::session_info()
+```

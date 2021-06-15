@@ -1,0 +1,330 @@
+---
+title: "ATAC-Seq: Overlap of peak regions"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2021-01-14 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(plgINS)
+library(GenomicRanges)
+library(ggplot2)
+library(patchwork)
+library(ComplexHeatmap)
+library(circlize)
+```
+
+# Peak files
+```{r, message=FALSE, warning=FALSE}
+read_peak_file <- function(file) {
+  GRanges(read.table(file,
+    header = F,
+    col.names = c(
+      "Chr", "Start", "End", "Name", "Score", "Strand",
+      "FoldChange", "negLog10pvalue", "negLog10qvalue",
+      "Summit"
+    ), stringsAsFactors = F
+  ))
+}
+
+pnd15 <- read_peak_file(file = "../../../../ATAC-Seq/20191008-10_peak_calling_macs2/output/PND15_NF/PND15_NF_peaks.narrowPeak")
+adult <- read_peak_file(file = "../../../../ATAC-Seq/20191008-10_peak_calling_macs2/output/Adult_NF/Adult_NF_peaks.narrowPeak")
+pnd15_adult <- read_peak_file(file = "../../../../ATAC-Seq/20191008-10_peak_calling_macs2/output/PND15_Adult_NF/PND15_Adult_NF_peaks.narrowPeak")
+
+dim <- read_peak_file(file = "../Dim_NFF/Dim_NFF_peaks.narrowPeak")
+bright <- read_peak_file(file = "../Bright_NFF/Bright_NFF_peaks.narrowPeak")
+dim_bright <- read_peak_file(file = "../Dim_Bright_NFF/Dim_Bright_NFF_peaks.narrowPeak")
+
+diff <- data.frame(readxl::read_xlsx("../../../../../20191118-differential_analysis_peaksAnnotation_atac-15/20191118-01_diff_chromatin_acc_analysis/output/atac_diff_chromatin_accessibility_lfc1_qval05.xlsx"), check.names = F, stringsAsFactors = F)[,1:11]
+
+colnames(diff) <- gsub(pattern = "Peak-", replacement = "", x = colnames(diff))
+diff <- GRanges(diff)
+
+diff_id4 <- data.frame(readxl::read_xlsx("../../../../../20210119-id4_diff_acc/20210119-01_diff_chromatin_acc_analysis/output/id4_diff_chromatin_accessibility_lfc1_qval05.xlsx"), check.names = F, stringsAsFactors = F)[,1:11]
+
+colnames(diff_id4) <- gsub(pattern = "Peak-", replacement = "", x = colnames(diff_id4))
+diff_id4 <- GRanges(diff_id4)
+```
+
+## No. of peaks (NFF)
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE, fig.align='center', fig.width=11, fig.height=6}
+df <- data.frame(
+  Samples = c("PND15", "PNW20", "PND15 + PNW20", "Dim", "Bright", "Dim + Bright"),
+  n = c(length(pnd15), length(adult), length(pnd15_adult), length(dim), length(bright), length(dim_bright))
+)
+
+df$Samples <- factor(df$Samples, df$Samples)
+
+ggplot(df, aes(x = Samples, y = n)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.3) +
+   geom_text(aes(label = n), vjust = 1.5, size = 10, color = "blue") +
+  theme_bw(base_size = 22) +
+  labs(x = "", y = "", title = "Barplot of no. of peaks (NFF)")
+```
+
+
+
+# Overlap PND15 with ID4
+```{r, warning=FALSE, message=FALSE}
+o_df <- data.frame(
+  overlap_bp = 1:50,
+  PND15_Adult_ID4_Dim = 0, PND15_Adult_ID4_Bright = 0, PND15_Adult_ID4_Dim_Bright = 0,
+  PND15_ID4_Dim = 0, PND15_ID4_Bright = 0, PND15_ID4_Dim_Bright = 0,
+  Adult_ID4_Dim = 0, Adult_ID4_Bright = 0, Adult_ID4_Dim_Bright = 0
+)
+
+for (i in 1:nrow(o_df)) {
+  a <- length(metaGR(gr1 = pnd15_adult, gr2 = dim, minOverlap = i))
+  b <- length(metaGR(gr1 = pnd15_adult, gr2 = bright, minOverlap = i))
+  c <- length(metaGR(gr1 = pnd15_adult, gr2 = dim_bright, minOverlap = i))
+
+  d <- length(metaGR(gr1 = pnd15, gr2 = dim, minOverlap = i))
+  e <- length(metaGR(gr1 = pnd15, gr2 = bright, minOverlap = i))
+  f <- length(metaGR(gr1 = pnd15, gr2 = dim_bright, minOverlap = i))
+
+  g <- length(metaGR(gr1 = adult, gr2 = dim, minOverlap = i))
+  h <- length(metaGR(gr1 = adult, gr2 = bright, minOverlap = i))
+  j <- length(metaGR(gr1 = adult, gr2 = dim_bright, minOverlap = i))
+
+  o_df[i, 2:10] <- c(a, b, c, d, e, f, g, h, j)
+}
+
+o_df
+```
+
+# Barplot of overlaps
+
+## PND15_Adult & ID4
+```{r, fig.height=8.5, fig.width=11, message=FALSE, warning=FALSE}
+p1 <- ggplot(data = o_df, aes(x = overlap_bp, y = PND15_Adult_ID4_Dim)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = PND15_Adult_ID4_Dim), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p2 <- ggplot(data = o_df, aes(x = overlap_bp, y = PND15_Adult_ID4_Bright)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = PND15_Adult_ID4_Bright), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p3 <- ggplot(data = o_df, aes(x = overlap_bp, y = PND15_Adult_ID4_Dim_Bright)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = PND15_Adult_ID4_Dim_Bright), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p1 | p2 | p3
+```
+
+
+## PND15 & ID4
+```{r, fig.height=8.5, fig.width=11, message=FALSE, warning=FALSE}
+p1 <- ggplot(data = o_df, aes(x = overlap_bp, y = PND15_ID4_Dim)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = PND15_ID4_Dim), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p2 <- ggplot(data = o_df, aes(x = overlap_bp, y = PND15_ID4_Bright)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = PND15_ID4_Bright), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p3 <- ggplot(data = o_df, aes(x = overlap_bp, y = PND15_ID4_Dim_Bright)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = PND15_ID4_Dim_Bright), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p1 | p2 | p3
+```
+
+
+## Adult & ID4
+```{r, fig.height=8.5, fig.width=11, message=FALSE, warning=FALSE}
+p1 <- ggplot(data = o_df, aes(x = overlap_bp, y = Adult_ID4_Dim)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = Adult_ID4_Dim), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p2 <- ggplot(data = o_df, aes(x = overlap_bp, y = Adult_ID4_Bright)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = Adult_ID4_Bright), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p3 <- ggplot(data = o_df, aes(x = overlap_bp, y = Adult_ID4_Dim_Bright)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = Adult_ID4_Dim_Bright), hjust = 2, size = 3.5) +
+  coord_flip() +
+  theme_bw()
+
+p1 | p2 | p3
+```
+
+
+# Upset plot
+```{r, message=FALSE, warning=FALSE}
+lt <- list(
+  PND15 = pnd15,
+  PNW20 = adult,
+  PND15_PNW20 = pnd15_adult,
+  DAR_PND15_PNW20 = diff,
+  Dim = dim,
+  Bright = bright,
+  Dim_Bright = dim_bright,
+  DAR_Dim_Bright = diff_id4
+)
+
+lt1 <- list(
+  PND15 = pnd15,
+  Dim = dim,
+  Bright = bright,
+  Dim_Bright = dim_bright
+)
+
+lt2 <- list(
+  PNW20 = adult,
+  Dim = dim,
+  Bright = bright,
+  Dim_Bright = dim_bright
+)
+
+lt3 <- list(
+  PND15_PNW20 = pnd15_adult,
+  Dim = dim,
+  Bright = bright,
+  Dim_Bright = dim_bright
+)
+
+lt4 <- list(
+  DAR_PND15_PNW20 = diff,
+  DAR_Dim_Bright = diff_id4,
+  Dim = dim,
+  Bright = bright,
+  Dim_Bright = dim_bright
+)
+
+mlt <- make_comb_mat(lt, mode = "intersect")
+mlt1 <- make_comb_mat(lt1, mode = "intersect")
+mlt2 <- make_comb_mat(lt2, mode = "intersect")
+mlt3 <- make_comb_mat(lt3, mode = "intersect")
+mlt4 <- make_comb_mat(lt4, mode = "intersect")
+
+# mlt <- mlt[comb_size(mlt) >= 1000000]
+# mlt1 <- mlt1[comb_size(mlt1) >= 1000000]
+# mlt2 <- mlt2[comb_size(mlt2) >= 1000000]
+# mlt3 <- mlt3[comb_size(mlt3) >= 1000000]
+
+upset_plot <- function(comb) {
+  
+  comb <- comb[comb_size(comb) >= 1000000]
+
+  UpSet(comb,
+    top_annotation = upset_top_annotation(
+      comb,
+      axis_param = list(
+        at = c(0, 2e7, 4e7, 6e7),
+        labels = c("0Mb", "20Mb", "40Mb", "60Mb")
+      ),
+      height = unit(4, "cm")
+    ),
+    right_annotation = upset_right_annotation(
+      comb,
+      axis_param = list(
+        at = c(0, 2e7, 4e7, 6e7),
+        labels = c("0Mb", "20Mb", "40Mb", "60Mb")
+      ),
+      width = unit(4, "cm")
+    ),
+    comb_order = rev(order(comb_size(comb))), pt_size = unit(2, "mm"), lwd = 1,
+    comb_col = "#0000FF", bg_col = c("#F0F0FF", "#FFF0F0"), bg_pt_col = "#CCCCFF", 
+    width = unit(4.5, "in"), height = unit(2, "in")
+  )
+}
+```
+
+## All
+```{r, message=FALSE, warning=FALSE,fig.align='center'}
+upset_plot(comb = mlt)
+```
+
+## PND15
+```{r, message=FALSE, warning=FALSE,fig.align='center'}
+upset_plot(comb = mlt1)
+```
+
+## PNW20
+```{r, message=FALSE, warning=FALSE,fig.align='center'}
+upset_plot(comb = mlt2)
+```
+
+## PND15 + PNW20
+```{r, message=FALSE, warning=FALSE,fig.align='center'}
+upset_plot(comb = mlt3)
+```
+
+## DARs (PND15 + PNW20) & DARs (Dim + Bright)
+```{r, message=FALSE, warning=FALSE,fig.align='center'}
+
+m <- mlt4[comb_size(mlt4) < 2800000]
+
+ UpSet(m,
+    top_annotation = upset_top_annotation(
+      m,
+      axis_param = list(
+        at = c(0, 2e5, 4e5, 6e5),
+        labels = c("0Mb", "0.2Mb", "0.4Mb", "0.6Mb")
+      ),
+      height = unit(4, "cm")
+    ),
+    right_annotation = upset_right_annotation(
+      m,
+      axis_param = list(
+        at = c(0, 1e7, 2e7, 3e7),
+        labels = c("0Mb", "10Mb", "20Mb", "30Mb")
+      ),
+      width = unit(4, "cm")
+    ),
+    comb_order = rev(order(comb_size(m))), pt_size = unit(2, "mm"), lwd = 1,
+    comb_col = "#0000FF", bg_col = c("#F0F0FF", "#FFF0F0"), bg_pt_col = "#CCCCFF", 
+    width = unit(4.5, "in"), height = unit(2, "in")
+  )
+```
+
+# References
+```{r, message=FALSE, warning=FALSE}
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

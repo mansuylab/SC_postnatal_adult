@@ -1,0 +1,78 @@
+---
+title: "RRBS: Softlink files and change names"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-01-13 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(plyr)
+```
+
+# Files and desc tables
+
+## Files
+```{r}
+files <- list.files(path = "input", pattern = ".gz", full.names = TRUE, recursive = TRUE)
+files <- data.frame(Files = files, stringsAsFactors = F)
+files$sampleID <- trimws(gsub(".*B-|_P.*", "", files$Files))
+```
+
+## Description file
+```{r}
+datasets <- read.csv(file = "input/annotationRnBeads.csv", header = T, stringsAsFactors = F)
+```
+
+### Correcting names
+```{r}
+tab <- merge(files, datasets)
+tab <- tab[,c(1,2,5)]
+tab <- tab[tab$group == "CTRL",]
+tab$Group <- "PND8"
+tab$sampleID[5] <- "02_1"
+tab <- tab[,c(1,2,4)]
+tab$Name <- paste(tab$Group, tab$sampleID, sep = "_")
+rownames(tab) <- tab$Name
+```
+
+### Final table to be used
+```{r}
+readr::write_tsv(tab, path = "output/dataset_pnd8.tsv")
+```
+
+# Creating soft links
+```{r}
+for (i in 1:nrow(tab)) {
+  cmd <- paste0("ln -sr ", tab$Files[i], " ./output/", tab$Name[i], ".fq.gz")
+  system(cmd)
+}
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

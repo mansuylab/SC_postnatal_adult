@@ -1,0 +1,103 @@
+---
+title: "ATAC-Seq: Overlap of peak regions"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-12-29 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(plgINS)
+library(GenomicRanges)
+library(ggplot2)
+library(patchwork)
+```
+
+# Peak files
+```{r }
+read_peak_file <- function(file) {
+  GRanges(read.table(file,
+    header = F,
+    col.names = c(
+      "Chr", "Start", "End", "Name", "Score", "Strand",
+      "FoldChange", "negLog10pvalue", "negLog10qvalue",
+      "Summit"
+    ), stringsAsFactors = F
+  ))
+}
+
+pnd15 <- read_peak_file(file = "../PND15_NF/PND15_NF_peaks.narrowPeak")
+adult <- read_peak_file(file = "../Adult_NF/Adult_NF_peaks.narrowPeak")
+pnd15_adult <- read_peak_file(file = "../PND15_Adult_NF/PND15_Adult_NF_peaks.narrowPeak")
+```
+
+
+# Overlap peak files
+```{r, warning=FALSE, message=FALSE}
+o_df <- data.frame(overlap_bp = 1:50, PND15_adult = 0, PND15_all = 0, Adult_all = 0)
+
+for (i in 1:nrow(o_df)) {
+  a <- length(metaGR(gr1 = pnd15, gr2 = adult, minOverlap = i))
+  b <- length(metaGR(gr1 = pnd15, gr2 = pnd15_adult, minOverlap = i))
+  c <- length(metaGR(gr1 = adult, gr2 = pnd15_adult, minOverlap = i))
+  o_df[i, 2:4] <- c(a, b, c)
+}
+
+o_df
+```
+
+# Barplot of overlaps
+```{r, fig.height=8.5, fig.width=11}
+p1 <- ggplot(data=o_df, aes(x=overlap_bp, y=PND15_adult)) +
+  geom_bar(stat="identity", fill="orange") +
+  geom_text(aes(label=PND15_adult), hjust=2, size=3.5)+
+  coord_flip() + 
+  theme_bw()
+
+p2 <- ggplot(data=o_df, aes(x=overlap_bp, y=PND15_all)) +
+  geom_bar(stat="identity", fill="orange") +
+  geom_text(aes(label=PND15_all), hjust=2, size=3.5)+
+  coord_flip() + 
+  theme_bw()
+
+p3 <- ggplot(data=o_df, aes(x=overlap_bp, y=Adult_all)) +
+  geom_bar(stat="identity", fill="orange") +
+  geom_text(aes(label=Adult_all), hjust=2, size=3.5)+
+  coord_flip() + 
+  theme_bw()
+
+p1 | p2 | p3
+```
+
+
+# References
+```{r}
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r }
+devtools::session_info()
+```
