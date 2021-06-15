@@ -1,2 +1,0 @@
-fastqc_config:
-    fastqc_theoretical_gc: 'mm10_genome'
