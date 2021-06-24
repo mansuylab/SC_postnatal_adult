@@ -1,0 +1,24 @@
+Setting options('download.file.method.GEOquery'='auto')
+Setting options('GEOquery.inmemory.gpl'=FALSE)
+Warning message:
+replacing previous import ‘GenomicRanges::shift’ by ‘data.table::shift’ when loading ‘plgINS’ 
+Qt file found: ./input/salmon/PND15_11_B1/quant.sf
+Qt file found: ./input/salmon/PND15_12_B1/quant.sf
+Qt file found: ./input/salmon/PND15_18_B2/quant.sf
+Qt file found: ./input/salmon/PND15_20_B2/quant.sf
+Qt file found: ./input/salmon/PND15_21_B2/quant.sf
+Qt file found: ./input/salmon/PND15_22_B2/quant.sf
+Qt file found: ./input/salmon/PND8_09_B1/quant.sf
+Qt file found: ./input/salmon/PND8_10_B1/quant.sf
+Qt file found: ./input/salmon/PND8_13_B2/quant.sf
+Qt file found: ./input/salmon/PND8_14_B2/quant.sf
+Qt file found: ./input/salmon/PND8_16_B2/quant.sf
+Qt file found: ./input/salmon/PND8_17_B2/quant.sf
+Qt file found: ./input/salmon/PNW21_01_B1/quant.sf
+Qt file found: ./input/salmon/PNW21_02_B1/quant.sf
+Qt file found: ./input/salmon/PNW21_03_B1/quant.sf
+Qt file found: ./input/salmon/PNW21_04_B1/quant.sf
+Qt file found: ./input/salmon/PNW21_05_B1/quant.sf
+Qt file found: ./input/salmon/PNW21_07_B1/quant.sf
+Finished importing the data, now aggregation at the biotype and gene level.
+Loading required package: limma
