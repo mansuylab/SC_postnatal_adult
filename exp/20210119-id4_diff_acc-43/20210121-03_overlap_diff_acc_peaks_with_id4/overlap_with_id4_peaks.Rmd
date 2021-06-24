@@ -1,0 +1,69 @@
+---
+title: "ATAC-Seq: Overlap our data with ID4"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2021-01-21 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r overlap-with-id4-peaks-1, message=FALSE, warning=FALSE}
+library(GenomicRanges)
+library(SummarizedExperiment)
+library(plgINS)
+```
+
+# Our data
+```{r overlap-with-id4-peaks-2 }
+load("input/atac_diff_chromatin_accessibility.RData")
+our <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(our)[1:5] <- gsub(pattern = ".*-", replacement = "", x = colnames(our)[1:5])
+our <- our[abs(our$`diffAccessibility-logFC`) >= 1 & our$`diffAccessibility-qvalue` <= 0.05,]
+```
+
+# ID4
+```{r overlap-with-id4-peaks-3 }
+load("./input/id4_annotated_peaks.RData")
+```
+
+# Overlap
+
+## Our + Dim_Bright
+```{r overlap-with-id4-peaks-4 }
+our_dim_bright <- metaGR(GRanges(our), GRanges(dim_bright))
+length(our_dim_bright)
+```
+
+## Our + Dim
+```{r overlap-with-id4-peaks-5 }
+our_dim <- metaGR(GRanges(our), GRanges(dim))
+length(our_dim)
+```
+
+## Our + Bright
+```{r overlap-with-id4-peaks-6 }
+our_bright <- metaGR(GRanges(our), GRanges(bright))
+length(our_bright)
+```
+
+# SessionInfo
+```{r overlap-with-id4-peaks-7 }
+devtools::session_info()
+```

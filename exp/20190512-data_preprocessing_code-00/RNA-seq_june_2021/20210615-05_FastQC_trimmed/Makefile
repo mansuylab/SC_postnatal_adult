@@ -1,6 +1,6 @@
 ############################
 ## Author: Deepak Tanwar  ##
-## Date: 20190816	  ##
+## Date: 20210616	  ##
 ############################
 
 # This makefile will run the FastQC software to check the quality of FastQ files
@@ -15,4 +15,4 @@ targets := $(patsubst $(source_dir)/%.fq.gz, $(target_dir)/%.zip, $(files))
 all: $(targets)
 
 $(target_dir)/%.zip: $(source_dir)/%.fq.gz
-	fastqc -v > ./log/$(basename $(notdir $@)).log && fastqc $< -o ./output/ --noextract -f fastq -t 4 2>>./log/$(basename $(notdir $@)).log
+	fastqc -v > ./log/$(basename $(notdir $@)).stdout && fastqc $< -o ./output/ --noextract -f fastq -t 4 2>./log/$(basename $(notdir $@)).stderr

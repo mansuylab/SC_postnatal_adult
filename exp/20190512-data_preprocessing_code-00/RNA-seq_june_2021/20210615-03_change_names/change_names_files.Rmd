@@ -1,7 +1,7 @@
 ---
 title: "RNA-Seq: Softlink files and change names"
 author: "Deepak Tanwar"
-date: "<b>Created on:</b> 2019-08-16 <br> <b>Updated on:</b> `r Sys.Date()`"
+date: "<b>Created on:</b> 2021-06-16 <br> <b>Updated on:</b> `r Sys.Date()`"
 output:
   rmdformats::readthedown:
     highlight: tango
@@ -28,128 +28,140 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Libraries required
-```{r, message=FALSE, warning=FALSE}
+```{r change-names-files-1, message=FALSE, warning=FALSE}
 library(plyr)
+library(dplyr)
+library(readxl)
+library(readr)
 ```
 
 # Files and desc tables
 
 ## Files
-```{r}
-files <- list.files(path = "input", pattern = ".gz", full.names = TRUE, recursive = TRUE)
+```{r change-names-files-2}
+files <- list.files(
+  path = "input", pattern = ".gz",
+  full.names = TRUE, recursive = TRUE
+)
 files <- data.frame(Files = files, stringsAsFactors = F)
 ```
 
 ## Description file
-```{r}
-datasets <- list.files(path = "input", pattern = "tsv", full.names = TRUE, recursive = TRUE)
-datasets <- lapply(datasets, function(x) read.delim(x,
+```{r change-names-files-3}
+datasets <- list.files(
+  path = "input", pattern = "tsv",
+  full.names = TRUE, recursive = TRUE
+)
+datasets <- lapply(datasets, function(x) {
+  read.delim(x,
     header = TRUE,
     stringsAsFactors = FALSE, check.names = FALSE
-  ))
-datasets <- ldply(datasets, data.frame, stringsAsFactors = FALSE, check.names = FALSE)
+  )
+})
+datasets <- ldply(datasets, data.frame,
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
 ```
 
 ### Correcting names
-```{r}
-# Subset
-datasets <- datasets[, c(3, 4, 6:10, 15, 16)]
-
+```{r change-names-files-4}
 # Trim colnames
 colnames(datasets) <- trimws(gsub("\\[.*", "", colnames(datasets)))
+colnames(datasets) <- trimws(gsub(" ", "_", colnames(datasets)))
 
 # Remove location of files
 datasets$Files <- trimws(gsub(".*very/", "", datasets$Read1))
 
-# Index for adults and pnd
-idx.adults <- which(substr(datasets$Files, 1, 4) == 2019)
-idx.pnd <- which(substr(datasets$Files, 1, 4) == 2017)
-
 # Adding current location of files
-datasets$Files[idx.adults] <- paste0("input/Adult/", datasets$Files[idx.adults])
-datasets$Files[idx.pnd] <- paste0("input/PND/", datasets$Files[idx.pnd])
+datasets$Files <- paste0("input/", datasets$Files)
 
 # Merging files with information
 data <- merge(files, datasets)
+data <- data[, -c(3, 5, 8:10)]
+data$Samples <- gsub(
+  pattern = "input/20210610.A-o25067_1_[0-9]+-|_R1.fastq.gz",
+  replacement = "", x = data$Files
+)
 
 # Removing location
-data$Files <- trimws(gsub(".*D/|.*t/", "", data$Files))
-idx.adults <- which(substr(data$Files, 1, 4) == 2019)
+# data$Files <- trimws(gsub(".*D/|.*t/", "", data$Files))
 
-# Nex indexes for files
-idx.pnd8 <- grep(pattern = "PND7", x = data$Files)
-idx.pnd15 <- grep(pattern = "PND14", x = data$Files)
+# Metadata from Leo
+meta <- data.frame(read_xlsx("input/libraries_summary.xlsx",
+  sheet = 1, skip = 9
+))[, -c(6, 12)]
+colnames(meta) <- gsub(
+  pattern = "([\\.]+)",
+  replacement = "_", x = colnames(meta)
+)
+colnames(meta) <- gsub("_$", "", colnames(meta))
+meta <- meta[meta$To_be_sequenced == "Yes", ]
 
-# Adding group information
-data$Group <- NA
-data$Group[idx.adults] <- "Adult"
-data$Group[idx.pnd8] <- "PND8"
-data$Group[idx.pnd15] <- "PND15"
+meta2 <- data.frame(read_xlsx("input/libraries_summary.xlsx",
+  sheet = 2, skip = 5
+))[, -c(3, 8, 11, 12, 15, 16)]
+colnames(meta2) <- gsub(
+  pattern = "([\\.]+)", replacement = "_",
+  x = colnames(meta2)
+)
+colnames(meta2) <- gsub("_$", "", colnames(meta2))
+colnames(meta2)[1] <- "Label_Irina"
+
+
+# Final table
+tab <- merge(data, meta)
+tab <- merge(tab, meta2, all.x = TRUE)
+
+tab$Group <- NA
+tab$Group[tab$Age_Group == "PND7"] <- "PND8"
+tab$Group[tab$Age_Group == "PND14"] <- "PND15"
+tab$Group[tab$Age_Group == "5 months"] <- "PNW21"
+
+tab$LibPrepBatch <- NA
+tab$LibPrepBatch[tab$Group == "PNW21"] <- "B1"
+tab$LibPrepBatch[!is.na(tab$Library_Prepared)] <- "B1"
+tab$LibPrepBatch[is.na(tab$LibPrepBatch)] <- "B2"
+
 
 # New sample names
-data$Samples <- NA
-data$Samples[idx.adults] <- paste0(
-  "Adult_",
-  sprintf(
-    "%02d",
-    as.numeric(trimws(gsub(
-      ".*A-|_.*", "",
-      data$Files[idx.adults]
-    )))
-  )
+tab$SamplesID <- paste(tab$Group, sprintf("%02d", as.numeric(tab$Samples)),
+  tab$LibPrepBatch,
+  sep = "_"
 )
-data$Samples[idx.pnd8] <- paste0("PND8_", sprintf(
-  "%02d",
-  as.numeric(trimws(gsub(
-    ".*_C|_p.*|_R.*", "",
-    data$Files[idx.pnd8]
-  )))
-))
-data$Samples[idx.pnd15] <- paste0("PND15_", sprintf(
-  "%02d",
-  as.numeric(
-    trimws(gsub(
-      ".*_C|_R.*", "",
-      data$Files[idx.pnd15]
-    ))
-  )
-))
-
-# As PND8 were sequenced twice, adding that information
-data$Run <- NA
-data$Run[idx.pnd8] <- "A"
-data$Run[grep(pattern = "mRNA", x = data$Files)] <- "B"
 ```
 
 ### Full table with runs
-```{r}
-data.all <- data
-data.all$Name <- gsub(pattern = "_NA", replacement = "", x = paste(data$Samples, data$Run, sep = "_"))
+```{r change-names-files-5}
+data.all <- tab
 
-readr::write_tsv(data.all, path = "output/dataset.tsv")
+readr::write_tsv(data.all, file = "output/dataset.tsv")
 ```
 
 ### Final table to be used
-```{r}
-data.final <- data[!duplicated(data$Samples), c(11, 12)]
-readr::write_tsv(data.final, path = "output/dataset_pnd_adult.tsv")
+```{r change-names-files-6}
+data.final <- data.all[, c("Group", "LibPrepBatch", "SamplesID")]
+readr::write_tsv(data.final, file = "output/dataset_pnd_adult.tsv")
 ```
 
 # Creating soft links
-```{r}
+```{r change-names-files-7}
 for (i in 1:nrow(data.all)) {
-  cmd <- NULL
-  if (substr(data.all$Files[i], 1, 4) == 2019) {
-    cmd <- paste0("ln -sr ./input/Adult/", data.all$Files[i], " ./output/", data.all$Name[i], ".fq.gz")
-  } else {
-    cmd <- paste0("ln -sr ./input/PND/", data.all$Files[i], " ./output/", data.all$Name[i], ".fq.gz")
-  }
+  cmd <- paste0(
+    "ln -sr ", data.all$Files[i], " ./output/",
+    data.all$SamplesID[i], ".fq.gz"
+  )
   system(cmd)
 }
 ```
 
+# References
+```{r change-names-files-8}
+report::cite_packages(sessionInfo())
+```
 
 # SessionInfo
-```{r}
-devtools::session_info()
+```{r change-names-files-9}
+devtools::session_info() %>%
+  details::details()
 ```

@@ -1,6 +1,6 @@
 ############################
 ## Author: Deepak Tanwar  ##
-## Date: 20190816	  ##
+## Date: 20210616	  ##
 ############################
 
 # This makefile will run the TrimGalore software to improve the quality of FastQ files
@@ -15,4 +15,4 @@ targets := $(patsubst $(source_dir)/%.fq.gz, $(target_dir)/%_trimmed.fq.gz, $(fi
 all: $(targets)
 
 $(target_dir)/%_trimmed.fq.gz: $(source_dir)/%.fq.gz
-	trim_galore $< -q 30 --length 30 -o $(target_dir) > ./log/$(basename $(basename $(notdir $@))).log 2>>./log/$(basename $(basename $(notdir $@))).log
+	trim_galore $< -q 30 --trim-n --length 30 -j 4 -o $(target_dir) > ./log/$(basename $(basename $(notdir $@))).stdout 2>./log/$(basename $(basename $(notdir $@))).stderr

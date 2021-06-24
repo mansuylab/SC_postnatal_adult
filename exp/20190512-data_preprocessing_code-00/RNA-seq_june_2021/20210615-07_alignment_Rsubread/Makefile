@@ -1,6 +1,6 @@
 ##############################
 ## Author: Deepak Tanwar    ##
-## Date: 20190816	    ##
+## Date: 20210617	    ##
 ##############################
 
 # This makefile will run alignment (subjunc) with Rsubread
@@ -15,4 +15,4 @@ targets := $(patsubst $(source_dir)/%_trimmed.fq.gz, $(target_dir)/%.bam, $(file
 all: $(targets)
 
 $(target_dir)/%.bam: $(source_dir)/%_trimmed.fq.gz
-	./20190816-alignment_Rsubread.R $< 2>./log/$(basename $(notdir $@)).log >> ./log/$(basename $(notdir $@)).log && rm $@.bai && samtools index $@
+	./alignment_Rsubread.R $< 2>./log/$(basename $(notdir $@)).stderr > ./log/$(basename $(notdir $@)).stdout && rm $@.bai && samtools index $@
