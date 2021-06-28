@@ -45,6 +45,7 @@ library(viridis)
 library(RColorBrewer)
 library(ggplotify)
 library(SEtools)
+library(DESeq2)
 ```
 
 # Load salmon object
@@ -56,15 +57,22 @@ load("input/SC_controls_rnaseq_lab_june2021.tds.RData")
 
 ## PND8 vs PND15
 ```{r }
-design <- model.matrix(~ 0 + Group + LibPrepBatch, 
-                       data = salmon@phenoData[grep(pattern = "PND8|PND15", x = salmon@phenoData$Group), ])
+design <- model.matrix(~ 0 + Group + LibPrepBatch,
+  data = salmon@phenoData[grep(pattern = "PND8|PND15", x = salmon@phenoData$Group), ]
+)
 colnames(design) <- gsub(pattern = "Group", replacement = "", x = colnames(design))
 
 y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND8|PND15", x = colnames(salmon@gene.counts))])
 keep <- filterByExpr(y, design, min.count = 15)
 y <- y[keep, ]
 
+en <- as.matrix(vst(round(y$counts), blind = TRUE))
+sv <- sva(en, design, n.sv = NULL)$sv
+colnames(sv) <- paste0("SV", 1:ncol(sv))
+design <- cbind(sv, design)
+
 dds <- calcNormFactors(y)
+
 v <- voom(dds, design = design)
 
 contrast.matrix <- makeContrasts(PND15 - PND8, levels = design)
@@ -90,6 +98,11 @@ y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND15|PNW21", x = col
 keep <- filterByExpr(y, design, min.count = 15)
 y <- y[keep, ]
 
+en <- as.matrix(vst(round(y$counts), blind = TRUE))
+sv <- sva(en, design, n.sv = NULL)$sv
+colnames(sv) <- paste0("SV", 1:ncol(sv))
+design <- cbind(sv, design)
+
 dds <- calcNormFactors(y)
 v <- voom(dds, design = design)
 
@@ -110,10 +123,17 @@ pnd15.pnw21_sig <- pnd15.pnw21[abs(pnd15.pnw21$logFC) >= 1 & pnd15.pnw21$adj.P.V
 
 ```{r }
 y <- DGEList(counts = salmon@gene.counts)
-dds <- calcNormFactors(y)
+keep <- filterByExpr(y, design, min.count = 15)
+y <- y[keep, ]
+
+design <- model.matrix(~ 0 + Group + LibPrepBatch, data = salmon@phenoData)
+
+sv <- svacor(y$counts, mm = design)
+
+dds <- calcNormFactors(y, design = design)
 cpm <- cpm(dds, log = T)
 
-data <- list(cpm = cpm, pData = salmon@phenoData)
+data <- list(cpm = cpm, sva = sv$cor, pData = salmon@phenoData)
 
 save(data,
   file = "./output/data_pData.RData", compress = T,
@@ -152,8 +172,8 @@ writexl::write_xlsx(x = dea.limma, path = "output/dea_results.xlsx", col_names =
 
 
 # MA plots
-## PND8 vs PND15
-```{r }
+## PND15 vs PND8
+```{r, warning=FALSE, message=FALSE}
 res_8_15 <- pnd8.pnd15
 res_8_15$threshold <- as.factor(res_8_15$adj.P.Val < 0.05)
 
@@ -168,7 +188,7 @@ p1 <- ggplot(data = res_8_15, aes(
     -ceiling(max(abs(res_8_15$logFC))),
     ceiling(max(abs(res_8_15$logFC)))
   )) +
-  ggtitle("PND8 vs PND15") +
+  ggtitle("PND15 vs PND8") +
   labs(subtitle = "loess fit") +
   xlab("Mean expression") +
   ylab("Log2 Fold Change") +
@@ -188,6 +208,43 @@ p1 <- ggplot(data = res_8_15, aes(
 p1
 ```
 
+## PNW21 vs PND15
+```{r, warning=FALSE, message=FALSE}
+res_15_21 <- pnd15.pnw21
+res_15_21$threshold <- as.factor(res_15_21$adj.P.Val < 0.05)
+
+p2 <- ggplot(data = res_15_21, aes(
+  x = res_15_21$AveExpr,
+  y = res_15_21$logFC,
+  colour = threshold
+)) +
+  geom_point(alpha = 0.5, size = 1.8) +
+  geom_hline(aes(yintercept = 0), colour = "blue", size = 1) +
+  ylim(c(
+    -ceiling(max(abs(res_15_21$logFC))),
+    ceiling(max(abs(res_15_21$logFC)))
+  )) +
+  ggtitle("PNW21 vs PND15") +
+  labs(subtitle = "loess fit") +
+  xlab("Mean expression") +
+  ylab("Log2 Fold Change") +
+  theme(
+    plot.title = element_text(face = "bold", size = 20, hjust = 0.5),
+    plot.subtitle = element_text(size = 16, hjust = 0.5, face = "italic", color = "blue"),
+    axis.title.x = element_text(face = "bold", size = 15),
+    axis.text.x = element_text(face = "bold", size = 12),
+    legend.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 14)
+  ) +
+  scale_colour_discrete(name = "p.adjusted < 0.05") +
+  stat_smooth(se = FALSE, method = "loess", color = "red", formula = y ~ x, size = 1)
+```
+
+```{r, fig.height=5, fig.width=11}
+p2
+```
+
+
 
 # Heatmap of most variable genes
 ```{r}
@@ -195,16 +252,30 @@ xvar <- apply((data$cpm + 1), 1, var)
 genes500 <- head(sort(xvar, decreasing = TRUE), n = 500)
 x500 <- data$cpm[rownames(data$cpm) %in% names(genes500), ]
 
-pheatmap(x500, scale = "row", show_rownames = F, col = viridis(100), 
-         show_colnames = F, annotation_col = data$pData[,1:2], 
-         main = "Clustering of samples based on top 500 variable genes")
+pheatmap(x500,
+  scale = "row", show_rownames = F, col = viridis(100),
+  show_colnames = F, annotation_col = data$pData[, 1:2],
+  main = "Clustering of samples based on top 500 variable genes"
+)
 ```
 
 
-# PCA
+# PCA {.tabset .tabset-pills}
+
+## CPM
 ```{r, fig.height=8.5, fig.width=11, warning=FALSE, message=FALSE}
-plgINS::plPCA(x = data$cpm, samples_data = data$pData, 
-              colorBy = "Group", shapeBy = "LibPrepBatch", add.labels = FALSE)
+plgINS::plPCA(
+  x = data$cpm, samples_data = data$pData,
+  colorBy = "Group", shapeBy = "LibPrepBatch", add.labels = FALSE
+)
+```
+
+## SVA normalized
+```{r, fig.height=8.5, fig.width=11, warning=FALSE, message=FALSE}
+plgINS::plPCA(
+  x = data$sva, samples_data = data$pData,
+  colorBy = "Group", shapeBy = "LibPrepBatch", add.labels = FALSE
+)
 ```
 
 

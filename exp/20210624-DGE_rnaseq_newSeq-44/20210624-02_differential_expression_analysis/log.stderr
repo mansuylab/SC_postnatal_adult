@@ -186,4 +186,5 @@ Warning messages:
 1: replacing previous import 'GenomicRanges::shift' by 'data.table::shift' when loading 'plgINS' 
 2: replacing previous import 'ComplexHeatmap::pheatmap' by 'pheatmap::pheatmap' when loading 'SEtools' 
 3: Didn't find a colorbar to modify. 
-4: MathJax doesn't work with self_contained when not using the rmarkdown "default" template. 
+4: Didn't find a colorbar to modify. 
+5: MathJax doesn't work with self_contained when not using the rmarkdown "default" template. 
