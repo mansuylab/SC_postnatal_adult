@@ -1,0 +1,251 @@
+---
+title: "RNA-Seq: expression comparison of lit, old and new data"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2019-12-11 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(plotly)
+library(edgeR)
+library(pheatmap)
+library(viridis)
+library(plyr)
+```
+
+
+# Data
+```{r}
+load("input/SC_controls_rnaseq_salmon.tds.RData")
+lab <- salmon
+
+load("input/SC_controls_rnaseq_lit_salmon.tds.RData")
+lit <- salmon
+
+load("input/SC_controls_rnaseq_lab_june2021.tds.RData")
+ns <- salmon
+```
+
+# Expression comparison of PND7/8 {.tabset .tabset-pills}
+
+```{r, warning=FALSE, message=FALSE}
+plot_expr <- function(s1, s2, p1, p2, n1, n2, num = 5000) {
+  library(robcor)
+  dat1 <- log2(sort(rowMeans(
+    s1@gene.counts[, grep(pattern = p1, x = colnames(s1@gene.counts), value = T)]
+  ), decreasing = TRUE))
+
+  if(p2 == "PND14" | p2 == "PNW8"){
+  dat2 <- log2(sort((
+    s2@gene.counts[, grep(pattern = p2, x = colnames(s2@gene.counts), value = T)]
+  ), decreasing = TRUE))
+  } else{
+  dat2 <- log2(sort(rowMeans(
+    s2@gene.counts[, grep(pattern = p2, x = colnames(s2@gene.counts), value = T)]
+  ), decreasing = TRUE))
+}
+  genes <- union(names(dat1)[1:num], names(dat2)[1:num])
+
+  x <- dat1[genes]
+  y <- dat2[genes]
+
+  x[is.infinite(x)] <- 0
+  y[is.infinite(y)] <- 0
+  
+  fit <- lm(y ~ x)
+  fitr <- MASS::rlm(y ~ x)
+  
+  cor <- cor.test(x,y)
+  cr <- robcor(x,y)
+  
+  tl <- paste0(
+    "r = ", round(cor$estimate, 2),
+    "; p", ifelse(cor$p.value > 0.001, paste(" =", cor$p.value), " < 0.001"),
+    " robcor: ", round(cr, 2)
+    )
+
+  plot_ly() %>%
+    add_trace(x = x, y = y, mode = "markers", name = "Genes") %>%
+    add_trace(x = x, y = predict(fit), mode = "lines", name = "lm") %>%
+    add_trace(x = x, y = predict(fitr), mode = "lines", name = "rlm") %>%
+    layout(
+      xaxis = list(title = n1),
+      yaxis = list(title = n2),
+      title = paste("Pearson's correlation:", tl)
+    )
+}
+```
+
+## PND7 vs PND8 (old)
+```{r, warning=FALSE, message=FALSE}
+plot_expr(s1 = lab, s2 = lit, p1 = "PND8", p2 = "PND7", n1 = "PND8 (old)", n2 = "PND7 (lit)")
+```
+
+## PND7 vs PND8 (new)
+```{r, warning=FALSE, message=FALSE}
+plot_expr(s1 = ns, s2 = lit, p1 = "PND8", p2 = "PND7", n1 = "PND8 (new)", n2 = "PND7 (lit)")
+```
+
+## PND8 (old) vs PND8 (new)
+```{r, warning=FALSE, message=FALSE}
+plot_expr(s1 = ns, s2 = lab, p1 = "PND8", p2 = "PND8", n1 = "PND8 (new)", n2 = "PND8 (old)")
+```
+
+
+# Expression comparison of PND14/15 {.tabset .tabset-pills}
+
+## PND14 vs PND15 (old)
+```{r, warning=FALSE, message=FALSE}
+plot_expr(s1 = lab, s2 = lit, p1 = "PND15", p2 = "PND14", n1 = "PND15 (old)", n2 = "PND14 (lit)")
+```
+
+## PND14 vs PND15 (new)
+```{r, warning=FALSE, message=FALSE}
+plot_expr(s1 = ns, s2 = lit, p1 = "PND15", p2 = "PND14", n1 = "PND15 (new)", n2 = "PND14 (lit)")
+```
+
+## PND15 (old) vs PND15 (new)
+```{r, warning=FALSE, message=FALSE}
+plot_expr(s1 = ns, s2 = lab, p1 = "PND15", p2 = "PND15", n1 = "PND15 (new)", n2 = "PND15 (old)")
+```
+
+# Expression comparison of PNW8/21
+
+## PNW8 vs PNW21
+```{r, warning=FALSE, message=FALSE}
+plot_expr(s1 = ns, s2 = lit, p1 = "PNW21", p2 = "PNW8", n1 = "PNW21 (new)", n2 = "PNW8 (lit)")
+```
+
+
+# Heatmap of some markers
+```{r, fig.width=11, fig.height=8.5}
+genes <- data.frame(
+  Category = c(
+    rep("Germ cell licensing", 5),
+    rep("Undifferentiated Spermatogonia markers", 12),
+    "Sertoli cell marker",
+    "Leyidig cell marker",
+    "Translational initiation factor",
+    "Translational initiation factor",
+    "Housekeeping gene"
+  ),
+  Genes = c(
+    "Nanos2", "Nanos3", "Dazl", "Ddx4", "Dmrt1",
+    "Taf4b", "Neurog3", "Utf1", "Id4", "Zbtb16", "Pou5f1",
+    "Lin28a", "Bcl6b", "Sall4", "Sohlh1", "Foxo1", "Gfra1",
+    "Gata4", "Lhcgr",
+    "Eif4h", "Eif4e", "Gapdh"
+  ), stringsAsFactors = F
+)
+rownames(genes) <- genes$Genes
+
+genes1 <- data.frame(
+  Category = c(
+    rep("Stem cell markers", 5),
+    rep("Germline pluripotency marker", 7),
+    rep("Progenitor-associated marker", 3),
+    "Leyidig cell marker",
+    rep("Sertoli cell marker", 2)
+  ),
+  Genes = c(
+    "Lhx1", "Id4", "Gfra1", "Etv5", "Ret",
+    "Bcl6b", "Foxo1", "Sall4", "Dmrt1", "Zbtb16", "Dazl", "Ddx4",
+    "Neurog3", "Sohlh1", "Lin28b",
+    "Lhcgr",
+    "Gata4", "Vim"
+  ), stringsAsFactors = F
+)
+rownames(genes1) <- genes1$Genes
+
+genes <- genes[!rownames(genes) %in% intersect(genes1$Genes, genes$Genes),]
+genes <- rbind(genes, genes1)
+
+genes$Category <- factor(genes$Category, unique(genes$Category)[c(2,5,6,1,7,8,9,3,4)])
+
+genes_sp <- split(genes, genes$Category)
+genes <- ldply(genes_sp[unique(genes$Category)[c(2,5,6,1,7,8,9,3,4)]], .id = NULL)
+
+rownames(genes) <- genes$Genes
+
+tab <- data.frame(lit@gene.counts, lab@gene.counts, ns@gene.counts)
+tab <- DGEList(tab)
+tab <- calcNormFactors(tab)
+cpm <- cpm(tab, log = T)
+
+tab <- cpm[genes$Genes, ]
+tab[mapply(is.infinite, tab)] <- 0
+
+tab <- tab[, c(
+  grep(pattern = "PND7", x = colnames(tab), value = T),
+  grep(pattern = "PND8_[0-9][0-9]$", x = colnames(tab), value = T),
+  grep(pattern = "PND8_[0-9][0-9]_", x = colnames(tab), value = T),
+  grep(pattern = "PND14", x = colnames(tab), value = T),
+  grep(pattern = "PND15_[0-9][0-9]$", x = colnames(tab), value = T),
+  grep(pattern = "PND15_[0-9][0-9]_", x = colnames(tab), value = T),
+  grep(pattern = "PNW8", x = colnames(tab), value = T),
+  grep(pattern = "PNW21", x = colnames(tab), value = T),
+  grep(pattern = "Adult", x = colnames(tab), value = T)
+)]
+
+
+lit@phenoData$Source <- "Literature"
+lab@phenoData$Source <- "Lab (old)"
+annoCol <- rbind(lab@phenoData, lit@phenoData)
+annoCol$LibPrepBatch <- NA
+
+pn <- ns@phenoData
+colnames(pn)[3] <- "Samples"
+pn$Source <- "Lab (new)"
+annoCol <- rbind(annoCol, pn)
+annoCol$seqType <- "Ribo0"
+annoCol$seqType[annoCol$Group == "Adult"] <- "polyA"
+annoCol$Group[annoCol$Group == "Adult"] <- "PNW21"
+
+annoCol$Group <- factor(annoCol$Group, unique(annoCol$Group)[c(5,3,4,2,6,1)])
+```
+
+## Heatmap
+```{r, fig.align='center', fig.height=7, fig.width=11}
+paletteLength <- 100
+myColor <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "RdBu")))(paletteLength)
+myBreaks <- c(seq(min(tab), 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(max(tab)/paletteLength, max(tab), length.out=floor(paletteLength/2)))
+
+pheatmap(
+  mat = tab, color =  myColor, border_color = NA, breaks = myBreaks,
+  cluster_cols = F, cluster_rows = F,
+  gaps_col = c(16, 32),
+  gaps_row = c(4, 9,16, 18,21, 22, 24,26),
+  annotation_row = genes[, 1, drop = F],
+  annotation_col = annoCol[, c(1,3:5), drop = F], show_colnames = FALSE,
+)
+```
+
+
+# SessionInfo
+```{r}
+devtools::session_info()
+```

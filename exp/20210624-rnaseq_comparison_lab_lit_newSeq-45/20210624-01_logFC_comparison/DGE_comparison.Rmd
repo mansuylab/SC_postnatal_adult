@@ -1,0 +1,125 @@
+---
+title: "RNA-Seq: differential expression analysis of controls (literature)"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2021-06-24 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+```{r, message=FALSE, warning=FALSE}
+library(plotly)
+library(dplyr)
+```
+
+
+# Data
+```{r}
+load("input/limma_SC_Controls.RData")
+lab <- dea.limma
+
+load("input/limma_SC_Controls_lit.RData")
+lit <- dea.limma
+
+load("input/limma_SC_Controls_lab_newSeq.RData")
+ns <- dea.limma
+```
+
+# logFC comparison
+
+## PND7/8 vs PND14/15 {.tabset .tabset-pills}
+
+```{r}
+plot_logFC <- function(lfc1, lfc2, n1, n2) {
+  library(plotly)
+  library(dplyr)
+  library(robcor)
+  
+  rownames(lfc1) <- lfc1$Genes
+  rownames(lfc2) <- lfc2$Genes
+
+  l1 <- lfc1[abs(lfc1$logFC) >= 1 & lfc1$adj.P.Val <= 0.05, "Genes"]
+  l2 <- lfc2[abs(lfc2$logFC) >= 1 & lfc2$adj.P.Val <= 0.05, "Genes"]
+  
+  genes <- union(l1, l2)
+
+  dat1 <- lfc1[genes, "logFC"]
+  names(dat1) <- rownames(lfc1[genes,])
+  
+  dat2 <- lfc2[genes, "logFC"]
+  names(dat2) <- rownames(lfc2[genes,])
+  
+  genes <- intersect(names(dat1)[!is.na(dat1)], names(dat2)[!is.na(dat2)])
+  
+  fit <- lm(dat2[genes] ~ dat1[genes])
+  fitr <- MASS::rlm(dat2[genes] ~ dat1[genes])
+
+  plot_ly() %>%
+    add_trace(x = dat1[genes], y = dat2[genes], mode = "markers", name = "Genes") %>%
+    add_trace(x = dat1[genes], y = predict(fit), mode = "lines", name = "lm") %>%
+    add_trace(x = dat1[genes], y = predict(fitr), mode = "lines", name = "rlm") %>%
+    layout(
+      xaxis = list(title = n1),
+      yaxis = list(title = n2)
+      # title = paste("SC controls logFC:", n1, "and", n2)
+    )
+}
+```
+
+### lit: PND14 vs PND7 & old: PND15 vs PND8
+
+```{r, warning=FALSE, message=FALSE}
+plot_logFC(lfc1 = lab$`PND8 vs PND15`, lfc2 = lit$`PND7 vs PND14`, n1 = "old: PND15 vs PND8", n2 = "lit: PND14 vs PND7")
+```
+
+### lit: PND14 vs PND7 & new: PND15 vs PND8
+
+```{r, warning=FALSE, message=FALSE}
+plot_logFC(lfc1 = ns$`pnd15 vs pnd8`, lfc2 = lit$`PND7 vs PND14`, n1 = "new: PND15 vs PND8", n2 = "lit: PND14 vs PND7")
+```
+
+### old: PND15 vs PND8 and new: PND15 vs PND8
+
+```{r, warning=FALSE, message=FALSE}
+plot_logFC(lfc1 = ns$`pnd15 vs pnd8`, lfc2 = lab$`PND8 vs PND15`, n1 = "new: PND15 vs PND8", n2 = "old: PND15 vs PND8")
+```
+
+
+## lit: PNW8 vs PND14 and new: PNW21 vs PND15
+
+```{r, warning=FALSE, message=FALSE}
+plot_logFC(lfc1 = ns$`pnw21 vs pnd15`, lfc2 = lit$`PND14 vs Adult`, n1 = "new: PNW21 vs PND15", n2 = "lit: PNW8 vs PND14")
+```
+
+
+# References
+```{r }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r }
+devtools::session_info() %>%
+  details::details()
+```
