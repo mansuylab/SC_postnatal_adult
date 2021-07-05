@@ -1,0 +1,41 @@
+
+
+processing file: NMF_analysis_union_genes.Rmd
+Loading required package: pkgmaker
+Loading required package: registry
+Loading required package: rngtools
+Loading required package: cluster
+NMF - BioConductor layer [OK] | Shared memory capabilities [OK] | Cores 15/16
+
+Attaching package: 'NMF'
+
+The following object is masked from 'package:rmarkdown':
+
+    run
+
+Loading required package: viridisLite
+
+Attaching package: 'dplyr'
+
+The following object is masked from 'package:Biobase':
+
+    combine
+
+The following objects are masked from 'package:BiocGenerics':
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+output file: NMF_analysis_union_genes.knit.md
+
+
+Output created: NMF_analysis_union_genes.html
+Warning message:
+MathJax doesn't work with self_contained when not using the rmarkdown "default" template. 
