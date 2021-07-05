@@ -66,8 +66,17 @@ y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND8|PND15", x = coln
 keep <- filterByExpr(y, design, min.count = 15)
 y <- y[keep, ]
 
-en <- as.matrix(vst(round(y$counts), blind = TRUE))
-sv <- sva(en, design, n.sv = NULL)$sv
+mod <- model.matrix(~ LibPrepBatch + Group,
+  data = salmon@phenoData[grep(pattern = "PND8|PND15", x = salmon@phenoData$Group), ]
+)
+
+mod0 <- model.matrix(~LibPrepBatch,
+  data = salmon@phenoData[grep(pattern = "PND8|PND15", x = salmon@phenoData$Group), ]
+)
+
+sv <- svaseq(dat = y$counts, mod = mod, mod0 = mod0, numSVmethod = "leek")$sv
+
+
 colnames(sv) <- paste0("SV", 1:ncol(sv))
 design <- cbind(sv, design)
 
@@ -98,8 +107,16 @@ y <- DGEList(counts = salmon@gene.counts[, grep(pattern = "PND15|PNW21", x = col
 keep <- filterByExpr(y, design, min.count = 15)
 y <- y[keep, ]
 
-en <- as.matrix(vst(round(y$counts), blind = TRUE))
-sv <- sva(en, design, n.sv = NULL)$sv
+mod <- model.matrix(~ LibPrepBatch + Group,
+  data = salmon@phenoData[grep(pattern = "PND15|PNW21", x = salmon@phenoData$Group), ]
+)
+
+mod0 <- model.matrix(~LibPrepBatch,
+  data = salmon@phenoData[grep(pattern = "PND15|PNW21", x = salmon@phenoData$Group), ]
+)
+
+sv <- svaseq(dat = y$counts, mod = mod, mod0 = mod0, numSVmethod = "leek")$sv
+
 colnames(sv) <- paste0("SV", 1:ncol(sv))
 design <- cbind(sv, design)
 
@@ -128,7 +145,11 @@ y <- y[keep, ]
 
 design <- model.matrix(~ 0 + Group + LibPrepBatch, data = salmon@phenoData)
 
-sv <- svacor(y$counts, mm = design)
+mod <- model.matrix(~ LibPrepBatch + Group, data = salmon@phenoData)
+
+mod0 <- model.matrix(~LibPrepBatch, data = salmon@phenoData)
+
+sv <- svacor(y$counts, mm = mod, mm0 = mod0, numSVmethod = "leek")
 
 dds <- calcNormFactors(y, design = design)
 cpm <- cpm(dds, log = T)
