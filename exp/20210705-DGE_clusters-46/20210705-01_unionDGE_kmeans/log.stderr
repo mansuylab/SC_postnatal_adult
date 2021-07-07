@@ -1,0 +1,29 @@
+
+
+processing file: heatmap_genes_kmeans.Rmd
+Loading required package: viridisLite
+Setting options('download.file.method.GEOquery'='auto')
+Setting options('GEOquery.inmemory.gpl'=FALSE)
+Loading required package: future
+
+Attaching package: 'dplyr'
+
+The following object is masked from 'package:gridExtra':
+
+    combine
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+output file: heatmap_genes_kmeans.knit.md
+
+
+Output created: heatmap_genes_kmeans.html
+Warning messages:
+1: replacing previous import 'GenomicRanges::shift' by 'data.table::shift' when loading 'plgINS' 
+2: MathJax doesn't work with self_contained when not using the rmarkdown "default" template. 

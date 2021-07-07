@@ -1,0 +1,288 @@
+---
+title: "RNA-Seq: Heatmap of controls on union genes with FDR <= 0.05 and abs(LFC) >= 1"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2021-07-05 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries required
+
+```{r, message=FALSE, warning=FALSE}
+library(viridis)
+library(pheatmap)
+library(plgINS)
+library(grid)
+library(gridExtra)
+library(future.apply)
+library(parameters)
+library(see)
+library(dplyr)
+```
+
+# DEA objects and Counts
+```{r}
+load("./input/limma_SC_Controls_lab_newSeq.RData")
+load("./input/data_pData.RData")
+
+data$pData$Group <- factor(data$pData$Group, unique(data$pData$Group)[c(2, 1, 3)])
+```
+
+
+# Data preparation
+```{r}
+genes <- unique(c(
+  dea.limma$`pnd15 vs pnd8`$Genes[dea.limma$`pnd15 vs pnd8`$adj.P.Val <= 0.05 &
+    abs(dea.limma$`pnd15 vs pnd8`$logFC) >= 1],
+  dea.limma$`pnw21 vs pnd15`$Genes[dea.limma$`pnw21 vs pnd15`$adj.P.Val <= 0.05 &
+    abs(dea.limma$`pnw21 vs pnd15`$logFC) >= 1]
+))
+
+matrix.log <- data$cpm[genes, ]
+
+# # Log2 conversion
+# matrix.log <- log2(matrix)
+
+# Removal of NA, NAN and Inf values
+matrix.log[is.na(matrix.log)] <- 0
+matrix.log[is.nan(matrix.log)] <- 0
+matrix.log[is.infinite(matrix.log)] <- 0
+
+# Normalize the counts based on PND8 samples
+mat.norm <- matrix.log - rowMeans(matrix.log[, grep(
+  pattern = "PND8",
+  x = colnames(matrix.log),
+  value = T
+)])
+```
+
+```{r test}
+sortRows <- function(x, z = F, toporder = NULL, na.rm = F) {
+  library(seriation)
+  if (na.rm) {
+    x <- x[which(apply(x, 1, FUN = function(y) {
+      !any(is.na(y))
+    }) |
+      !(apply(x, 1, na.rm = T, FUN = sd) > 0)), ]
+  }
+  y <- x
+  if (z) y <- t(scale(t(x)))
+  ss <- seriate(dist(y), method = "MDS_angle")
+  if (is.null(toporder)) {
+    return(x[get_order(ss), ])
+  }
+  o1 <- get_order(ss)
+  oa <- aggregate(o1, by = list(top = as.factor(toporder)), FUN = median)
+  oa <- oa[order(oa[, 2]), 1]
+  toporder <- factor(as.character(toporder), levels = as.character(oa))
+  x[order(as.numeric(toporder), o1), ]
+}
+```
+
+
+# K-means clustering on the data and heatmaps
+
+## K-means clusters and heatmaps
+
+```{r, fig.show='hide', message=F, warning=F}
+if (!file.exists("./output/kmeans_sort_heatmaps_union_dge.RData")) {
+  plan(multisession)
+
+  kmeans <- future.apply::future_lapply(2:10, function(x) {
+    km <- kmeans(x = mat.norm, centers = x, iter.max = 100)
+    mat <- sortRows(
+      x = mat.norm,
+      toporder = km$cluster
+    )
+    return(list(kmeansn = km, sort_clust_mat = mat))
+  }, future.seed = 100)
+
+  names(kmeans) <- paste0("cluster_", 2:length(kmeans))
+
+  heatmaps <- future.apply::future_lapply(kmeans, function(x) {
+    pheatmap(x$sort_clust_mat,
+      color = viridis(100), border_color = NA,
+      show_rownames = F, show_colnames = F,
+      breaks = c(min(mat.norm), seq(-5, 5, length.out = 98), max(mat.norm)),
+      cluster_rows = F, cluster_cols = T,
+      annotation_col = data$pData[, 1:2],
+      annotation_row = data.frame(nCluster = as.factor(x$kmeansn$cluster))
+    )[[4]]
+  })
+
+  plan(sequential)
+
+  kmeans.heatmap <- do.call(grid.arrange, heatmaps)
+
+  save(kmeans, heatmaps, kmeans.heatmap,
+    file = "./output/kmeans_sort_heatmaps_union_dge.RData"
+  )
+} else {
+  load("./output/kmeans_sort_heatmaps_union_dge.RData")
+}
+```
+
+```{r, eval=FALSE, echo=FALSE}
+if (!file.exists("output/nClusters.rds")) {
+  nc <- n_clusters(x = mat.norm, fast = TRUE)
+  saveRDS(nc, "output/nClusters.rds")
+} else {
+  nc <- readRDS("output/nClusters.rds")
+}
+```
+
+## Plot heatmaps
+```{r, fig.align='center', fig.width=11, fig.height=8.5, warning=F, message=F}
+plot(kmeans.heatmap)
+```
+
+```{r, warning=F, message=F, echo=FALSE}
+pdf("./output/kmeans_heatmaps_SC_rnaseq_union_DGE.pdf", width = 11, height = 8.5)
+plot(kmeans.heatmap)
+z <- dev.off()
+```
+
+
+Based on visual inspection, heatmap with `k = 7` looks good. Based on visual inspection, we decided to merge cluster 3,4, and 6
+
+
+# Merging clusters and Heatmap
+
+## Merging clusters
+```{r}
+if (!file.exists("./output/kmeans_sortMat_k5.RData")) {
+  kmeans.new <- kmeans[[6]]$kmeansn$cluster
+  kmeans.new[kmeans.new == 3] <- 6
+  kmeans.new[kmeans.new == 4] <- 6
+
+  # rename
+  kmeans.new[kmeans.new == 1] <- 8
+  kmeans.new[kmeans.new == 2] <- 9
+  kmeans.new[kmeans.new == 5] <- 10
+
+  kmeans.new[kmeans.new == 6] <- 1
+  kmeans.new[kmeans.new == 8] <- 2
+  kmeans.new[kmeans.new == 10] <- 3
+  kmeans.new[kmeans.new == 7] <- 4
+  kmeans.new[kmeans.new == 9] <- 5
+
+  mat.new.k5 <- plgINS:::sortRows(x = mat.norm, toporder = kmeans.new)
+
+  save(kmeans.new, mat.new.k5, file = "./output/kmeans_sortMat_k5.RData")
+} else {
+  load("./output/kmeans_sortMat_k5.RData")
+}
+```
+
+## Heatmap (k = 5)
+```{r, warning=F, message=F, fig.align='center', fig.height=11, fig.width=8.5}
+annCol <- data$pData[, 1:2, drop = FALSE]
+
+o <- colnames(mat.new.k5)
+o <- o[c(grep("PND8", o), grep("PND15", o), grep("PNW21", o))]
+
+pheatmap(mat.new.k5[, o],
+  color = viridis(100), border_color = NA,
+  show_rownames = F, show_colnames = T, gaps_row = cumsum(table(kmeans.new)[c(2, 5, 4, 3)]),
+  gaps_col = c(6, 12),
+  breaks = c(min(mat.norm), seq(-5, 5, length.out = 95), max(mat.norm)),
+  cluster_rows = F, cluster_cols = F, annotation_col = annCol[, 1:2, drop = F],
+  annotation_row = data.frame(nCluster = as.factor(kmeans.new)),
+  main = "SC controls union DGE FDR <= 0.05 and abs(LFC) >= 1"
+)
+```
+
+```{r, echo=FALSE}
+pdf(file = "output/kmeans_sortMat_k5.pdf", width = 8.5, height = 11)
+pheatmap(mat.new.k5[, o],
+  color = viridis(100), border_color = NA,
+  show_rownames = F, show_colnames = T, gaps_row = cumsum(table(kmeans.new)[c(2, 5, 4, 3)]),
+  gaps_col = c(6, 12),
+  breaks = c(min(mat.norm), seq(-5, 5, length.out = 95), max(mat.norm)),
+  cluster_rows = F, cluster_cols = F, annotation_col = annCol[, 1:2, drop = F],
+  annotation_row = data.frame(nCluster = as.factor(kmeans.new)),
+  main = "SC controls union DGE FDR <= 0.05 and abs(LFC) >= 1"
+)
+z <- dev.off()
+```
+
+# References
+```{r }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r }
+devtools::session_info() %>%
+  details::details()
+```
+
+
+
+
+
+
+
+
+```{r, echo=FALSE, eval=FALSE}
+library(SEtools)
+sechm(
+  se = se, genes = row.names(se),
+  assayName = "values", toporder = "cluster",
+  gaps_row = "cluster", gaps_at = "Group",
+  hmcols = viridis::viridis(50),
+  anno_columns = c("Group", "LibPrepBatch")
+)
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+sh_mat <- mat.norm[, c(
+  grep("PND8", colnames(mat.norm)),
+  grep("PND15", colnames(mat.norm)),
+  grep("PNW21", colnames(mat.norm))
+)]
+library(superheat)
+set.seed(1000)
+superheat(sh_mat,
+  scale = F,
+  n.clusters.rows = 5,
+  pretty.order.rows = TRUE,
+  pretty.order.cols = F,
+  smooth.heat = F,
+  bottom.label.text.angle = 0,
+  membership.cols = rep(c("PND8", "PND15", "PNW21"), each = 6)
+)
+
+
+set.seed(1000)
+superheat(sh_mat,
+  scale = F,
+  n.clusters.rows = 5,
+  pretty.order.rows = TRUE,
+  pretty.order.cols = F,
+  smooth.heat = T, bottom.label.text.angle = 0,
+  membership.cols = rep(c("PND8", "PND15", "PNW21"), each = 6)
+)
+```
