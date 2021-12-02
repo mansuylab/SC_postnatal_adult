@@ -1,0 +1,898 @@
+---
+title: "Overlap matrix Homer TF"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-06-16 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = FALSE)
+```
+
+# Library
+```{r overlap-matrix-homer-1, warning = F, message = F}
+library(marge)
+library(GenomicRanges)
+library(parallel)
+library(dplyr)
+library(parallel)
+library(SummarizedExperiment)
+library(report)
+source("input/findMotif.R")
+```
+
+# Data
+```{r overlap-matrix-homer-2 }
+load("input/overlap_tables.RData")
+
+mat$anno1 <- "no"
+mat$anno1[mat$class == "proximal <=1000bp" | mat$class == "TSS"] <- "Proximal_1000_TSS"
+mat$anno1[mat$class == "intronic" | mat$class == "exonic"] <- "intronic_exonic"
+
+list_s1 <- lapply(sp_df_s1, function(x) inner_join(mat[, 1:74], x))
+list_s2 <- lapply(sp_df_s2, function(x) inner_join(mat[, 1:74], x))
+```
+
+
+## Function
+```{r overlap-matrix-homer-3 }
+perform_homer <- function(df, rna = FALSE, bg, fName = "no_ChIP_data", split = FALSE, sp_col = "class", outDir = NULL, DB = NULL, anno = NULL, rnaCutoff = FALSE) {
+  if (nrow(df) > 10) {
+    od <- paste0("./output/", outDir)
+
+    if (!dir.exists(od)) {
+      dir.create(od)
+    }
+    d <- NULL
+
+    if (rna) {
+      if (rnaCutoff) {
+        d <- df
+        d$rna <- (abs(d$RNA_PND14_vs_PNW8_logFC) >= 1)
+        d$rna <- tolower(d$rna)
+        d$rna[is.na(d$rna)] <- "not_detected"
+        d <- split(x = d, f = d$rna)
+      } else {
+        d <- df
+        d$rna <- (abs(d$RNA_PND14_vs_PNW8_logFC) >= 0)
+        d$rna <- tolower(d$rna)
+        d$rna[is.na(d$rna)] <- "not_detected"
+        d <- split(x = d, f = d$rna)
+      }
+    } else {
+      d <- list(df)
+      names(d) <- fName
+    }
+
+
+
+    sp_d <- NULL
+    if (split) {
+      e <- lapply(d, function(x) {
+        x[, sp_col] <- gsub(
+          pattern = " ", replacement = "_",
+          x = x[, sp_col]
+        )
+        x[, sp_col] <- gsub(
+          pattern = "<=", replacement = "",
+          x = x[, sp_col]
+        )
+        sp_d <- split(x, x[, sp_col])
+        sp_d <- sp_d[names(sp_d) != "no"]
+
+        try(names(sp_d) <- paste(fName, names(sp_d), sep = "-"))
+        return(sp_d)
+      })
+      sp_d <- e
+    } else {
+      sp_d <- list(d)
+      names(sp_d) <- fName
+    }
+
+
+    try(
+      if (split & rna) {
+        for (i in 1:length(sp_d)) {
+          n <- names(sp_d)[i]
+          for (j in 1:length(sp_d[[i]])) {
+            n1 <- names(sp_d[[i]])[j]
+            names(sp_d[[i]])[j] <- paste(n1, n, sep = "-")
+          }
+        }
+      }
+    )
+
+
+    try(
+      mclapply(sp_d, function(x) {
+        for (i in 1:length(x)) {
+          x1 <- x[[i]]
+
+          n <- names(x)[i]
+
+          o <- paste0("output/", outDir, "/", fName, "/", names(x)[i])
+
+          cat(o)
+
+          if (!dir.exists(o)) {
+            findMotifs(
+              x = x1[, c(1:3, 6, 4:5, 7:ncol(x1))],
+              path = o,
+              genome = "mm10",
+              motif_length = c(8, 10, 12),
+              scan_size = 100,
+              optimize_count = 8,
+              background = bg,
+              local_background = FALSE,
+              only_known = FALSE,
+              only_denovo = FALSE,
+              fdr_num = 5,
+              cores = 16, cache = 1000,
+              overwrite = TRUE, keep_minimal = FALSE,
+              motif_file = DB
+            )
+
+            find_motifs_instances(
+              x = x1[, c(1:3, 6, 4:5, 7:ncol(x1))],
+              path = paste(o, "motifInstances.txt", sep = "/"),
+              genome = "mm10",
+              motif_file = DB
+            )
+
+            colnames(x1)[1:6] <- paste("Peak", colnames(x1)[1:6], sep = "-")
+
+            motifFind <- read.delim(
+              file = paste(o, "motifInstances.txt", sep = "/"),
+              header = T, sep = "\t",
+              stringsAsFactors = F, check.names = F
+            )
+            colnames(motifFind)[1] <- "Peak-Name"
+            colnames(motifFind) <- gsub(pattern = " ", replacement = "", x = colnames(motifFind))
+            colnames(motifFind)[2:ncol(motifFind)] <- paste("MotifFind",
+              colnames(motifFind)[2:ncol(motifFind)],
+              sep = "-"
+            )
+
+            motifAnno <- read.delim(
+              file = anno,
+              header = T, sep = "\t",
+              stringsAsFactors = F, check.names = F
+            )
+
+            resultsFile <- read.delim(
+              file = paste(o, "knownResults.txt", sep = "/"),
+              header = T, sep = "\t",
+              stringsAsFactors = F, check.names = F
+            )
+
+            tab1 <- merge(x = motifFind, y = x1)
+            tab2 <- merge(x = motifAnno, resultsFile, by.x = "Model", by.y = "Motif Name")
+
+            tab.m <- merge(
+              x = tab2, y = tab1,
+              by.x = "Model",
+              by.y = "MotifFind-MotifName", all.x = T
+            )
+
+            tab.m <- tab.m[, c(1:18, 20:23, 19, 24:ncol(tab.m))]
+            tab.m_sig <- tab.m[tab.m$`q-value (Benjamini)` <= 0.05, ]
+
+            n <- paste(o, "knownResults.txt.gz", sep = "/")
+            n_sig <- paste(o, "knownResults.xlsx", sep = "/")
+
+            write.table(x = tab.m, file = gzfile(n), quote = F, sep = "\t", row.names = F)
+            writexl::write_xlsx(x = tab.m_sig, path = n_sig, col_names = T, format_headers = T)
+          }
+        }
+      }, mc.preschedule = F, mc.cores = length(sp_d))
+    )
+  }
+}
+```
+
+## Background
+```{r overlap-matrix-homer-4 }
+bg <- mat[, 1:6]
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
+motifFile <- "input/HOCOMOCOv11_core_MOUSE_mono_homer_format_0.001.motif"
+annoMotif <- "input/MOUSE_mono_motifs_HOCOMOCO.tsv"
+```
+
+## Background all regions
+```{r overlap-matrix-homer-5, message=FALSE, warning=FALSE}
+load("input/atac_diff_chromatin_accessibility.RData")
+bg_all <- data.frame(data@rowRanges, check.names = F, stringsAsFactors = F)[, c(1:5, 11)]
+bg_all <- bg_all[substr(x = bg_all$seqnames, start = 1, stop = 3) == "chr", ]
+colnames(bg_all) <- gsub(pattern = "Peak.", replacement = "", x = colnames(bg_all))
+rownames(bg_all) <- bg_all$Name
+```
+
+
+## Analysis
+
+### Without ChIP data
+```{r overlap-matrix-homer-6 }
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_cutoff_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna_cutoff",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna_cutoff",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_cutoff_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_bg_all_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_bg_all_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_cutoff_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna_cutoff_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna_cutoff_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff_bg_all_", names(list_s1)[i])
+  perform_homer(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_cutoff_bg_all_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+
+
+### With ChIP data
+```{r overlap-matrix-homer-7 }
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_rna_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_cutoff_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna_cutoff",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna_cutoff",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_rna_cutoff_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_bg_all_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_rna_bg_all_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_cutoff_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna_cutoff_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna_cutoff_bg_all",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r}
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_bg_all_", names(list_s2)[i])
+  perform_homer(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_rna_cutoff_bg_all_AnnoMerged",
+    DB = motifFile,
+    anno = annoMotif,
+    rnaCutoff = TRUE
+  )
+}
+```
+
+
+# References
+```{r overlap-matrix-homer-8}
+report::cite_packages(session = sessionInfo())
+```
+
+
+# SessionInfo
+```{r overlap-matrix-homer-9 }
+devtools::session_info() %>%
+  details::details()
+```

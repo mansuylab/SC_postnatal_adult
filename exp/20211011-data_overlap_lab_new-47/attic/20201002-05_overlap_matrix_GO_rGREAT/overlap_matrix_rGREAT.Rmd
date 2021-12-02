@@ -1,0 +1,841 @@
+---
+title: "Overlap matrix GREAT"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-06-15 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: hide
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = FALSE)
+```
+
+# Library
+```{r overlap-matrix-rGREAT-1, warning = F, message = F}
+library(dplyr)
+library(rGREAT)
+library(parallel)
+library(SummarizedExperiment)
+library(report)
+```
+
+# Data
+```{r overlap-matrix-rGREAT-2 }
+load("input/overlap_tables.RData")
+
+mat$anno1 <- "no"
+mat$anno1[mat$class == "proximal <=1000bp" | mat$class == "TSS"] <- "Proximal_1000_TSS"
+mat$anno1[mat$class == "intronic" | mat$class == "exonic"] <- "intronic_exonic"
+
+list_s1 <- lapply(sp_df_s1, function(x) inner_join(mat, x))
+list_s2 <- lapply(sp_df_s2, function(x) inner_join(mat, x))
+```
+
+
+## Function
+```{r overlap-matrix-rGREAT-3 }
+perform_rGREAT <- function(df, rna = FALSE, bg, fName = "no_ChIP_data", split = FALSE, sp_col = "class", outDir = NULL, rnaCutoff = FALSE) {
+  if (nrow(df) > 10) {
+    od <- paste0("./output/", outDir)
+
+    if (!dir.exists(od)) {
+      dir.create(od)
+    }
+    d <- NULL
+
+    if (rna) {
+      if (rnaCutoff) {
+        d <- df
+        d$rna <- (abs(d$RNA_PND14_vs_PNW8_logFC) >= 1)
+        d$rna <- tolower(d$rna)
+        d$rna[is.na(d$rna)] <- "not_detected"
+        d <- split(x = d, f = d$rna)
+      } else {
+        d <- df
+        d$rna <- (abs(d$RNA_PND14_vs_PNW8_logFC) >= 0)
+        d$rna <- tolower(d$rna)
+        d$rna[is.na(d$rna)] <- "not_detected"
+        d <- split(x = d, f = d$rna)
+      }
+    } else {
+      d <- list(df)
+      names(d) <- fName
+    }
+
+
+    sp_d <- NULL
+    try(
+      if (split) {
+        e <- lapply(d, function(x) {
+          x[, sp_col] <- gsub(
+            pattern = " ", replacement = "_",
+            x = x[, sp_col]
+          )
+          x[, sp_col] <- gsub(
+            pattern = "<=", replacement = "",
+            x = x[, sp_col]
+          )
+          sp_d <- split(x, x[, sp_col])
+          sp_d <- sp_d[names(sp_d) != "no"]
+
+          names(sp_d) <- paste(fName, names(sp_d), sep = "-")
+          return(sp_d)
+        })
+        sp_d <- e
+      } else {
+        sp_d <- list(d)
+        names(sp_d) <- fName
+      }
+    )
+
+    try(
+      great <- mclapply(sp_d, function(x) {
+        res <- mclapply(x, function(y) {
+          df_GR <- GRanges(y)
+          set.seed(123)
+          bed <- data.frame(df_GR, stringsAsFactors = F)
+          bed <- bed[substr(x = bed$seqnames, start = 1, stop = 3) == "chr", ]
+          job <- submitGreatJob(gr = bed, bg = bg, species = "mm10")
+          tb <- getEnrichmentTables(job)
+          return(list(table = tb, job = job))
+        }, mc.preschedule = F, mc.cores = length(x))
+        return(res)
+      }, mc.preschedule = F, mc.cores = length(sp_d))
+    )
+
+    try(
+      if ((split & rna) | rna) {
+        for (i in 1:length(great)) {
+          n <- names(great)[i]
+          for (j in 1:length(great[[i]])) {
+            n1 <- names(great[[i]])[j]
+            names(great[[i]])[j] <- paste(n1, n, sep = "-")
+          }
+        }
+      }
+    )
+
+    try(
+      tmp <- mclapply(great, function(x) {
+        for (i in 1:length(x)) {
+          tb <- x[[i]]$table
+          n <- names(x)[i]
+          writexl::write_xlsx(
+            x = tb$`GO Molecular Function`,
+            path = paste0("output/", outDir, "/", n, "_GO_MF.xlsx"),
+            col_names = T, format_headers = T
+          )
+          writexl::write_xlsx(
+            x = tb$`GO Biological Process`,
+            path = paste0("output/", outDir, "/", n, "_GO_BP.xlsx"),
+            col_names = T, format_headers = T
+          )
+          writexl::write_xlsx(
+            x = tb$`GO Cellular Component`,
+            path = paste0("output/", outDir, "/", n, "_GO_CC.xlsx"),
+            col_names = T, format_headers = T
+          )
+        }
+      }, mc.preschedule = F, mc.cores = length(great))
+    )
+    try(return(great))
+  }
+}
+```
+
+## Background
+```{r overlap-matrix-rGREAT-4 }
+bg <- mat[, 1:6]
+bg <- bg[substr(x = bg$seqnames, start = 1, stop = 3) == "chr", ]
+```
+
+## Background all regions
+```{r overlap-matrix-rGREAT-5, message=FALSE, warning=FALSE}
+load("input/atac_diff_chromatin_accessibility.RData")
+bg_all <- data.frame(data@rowRanges, check.names = F, stringsAsFactors = F)[, c(1:5, 11)]
+bg_all <- bg_all[substr(x = bg_all$seqnames, start = 1, stop = 3) == "chr", ]
+colnames(bg_all) <- gsub(pattern = "Peak.", replacement = "", x = colnames(bg_all))
+rownames(bg_all) <- bg_all$Name
+```
+
+
+## Analysis
+
+### Without ChIP data
+```{r overlap-matrix-rGREAT-6, message = FALSE, warning = FALSE }
+no_ChIP <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_", names(list_s1)[i])
+  no_ChIP[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-7, message = FALSE, warning = FALSE }
+no_ChIP_split <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_", names(list_s1)[i])
+  no_ChIP_split[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-8, message = FALSE, warning = FALSE }
+no_ChIP_split_a <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_", names(list_s1)[i])
+  no_ChIP_split[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-9, message = FALSE, warning = FALSE }
+no_ChIP_rna <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_", names(list_s1)[i])
+  no_ChIP_rna[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-10, message = FALSE, warning = FALSE }
+no_ChIP_split_rna <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_", names(list_s1)[i])
+  no_ChIP_split_rna[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-11, message = FALSE, warning = FALSE }
+no_ChIP_split_rna_a <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_", names(list_s1)[i])
+  no_ChIP_split_rna[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-12, message = FALSE, warning = FALSE }
+no_ChIP_rna_cutoff <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_cutoff_", names(list_s1)[i])
+  no_ChIP_rna_cutoff[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna_cutoff",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-13, message = FALSE, warning = FALSE }
+no_ChIP_split_rna_cutoff <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff", names(list_s1)[i])
+  no_ChIP_split_rna_cutoff[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-14, message = FALSE, warning = FALSE }
+no_ChIP_split_rna_cutoff_a <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff", names(list_s1)[i])
+  no_ChIP_split_rna_cutoff[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_AnnoMerged",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-15, message = FALSE, warning = FALSE }
+no_ChIP_bg_all <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_", names(list_s1)[i])
+  no_ChIP_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-16, message = FALSE, warning = FALSE }
+no_ChIP_split_bg_all <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_", names(list_s1)[i])
+  no_ChIP_split_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-17, message = FALSE, warning = FALSE }
+no_ChIP_split_bg_all_a <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_", names(list_s1)[i])
+  no_ChIP_split_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_bg_all_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-18, message = FALSE, warning = FALSE }
+no_ChIP_rna_bg_all <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_", names(list_s1)[i])
+  no_ChIP_rna_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-19, message = FALSE, warning = FALSE }
+no_ChIP_split_rna_bg_all <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_", names(list_s1)[i])
+  no_ChIP_split_rna_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-20, message = FALSE, warning = FALSE }
+no_ChIP_split_rna_bg_all_a <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_", names(list_s1)[i])
+  no_ChIP_split_rna_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_bg_all_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-21, message = FALSE, warning = FALSE }
+no_ChIP_rna_cutoff_bg_all <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_rna_cutoff_", names(list_s1)[i])
+  no_ChIP_rna_cutoff_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "no_ChIP_rna_cutoff_bg_all",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-22, message = FALSE, warning = FALSE }
+no_ChIP_split_rna_cutoff_bg_all <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff", names(list_s1)[i])
+  no_ChIP_split_rna_cutoff_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "no_ChIP_split_rna_bg_all",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-23, message = FALSE, warning = FALSE }
+no_ChIP_split_rna_cutoff_bg_all_a <- list()
+for (i in 1:length(list_s1)) {
+  n <- paste0("no_ChIP_split_rna_cutoff", names(list_s1)[i])
+  no_ChIP_split_rna_cutoff_bg_all[[n]] <- perform_rGREAT(
+    df = list_s1[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "no_ChIP_split_rna_bg_all_AnnoMerged",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+
+
+### With ChIP data
+```{r overlap-matrix-rGREAT-24, message = FALSE, warning = FALSE}
+with_ChIP <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_", names(list_s2)[i])
+  with_ChIP[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-25, message = FALSE, warning = FALSE }
+with_ChIP_split <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_", names(list_s2)[i])
+  with_ChIP_split[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-26, message = FALSE, warning = FALSE }
+with_ChIP_split_a <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_", names(list_s2)[i])
+  with_ChIP_split[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-27, message = FALSE, warning = FALSE }
+with_ChIP_rna <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_", names(list_s2)[i])
+  with_ChIP_rna[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-28, message = FALSE, warning = FALSE }
+with_ChIP_split_rna <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_", names(list_s2)[i])
+  with_ChIP_split_rna[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-29, message = FALSE, warning = FALSE }
+with_ChIP_split_rna_a <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_", names(list_s2)[i])
+  with_ChIP_split_rna[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_rna_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-30, message = FALSE, warning = FALSE }
+with_ChIP_rna_cutoff <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_cutoff_", names(list_s2)[i])
+  with_ChIP_rna_cutoff[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna_cutoff",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-31, message = FALSE, warning = FALSE }
+with_ChIP_split_rna_cutoff <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_", names(list_s2)[i])
+  with_ChIP_split_rna_cutoff[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna_cutoff",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-32, message = FALSE, warning = FALSE }
+with_ChIP_split_rna_cutoff_a <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_", names(list_s2)[i])
+  with_ChIP_split_rna_cutoff[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1_AnnoMerged",
+    outDir = "with_ChIP_split_rna_cutoff",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-33, message = FALSE, warning = FALSE }
+with_ChIP_bg_all <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_bg_all_", names(list_s2)[i])
+  with_ChIP_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-34, message = FALSE, warning = FALSE }
+with_ChIP_split_bg_all <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_bg_all_", names(list_s2)[i])
+  with_ChIP_split_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-35, message = FALSE, warning = FALSE }
+with_ChIP_split_bg_all_a <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_bg_all_", names(list_s2)[i])
+  with_ChIP_split_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = FALSE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_bg_all_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-36, message = FALSE, warning = FALSE }
+with_ChIP_rna_bg_all <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_bg_all_", names(list_s2)[i])
+  with_ChIP_rna_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-37, message = FALSE, warning = FALSE }
+with_ChIP_split_rna_bg_all <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_bg_all_", names(list_s2)[i])
+  with_ChIP_split_rna_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna_bg_all",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-38, message = FALSE, warning = FALSE }
+with_ChIP_split_rna_bg_all_a <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_bg_all_", names(list_s2)[i])
+  with_ChIP_split_rna_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_rna_bg_all_AnnoMerged",
+    rnaCutoff = FALSE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-39, message = FALSE, warning = FALSE }
+with_ChIP_rna_cutoff_bg_all <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_rna_cutoff_bg_all_", names(list_s2)[i])
+  with_ChIP_rna_cutoff_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = FALSE,
+    outDir = "with_ChIP_rna_cutoff_bg_all",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-40, message = FALSE, warning = FALSE }
+with_ChIP_split_rna_cutoff_bg_all <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_bg_all_", names(list_s2)[i])
+  with_ChIP_split_rna_cutoff_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "class",
+    outDir = "with_ChIP_split_rna_cutoff_bg_all",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+```{r overlap-matrix-rGREAT-41, message = FALSE, warning = FALSE }
+with_ChIP_split_rna_cutoff_bg_all_a <- list()
+for (i in 1:length(list_s2)) {
+  n <- paste0("with_ChIP_split_rna_cutoff_bg_all_", names(list_s2)[i])
+  with_ChIP_split_rna_cutoff_bg_all[[n]] <- perform_rGREAT(
+    df = list_s2[[i]],
+    rna = TRUE,
+    bg = bg_all,
+    fName = n,
+    split = TRUE,
+    sp_col = "anno1",
+    outDir = "with_ChIP_split_rna_cutoff_bg_all_AnnoMerged",
+    rnaCutoff = TRUE
+  )
+}
+```
+
+
+# Save data
+```{r overlap-matrix-rGREAT-42 }
+if (file.exists("output/results.RData")) {
+  load("output/results.RData")
+}
+
+save(no_ChIP,
+  no_ChIP_rna,
+  no_ChIP_split,
+  no_ChIP_split_a,
+  no_ChIP_split_rna,
+  no_ChIP_split_rna_a,
+  no_ChIP_rna_cutoff,
+  no_ChIP_split_rna_cutoff,
+  no_ChIP_split_rna_cutoff_a,
+  no_ChIP_bg_all,
+  no_ChIP_rna_bg_all,
+  no_ChIP_split_bg_all,
+  no_ChIP_split_bg_all_a,
+  no_ChIP_split_rna_bg_all,
+  no_ChIP_split_rna_bg_all_a,
+  no_ChIP_rna_cutoff_bg_all,
+  no_ChIP_split_rna_cutoff_bg_all,
+  no_ChIP_split_rna_cutoff_bg_all_a,
+  with_ChIP,
+  with_ChIP_rna,
+  with_ChIP_split,
+  with_ChIP_split_a,
+  with_ChIP_split_rna,
+  with_ChIP_split_rna_a,
+  with_ChIP_rna_cutoff,
+  with_ChIP_split_rna_cutoff,
+  with_ChIP_split_rna_cutoff_a,
+  with_ChIP_bg_all,
+  with_ChIP_rna_bg_all,
+  with_ChIP_split_bg_all,
+  with_ChIP_split_bg_all_a,
+  with_ChIP_split_rna_bg_all,
+  with_ChIP_split_rna_bg_all_a,
+  with_ChIP_rna_cutoff_bg_all,
+  with_ChIP_split_rna_cutoff_bg_all,
+  with_ChIP_split_rna_cutoff_bg_all_a,
+  file = "output/results.RData"
+)
+```
+
+# References
+```{r overlap-matrix-rGREAT-43 }
+report::cite_packages(session = sessionInfo())
+```
+
+# SessionInfo
+```{r overlap-matrix-rGREAT-44 }
+devtools::session_info() %>%
+  details::details()
+```

@@ -1,0 +1,79 @@
+[1] "en_US.utf8"
+  |                                                                              |                                                                      |   0%  |                                                                              |.                                                                     |   1%
+   inline R code fragments
+
+  |                                                                              |..                                                                    |   2%
+label: setup (with options) 
+List of 1
+ $ include: logi FALSE
+
+  |                                                                              |..                                                                    |   3%
+  ordinary text without R code
+
+  |                                                                              |...                                                                   |   4%
+label: overlap-matrix-rGREAT-1 (with options) 
+List of 2
+ $ warning: symbol F
+ $ message: symbol F
+
+  |                                                                              |....                                                                  |   6%
+  ordinary text without R code
+
+  |                                                                              |.....                                                                 |   7%
+label: overlap-matrix-rGREAT-2
+  |                                                                              |.....                                                                 |   8%
+  ordinary text without R code
+
+  |                                                                              |......                                                                |   9%
+label: overlap-matrix-rGREAT-3
+  |                                                                              |.......                                                               |  10%
+  ordinary text without R code
+
+  |                                                                              |........                                                              |  11%
+label: overlap-matrix-rGREAT-4
+  |                                                                              |.........                                                             |  12%
+  ordinary text without R code
+
+  |                                                                              |.........                                                             |  13%
+label: overlap-matrix-rGREAT-5 (with options) 
+List of 2
+ $ message: logi FALSE
+ $ warning: logi FALSE
+
+  |                                                                              |..........                                                            |  14%
+  ordinary text without R code
+
+  |                                                                              |...........                                                           |  16%
+label: overlap-matrix-rGREAT-6 (with options) 
+List of 2
+ $ message: logi FALSE
+ $ warning: logi FALSE
+
+  |                                                                              |............                                                          |  17%
+  ordinary text without R code
+
+  |                                                                              |............                                                          |  18%
+label: overlap-matrix-rGREAT-7 (with options) 
+List of 2
+ $ message: logi FALSE
+ $ warning: logi FALSE
+
+  |                                                                              |.............                                                         |  19%
+  ordinary text without R code
+
+  |                                                                              |..............                                                        |  20%
+label: overlap-matrix-rGREAT-8 (with options) 
+List of 2
+ $ message: logi FALSE
+ $ warning: logi FALSE
+
+  |                                                                              |...............                                                       |  21%
+  ordinary text without R code
+
+  |                                                                              |................                                                      |  22%
+label: overlap-matrix-rGREAT-9 (with options) 
+List of 2
+ $ message: logi FALSE
+ $ warning: logi FALSE
+
+

@@ -1,0 +1,282 @@
+---
+title: "DO: Data objects for Enriched Heatmaps"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-10-08 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r enriched-hearmap-do-1, warning = F, message = F}
+library(tidyverse)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(gUtils)
+library(plyr)
+library(SummarizedExperiment)
+```
+
+
+# Function to subset data to one chromosome
+```{r enriched-hearmap-do-2, echo = F}
+mylapply <- function(...) {
+  if (require(parallel) && .Platform$OS.type == "unix") {
+    mclapply(..., mc.preschedule = F)
+  }
+  else {
+    lapply(...)
+  }
+}
+```
+
+
+# ATAC differential analysis
+```{r enriched-hearmap-do-4 }
+load("input/atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(res) <- gsub(pattern = "Peak-", replacement = "", x = colnames(res))
+res_p <- res[res$`diffAccessibility-qvalue` <= 0.05, ]
+res_lp <- res[res$`diffAccessibility-qvalue` <= 0.05 & abs(res$`diffAccessibility-logFC`) > 1, ]
+# res_lp <- inner_join(res_lp, wo)
+
+
+tss_mm10 <- gr.mid(GRanges(res_lp))
+# tss_mm10 <- one_chr(tss_mm10)
+names(tss_mm10) <- tss_mm10$Name
+
+tss_5k <- promoters(tss_mm10, upstream = 2500, downstream = 2500)
+# tss_5k <- one_chr(tss_5k)
+names(tss_5k) <- tss_5k$Name
+```
+
+# Normalize signal to tss
+
+## ATAC-Seq
+```{r enriched-hearmap-do-5 }
+nm_atac <- "./output/mat_atac.RData"
+
+if (!file.exists(nm_atac)) {
+  atac_files <- list.files("input/atacseq", pattern = "\\.bw$", full.names = TRUE)
+  names(atac_files) <- gsub(pattern = "\\.bw", replacement = "", x = basename(atac_files))
+  atac_bw <- mylapply(atac_files, function(x) rtracklayer::import(x))
+
+  mat_AS <- mylapply(atac_bw, FUN = function(x) {
+    normalizeToMatrix(x, tss_mm10,
+      extend = 2500,
+      value_column = "score",
+      include_target = TRUE,
+      mean_mode = "w0",
+      w = 50
+    )
+  }, mc.cores = length(atac_files))
+
+  save(mat_AS, file = nm_atac)
+} else {
+  load(nm_atac)
+}
+```
+
+
+## ChIP-Seq
+```{r enriched-hearmap-do-6 }
+nm_chip <- "./output/mat_chip.RData"
+
+if (!file.exists(nm_chip)) {
+  chip_files <- list.files("input/chipseq", pattern = "\\.bw$", full.names = TRUE)
+  names(chip_files) <- gsub(pattern = "\\.bw", replacement = "", x = basename(chip_files))
+  chip_bw <- mylapply(chip_files, function(x) rtracklayer::import(x))
+
+  mat_CS <- mylapply(chip_bw, FUN = function(x) {
+    normalizeToMatrix(x, tss_mm10,
+      extend = 2500,
+      value_column = "score",
+      include_target = TRUE,
+      mean_mode = "w0",
+      w = 50
+    )
+  }, mc.cores = length(chip_files))
+
+  save(mat_CS, file = nm_chip)
+} else {
+  load(nm_chip)
+}
+```
+
+
+## Bisulphite-Seq
+```{r enriched-hearmap-do-7 }
+nm_bs <- "./output/mat_bs.RData"
+
+if (!file.exists(nm_bs)) {
+  bs_files <- list.files("input/bsseq", pattern = "\\.gz$", full.names = TRUE)
+  names(bs_files) <- gsub(
+    pattern = "_1_val_1_bismark_bt2_pe.bismark.cov.gz",
+    replacement = "", x = basename(bs_files)
+  )
+
+  bs_cov <- mylapply(bs_files, function(x) {
+    fread(
+      input = x,
+      sep = "\t", quote = F, stringsAsFactors = F,
+      data.table = FALSE, nThread = detectCores(), showProgress = F,
+      col.names = c("seqnames", "start", "end", "percent", "Me", "Un")
+    )
+  }, mc.cores = length(bs_files))
+
+  bs_cov <- mylapply(bs_cov, function(x) {
+    # a <- one_chr(GRanges(x))
+    a <- GRanges(x)
+    a$meth <- a$percent / 100
+    a <- a[, 4]
+    return(a)
+  }, mc.cores = length(bs_files))
+
+
+  mat_BS <- mylapply(bs_cov, FUN = function(x) {
+    normalizeToMatrix(x, tss_mm10,
+      extend = 2500,
+      value_column = "meth",
+      include_target = TRUE,
+      smooth = TRUE,
+      mean_mode = "absolute",
+      background = NA
+    )
+  }, mc.cores = length(bs_files))
+
+  save(mat_BS, file = nm_bs)
+} else {
+  load(nm_bs)
+}
+```
+
+
+## RRBS
+```{r enriched-hearmap-do-8 }
+nm_rrbs <- "./output/mat_rrbs.RData"
+
+if (!file.exists(nm_rrbs)) {
+  rrbs_file <- "input/rrbs/PND8_trimmed_bismark_bt2.bismark.cov.gz"
+  names(rrbs_file) <- gsub(
+    pattern = "_trimmed_bismark_bt2.bismark.cov.gz",
+    replacement = "", x = basename(rrbs_file)
+  )
+
+  rrbs_cov <- fread(
+    input = rrbs_file,
+    sep = "\t", quote = F, stringsAsFactors = F,
+    data.table = FALSE, nThread = detectCores(), showProgress = F,
+    col.names = c("seqnames", "start", "end", "percent", "Me", "Un")
+  )
+
+  # rrbs_cov <- one_chr(GRanges(rrbs_cov))
+  rrbs_cov <- GRanges(rrbs_cov)
+  rrbs_cov$meth <- rrbs_cov$percent / 100
+  rrbs_cov <- rrbs_cov[, 4]
+
+  mat_RRBS <- normalizeToMatrix(
+    signal = rrbs_cov, target = tss_mm10,
+    extend = 2500,
+    value_column = "meth",
+    include_target = TRUE,
+    smooth = TRUE,
+    mean_mode = "absolute",
+    background = NA
+  )
+
+  save(mat_RRBS, file = nm_rrbs)
+} else {
+  load(nm_rrbs)
+}
+```
+
+## RNA-Seq
+```{r enriched-hearmap-do-9 }
+nm_rna_counts <- "./output/mat_rna_counts.RData"
+
+if (!file.exists(nm_rna_counts)) {
+  load("input/data_pData.RData")
+  cpm <- data$cpm
+
+  tmp1 <- data.frame(Name = tss_5k$Name, Gene = tss_5k$nearestTSSgene_name)
+  tmp2 <- data.frame(Gene = rownames(cpm), cpm)
+  tab <- left_join(tmp1, tmp2)
+  rownames(tab) <- tab$Name
+  mat_RNA_counts <- tab[rownames(mat_AS$Adult_NF), -c(1:2)]
+
+  mat_RNA_counts <- mat_RNA_counts - rowMeans(mat_RNA_counts[, grep(
+    pattern = "PND8", x = colnames(mat_RNA_counts),
+    value = T
+  )])
+
+  mat_RNA_counts_merged <- data.frame(
+    PND8 = rowMeans(mat_RNA_counts[, grep(pattern = "PND8", x = colnames(mat_RNA_counts))]),
+    PND15 = rowMeans(mat_RNA_counts[, grep(pattern = "PND15", x = colnames(mat_RNA_counts))]),
+    PND14 = mat_RNA_counts[, grep(pattern = "PND14", x = colnames(mat_RNA_counts))],
+    Adult = mat_RNA_counts[, grep(pattern = "PNW8", x = colnames(mat_RNA_counts))]
+  )
+
+  save(mat_RNA_counts, mat_RNA_counts_merged, file = nm_rna_counts)
+} else {
+  load(nm_rna_counts)
+}
+```
+
+
+## RNA-Seq logFC
+```{r enriched-hearmap-do-10 }
+nm_rna_counts_logFC <- "./output/mat_rna_counts_logFC.RData"
+
+if (!file.exists(nm_rna_counts_logFC)) {
+  load("input/limma_SC_Controls_lab_lit.RData")
+  lfc1 <- dea.limma$`pnd8 vs pnd15`[,1:2]
+  lfc2 <- dea.limma$`pnd14 vs pnw8`[,1:2]
+  
+  lfc <- merge(lfc1, lfc2, by = "Genes", all = T)
+  colnames(lfc) <- c("Gene", "PND8vsPND15", "PND14vsPNW8")
+  
+  tmp1 <- data.frame(Name = tss_5k$Name, Gene = tss_5k$nearestTSSgene_name)
+  tmp2 <- lfc
+  tab <- left_join(tmp1, tmp2)
+  rownames(tab) <- tab$Name
+  mat_RNA_counts_logFC <- tab[rownames(mat_AS$Adult_NF), -c(1:2)]
+
+  load("input/overlap_tables.RData")
+  
+  wo <- ldply(sp_df_s1, data.frame)[, -1]
+# wo <- inner_join(res_lp, wo)
+wi <- ldply(sp_df_s2, data.frame)[, -1]
+# wi <- inner_join(res_lp, wi)
+  
+  save(mat_RNA_counts_logFC, file = nm_rna_counts_logFC)
+} else {
+  load(nm_rna_counts_logFC)
+}
+```
+
+
+# References
+```{r enriched-hearmap-do-11}
+report::cite_packages(sessionInfo())
+```
+
+# SessionInfo
+```{r enriched-hearmap-do-12 }
+devtools::session_info()
+```

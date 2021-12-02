@@ -1,0 +1,850 @@
+---
+title: "Data overlap: Enriched heatmaps"
+author: "Deepak Tanwar"
+date: "<b>Created on:</b> 2020-10-09 <br> <b>Updated on:</b> `r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: tango
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    keep_md: no
+    number_sections: no
+    fig_width: 8
+    fig_height: 8
+    fig_caption: true
+    df_print: paged
+    code_folding: show
+  fontsize: 12pt
+  geometry: margin=1in
+  documentclass: article
+# bibliography: references.bib
+link-citations: yes
+---
+
+# Library
+```{r enriched-heatmaps-data-overlap-1, warning = F, message = F}
+library(EnrichedHeatmap)
+library(circlize)
+library(data.table)
+library(tidyverse)
+library(plgINS)
+library(BSgenome.Mmusculus.UCSC.mm10)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+library(csaw)
+library(gUtils)
+library(report)
+library(plyr)
+library(viridis)
+library(RColorBrewer)
+```
+
+## Heatmap options
+```{r enriched-heatmaps-data-overlap-2 }
+ht_opt$TITLE_PADDING <- unit(1, "mm")
+ht_opt$legend_gap <- unit(3, "mm")
+ht_opt$legend_grid_height <- unit(2, "mm")
+ht_opt$legend_grid_width <- unit(2, "mm")
+ht_opt$HEATMAP_LEGEND_PADDING <- unit(1, "mm")
+```
+
+
+# Function to run in parallel
+```{r enriched-heatmaps-data-overlap-3, echo = F}
+mylapply <- function(...) {
+  if (require(parallel) && .Platform$OS.type == "unix") {
+    mclapply(..., mc.preschedule = F)
+  }
+  else {
+    lapply(...)
+  }
+}
+```
+
+# ATAC differential analysis
+```{r enriched-heatmaps-data-overlap-4 }
+load("input/atac_diff_chromatin_accessibility.RData")
+
+res <- data.frame(rowData(data), stringsAsFactors = F, check.names = F)
+colnames(res) <- gsub(pattern = "Peak-", replacement = "", x = colnames(res))
+res_p <- res[res$`diffAccessibility-qvalue` <= 0.05, ]
+res_lp <- res[res$`diffAccessibility-qvalue` <= 0.05 & abs(res$`diffAccessibility-logFC`) > 1, ]
+
+tss_mm10 <- gr.mid(GRanges(res_lp))
+names(tss_mm10) <- tss_mm10$Name
+
+tss_5k <- promoters(tss_mm10, upstream = 1000, downstream = 1000)
+names(tss_5k) <- tss_5k$Name
+```
+
+# Data overlaps
+```{r enriched-heatmaps-data-overlap-5 }
+load("input/overlap_tables.RData")
+wo <- ldply(sp_df_s1, data.frame)[, -1]
+wo <- inner_join(res_lp, wo)
+wi <- ldply(sp_df_s2, data.frame)[, -1]
+wi <- inner_join(res_lp, wi)
+
+rownames(wo) <- wo$name
+rownames(wi) <- wi$name
+```
+
+
+# Normalized matrix
+```{r enriched-heatmaps-data-overlap-6 }
+nm_atac <- "./input/mat_atac.RData"
+nm_rna_counts <- "./input/mat_rna_counts.RData"
+nm_rna_logFC <- "./input/mat_rna_counts_logFC.RData"
+nm_chip <- "./input/mat_chip.RData"
+nm_bs <- "./input/mat_bs.RData"
+
+load(nm_atac)
+load(nm_rna_counts)
+load(nm_rna_logFC)
+load(nm_chip)
+load(nm_bs)
+
+inactive <- wo$Name[grep(pattern = "inactive", x = wo$anno)]
+mat_RNA_counts_logFC[inactive,2] <- NA
+```
+
+# Heatmaps functions
+
+## Color function
+```{r enriched-heatmaps-data-overlap-7 }
+generate_diff_color_fun <- function(x, rows) {
+  q <- quantile(x[rows, ], c(0.5, .95))
+  max_q <- max(abs(q))
+  colorRamp2(c(-max_q, 0, max_q), c("#3794bf", "#FFFFFF", "#df8640"))
+}
+
+generate_color_fun <- function(x, rows, col = "red") {
+  q <- NULL
+  if (is.list(x)) {
+    a <- lapply(x, function(y) quantile(data.matrix(y)[rows, ], c(0.05, 0.95)))
+    min <- NULL
+    max <- NULL
+    for (i in 1:length(a)) {
+      min <- c(min, a[[i]][1])
+      max <- c(max, a[[i]][2])
+    }
+    q <- c(min(min), max(max))
+  } else {
+    q <- quantile(x[rows, ], c(0.05, 0.95))
+  }
+  max_q <- max(abs(q))
+  col <- colorRamp2(c(0, max_q), c("#FFFFFF", col))
+  return(col)
+}
+```
+
+## Function for `at`
+```{r enriched-heatmaps-data-overlap-8 }
+get_at <- function(mm) {
+  l <- length(mm@levels)
+  mm@colors <- c(mm@colors[1], mm@colors[median(1:l)], mm@colors[l])
+  mm@levels <- c(mm@levels[1], mm@levels[median(1:l)], mm@levels[l])
+  return(mm)
+}
+```
+
+## Fold change color for heatmap (from Pierre-Luc)
+```{r enriched-heatmaps-data-overlap-9}
+sqrtCols <- function(x, cols = NULL) {
+  if (is.null(cols)) {
+    cols <- rev(brewer.pal(n = 11, "RdBu"))
+  }
+  if (is.function(cols)) {
+    cols <- cols(11)
+  }
+  if (length(cols) != 11) {
+    stop("`cols` should contain 11 colors.")
+  }
+  bb <- c(
+    -seq(from = sqrt(abs(min(x, na.rm = TRUE))), to = 0, length.out = 6)^2,
+    seq(from = 0, to = sqrt(max(x, na.rm = TRUE)), length.out = 6)[-1]^2
+  )
+
+  colorRamp2(bb, cols)
+}
+```
+
+
+## Enriched Heatmap creating function
+```{r enriched-heatmaps-data-overlap-10 }
+make_EH <- function(data, name, color, column_title, anno_name, show_legend,
+                    log2 = FALSE, bg_col, col_an, partition, axis_name, ht, la = NULL) {
+  if (log2) {
+    data <- log2(data + 1)
+  }
+
+  # ifelse(test = is.null(la), yes = NA, no = la)
+  
+  h <- EnrichedHeatmap(
+    mat = data,
+    name = name,
+    col = color,
+    column_title = column_title,
+    left_annotation = la,
+    top_annotation = HeatmapAnnotation(
+      lines = anno_enriched(
+        height = unit(1, "cm"),
+        gp = gpar(
+          lwd = 0.7,
+          fontsize = 6,
+          fontfamily = "Helvetica",
+          col = col_an,
+          lty = 1:length(unique(col_an))
+        ),
+        axis_param = list(
+          side = "right",
+          facing = "inside",
+          gp = gpar(
+            fontsize = 6,
+            col = "black",
+            lwd = 0.4
+          )
+        )
+      ),
+      annotation_name_gp = gpar(
+        fontsize = 0,
+        fontfamily = "Helvetica"
+      ),
+      annotation_legend_param = list(
+        title_gp = gpar(
+          fontsize = 6,
+          fontface = "bold",
+          fontfamily = "Helvetica"
+        ),
+        labels_gp = gpar(
+          fontsize = 6,
+          fontfamily = "Helvetica"
+        )
+      )
+    ),
+    border_gp = gpar(
+      col = "black",
+      lwd = 0.4
+    ),
+    column_title_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+
+      fill = bg_col
+    ),
+    axis_name_gp = gpar(
+      fontfamily = "Helvetica",
+      fontsize = 6,
+      col = "black",
+      lwd = 0.4
+    ),
+    use_raster = FALSE,
+    row_split = partition,
+    row_gap = unit(0.5, "mm"),
+    # row_title = NULL,
+    row_title_gp = gpar(fontfamily = "Helvetica", fontsize = 6, col = "black"),
+    row_title_rot = 0,
+    axis_name = axis_name,
+    width = unit(1.8, "cm"),
+    height = unit(ht, "cm"),
+    show_heatmap_legend = show_legend,
+    heatmap_legend_param = list(
+      direction = "vertical",
+      # at = get_at(m1 = mat_AS$Adult_NF[x,], m2 = mat_AS$PND15_NF[x,]),
+      title = anno_name,
+      legend_height = unit(0.8, "cm"),
+      title_position = "topleft",
+      title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  )
+  
+   return(h) 
+}
+```
+
+
+## EH function
+```{r enriched-heatmaps-data-overlap-11 }
+draw_EH <- function(x, k, name, ht, type, log = FALSE, outdir, rm) {
+  set.seed(1100)
+
+  names(k) <- x
+  partition <- k
+
+  nc <- length(unique(k))
+
+  pdf_file <- NULL
+
+  if (log) {
+    if (rm == "meth") {
+      pdf_file <- paste0("./output/", outdir, "/", name, "_no_meth_log2.pdf")
+    } else {
+      pdf_file <- paste0("./output/", outdir, "/", name, "_log2.pdf")
+    }
+  } else {
+    if (rm == "meth") {
+      pdf_file <- paste0("./output/", outdir, "/", name, "_no_meth.pdf")
+    } else {
+      pdf_file <- paste0("./output/", outdir, "/", name, ".pdf")
+    }
+  }
+
+
+  cnl <- rcartocolor::carto_pal(n = 8, name = "Safe")[c(1:5,8,6,7)]
+  names(cnl) <- c("Category 1", "Category 2", "Category 3", "Category 4", "Category 5", "Category 6", "More acc.", "Less acc.")
+  
+  u <- as.character(unique(partition))
+  names(u) <- u
+  
+  u[grep(pattern = "Category 1", x = names(u))] <- cnl[1]
+  u[grep(pattern = "Category 2", x = names(u))] <- cnl[2]
+  u[grep(pattern = "Category 3", x = names(u))] <- cnl[3]
+  u[grep(pattern = "Category 4", x = names(u))] <- cnl[4]
+  u[grep(pattern = "Category 5", x = names(u))] <- cnl[5]
+  u[grep(pattern = "Category 6", x = names(u))] <- cnl[6]
+  u[grep(pattern = "More acc.", x = names(u))] <- cnl[7]
+  u[grep(pattern = "Less acc.", x = names(u))] <- cnl[8]
+  
+  col_an <- u
+  
+  par <- gsub(pattern = "\\(", replacement = "\n(", x = partition)
+  
+  hm_an <-Heatmap(matrix = partition, 
+                   col = col_an, 
+                   split = par, 
+                   show_row_names = F, 
+                   row_title_rot = 0,
+                   row_title_gp = gpar(fontsize = 8, fontfamily = "Helvetica"),
+                   show_heatmap_legend = FALSE, 
+                   column_names_gp  = gpar(fontsize = 0, fontfamily = "Helvetica"),
+                   width = unit(3, "mm") )
+
+  l <- levels(partition)
+  l <- sort(unique(trimws(gsub(pattern = "\\(.*", replacement = "", x = partition))))
+  
+  if(length(l) == 2){
+    l <- rev(l)
+  }
+  
+  lgd = Legend(at = l, title = "Categories", 
+               legend_gp = gpar(fill = cnl[l]), 
+               labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica"), 
+               title_gp = gpar(fontsize = 6, fontface = "bold", fontfamily = "Helvetica")
+  
+  
+  
+  
+  la <- HeatmapAnnotation(
+  Categories = partition,
+  which = "row"
+)
+
+  draw(la +hm_atac)
+  
+  
+  
+  # col_an <- NULL
+  # 
+  # 
+  # if (length(unique(partition)) <= 8) {
+  #   col_an <- brewer.pal(n = 8, name = "Dark2")
+  #   names(col_an) <- unique(partition)
+  # 
+  #   col_an <- col_an[!is.na(names(col_an))]
+  # } else {
+  #   n <- length(unique(partition))
+  #   qual_col_pals <- brewer.pal.info[brewer.pal.info$category == "qual", ]
+  #   col_an <- unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+  #   names(col_an) <- unique(partition)
+  #   col_an <- col_an[!is.na(names(col_an))]
+  #   # pie(rep(1,n), col=sample(col_vector, n))
+  # }
+  
+
+  hm_an <- HeatmapAnnotation(
+    Categories = partition,
+    which = "row",
+    annotation_name_gp = gpar(fontsize = 0),
+    annotation_legend_param = list(
+      title_gp = gpar(
+        fontsize = 6,
+        fontface = "bold",
+        fontfamily = "Helvetica"
+      ),
+      labels_gp = gpar(
+        fontsize = 6,
+        fontfamily = "Helvetica"
+      )
+    ),
+    col = list(Categories = col_an),
+    simple_anno_size = unit(3, "mm")
+  )
+
+  axis_name <- c("-1kb", "Mid", "1kb")
+
+  mat_as <- lapply(mat_AS, function(y) {
+    if (log) {
+      return(log2(y[x, ] + 1))
+    } else {
+      return(y[x, ])
+    }
+  })
+
+  col_atac <- generate_color_fun(x = mat_as, col = "red", rows = x)
+
+  bg_col <- brewer.pal(n = 8, name = "Set2")[c(3,4,6,5)]
+
+  # ATAC-Seq
+  atac_PND15 <- make_EH(
+    data = mat_AS$PND15_NF[x, ],
+    name = "PND15",
+    column_title = "PND15 ATAC-seq",
+    color = col_atac,
+    anno_name = ifelse(log, expression(bold(paste("ATAC-seq (", log[2], " RPKM)"))), expression(bold(ATAC-seq ~ "(RPKM)"))),
+    show_legend = FALSE, log2 = log, bg_col = bg_col[1], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht, la = hm_an
+  )
+
+  atac_Adult <- make_EH(
+    data = mat_AS$Adult_NF[x, ],
+    name = "Adult",
+    column_title = "Adult ATAC-seq",
+    color = col_atac,
+    anno_name = ifelse(log, expression(bold(paste("ATAC-seq (", log[2], " RPKM)"))), expression(bold(ATAC-seq ~ "(RPKM)"))),
+    show_legend = TRUE, log2 = log, bg_col = bg_col[1], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht
+  )
+
+  hm_atac <- atac_PND15 + atac_Adult
+
+  hm_atac@ht_list$PND15@matrix_color_mapping <- get_at(mm = hm_atac@ht_list$PND15@matrix_color_mapping)
+  hm_atac@ht_list$Adult@matrix_color_mapping <- get_at(mm = hm_atac@ht_list$Adult@matrix_color_mapping)
+
+
+  chip_col_dat <- function(z) {
+    if (log) {
+      return(log2(z[x, ] + 1))
+    } else {
+      return(z[x, ])
+    }
+  }
+
+  chip_PNW8_H3K4me3 <- make_EH(
+    data = mat_CS$PNW8_H3K4me3_SRX332343[x, ],
+    name = "PNW8 H3K4me3",
+    column_title = "PNW8 H3K4me3",
+    color = generate_color_fun(x = chip_col_dat(z = mat_CS$PNW8_H3K4me3_SRX332343[x, ]), rows = x, col = "blue"),
+    anno_name = ifelse(log, expression(bold(paste("H3K4me3 (", log[2], " RPKM)"))), expression(bold(H3K4me3 ~ "(RPKM)"))),
+    show_legend = TRUE, log2 = log, bg_col = bg_col[2], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht
+  )
+
+  chip_PNW8_H3K27ac <- make_EH(
+    data = mat_CS$PNW8_H3K27ac_SRX332351[x, ],
+    name = "PNW8 H3K27ac",
+    column_title = "PNW8 H3K27ac",
+    color = generate_color_fun(x = chip_col_dat(z = mat_CS$PNW8_H3K27ac_SRX332351[x, ]), rows = x, col = "blue"),
+    anno_name = ifelse(log, expression(bold(paste("H3K27ac (", log[2], " RPKM)"))), expression(bold(H3K27ac ~ "(RPKM)"))),
+    show_legend = TRUE, log2 = log, bg_col = bg_col[2], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht
+  )
+
+  chip_PNW8_H3K27me3 <- make_EH(
+    data = mat_CS$PNW8_H3K27me3_SRX332346[x, ],
+    name = "PNW8 H3K27me3",
+    column_title = "PNW8 H3K27me3",
+    color = generate_color_fun(x = chip_col_dat(z = mat_CS$PNW8_H3K27me3_SRX332346[x, ]), rows = x, col = "blue"),
+    anno_name = ifelse(log, expression(bold(paste("H3K27me3 (", log[2], " RPKM)"))), expression(bold(H3K27me3 ~ "(RPKM)"))),
+    show_legend = TRUE, log2 = log, bg_col = bg_col[2], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht
+  )
+
+
+  hm_chip <- chip_PNW8_H3K4me3 + chip_PNW8_H3K27ac + chip_PNW8_H3K27me3
+
+  hm_chip@ht_list$`PNW8 H3K4me3`@matrix_color_mapping <- get_at(hm_chip@ht_list$`PNW8 H3K4me3`@matrix_color_mapping)
+  hm_chip@ht_list$`PNW8 H3K27ac`@matrix_color_mapping <- get_at(hm_chip@ht_list$`PNW8 H3K27ac`@matrix_color_mapping)
+  hm_chip@ht_list$`PNW8 H3K27me3`@matrix_color_mapping <- get_at(hm_chip@ht_list$`PNW8 H3K27me3`@matrix_color_mapping)
+
+
+  # Methylation color
+  meth_col_fun <- colorRamp2(c(0, 0.5, 1), c("red", "white", "blue"))
+
+
+  # BSseq
+
+  bs_PND7 <- make_EH(
+    data = mat_BS$PND7_SRX749887[x, ],
+    name = "PND7 BS",
+    column_title = "PND7 BS",
+    color = meth_col_fun,
+    anno_name = expression(bold(paste("BS (DNAme)"))),
+    show_legend = TRUE, log2 = FALSE, bg_col = bg_col[4], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht
+  )
+
+  bs_PND14 <- make_EH(
+    data = mat_BS$PND14_SRX749892[x, ],
+    name = "PND14 BS",
+    column_title = "PND14 BS",
+    color = meth_col_fun,
+    anno_name = expression(bold(paste("BS (DNAme)"))),
+    show_legend = FALSE, log2 = FALSE, bg_col = bg_col[4], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht
+  )
+
+  bs_PNW8 <- make_EH(
+    data = mat_BS$PNW8[x, ],
+    name = "PNW8 BS",
+    column_title = "PNW8 BS",
+    color = meth_col_fun,
+    anno_name = expression(bold(paste("BS (DNAme)"))),
+    show_legend = FALSE, log2 = FALSE, bg_col = bg_col[4], col_an = col_an,
+    partition = partition, axis_name = axis_name, ht = ht
+  )
+
+  hm_bs <- bs_PND7 + bs_PND14 + bs_PNW8
+
+  cols_rna_logFC <- brewer.pal(n = 3, name = "Dark2")[1:2]
+  cols_rna_logFC <- c(`PND8 vs PND15` = cols_rna_logFC[1], `PND14 vs PNW8` = cols_rna_logFC[2])
+
+  ta_logFC <- HeatmapAnnotation(
+    Comparison = factor(c("PND8 vs PND15", "PND14 vs PNW8"), levels = c("PND8 vs PND15", "PND14 vs PNW8")),
+    col = list(Comparison = cols_rna_logFC),
+    simple_anno_size = unit(3, "mm"),
+    show_annotation_name = TRUE,
+    height = unit(3, "mm"),
+    annotation_name_side = "right",
+    annotation_name_rot = 0,
+    annotation_name_gp = gpar(fontsize = 0),
+    annotation_legend_param = list(
+      title_gp = gpar(fontsize = 6, fontface = "bold", fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  )
+
+  hm_rna_counts_logFC <- Heatmap(
+    matrix = data.matrix(mat_RNA_counts_logFC[x, ]),
+    col = sqrtCols(mat_RNA_counts_logFC[x, ]),
+    name = "RNA logFC",
+    na_col = "grey",
+    show_row_names = FALSE,
+    show_column_names = FALSE,
+    cluster_rows = F,
+    cluster_columns = F,
+    width = unit(0.5, "cm"),
+    height = unit(ht, "cm"),
+    use_raster = FALSE,
+    row_split = partition,
+    row_title = NULL,
+    top_annotation = ta_logFC,
+    heatmap_legend_param = list(
+      direction = "vertical",
+      # at = c(-4, -2, 0, 2, 4),
+      title = expression(bold(paste("RNA-seq (", log[2], " FC)"))),
+      legend_height = unit(0.8, "cm"),
+      title_position = "topleft",
+      title_gp = gpar(fontsize = 6, fontfamily = "Helvetica"),
+      labels_gp = gpar(fontsize = 6, fontfamily = "Helvetica")
+    )
+  )
+
+  hm_rna_counts_logFC@matrix_color_mapping <- get_at(mm = hm_rna_counts_logFC@matrix_color_mapping)
+
+  if (type == "wo") {
+    if (all(is.na(mat_RNA_counts[x, ]))) {
+      ht_list <- hm_atac
+    } else if (name == "distal" | name == "distal_accUp" | name == "distal_accDown" | name == "proximal_inactive") {
+      ht_list <- hm_atac
+    } else {
+      ht_list <- hm_atac + hm_rna_counts_logFC
+    }
+  } else {
+    if (all(is.na(mat_RNA_counts[x, ]))) {
+      if (rm == "meth") {
+        ht_list <- hm_atac + hm_chip
+      } else {
+        ht_list <- hm_atac + hm_chip + hm_bs
+      }
+    } else if (name == "distal" | name == "distal_accUp" | name == "distal_accDown" | name == "proximal_inactive") {
+      if (rm == "meth") {
+        ht_list <- hm_atac + hm_chip
+      } else {
+        ht_list <- hm_atac + hm_chip + hm_bs
+      }
+    } else {
+      if (rm == "meth") {
+        ht_list <- hm_an + hm_atac + hm_chip + hm_rna_counts_logFC
+      } else {
+        ht_list <- hm_an + hm_atac + hm_chip + hm_bs + hm_rna_counts_logFC
+      }
+    }
+  }
+
+
+  ht_opt$TITLE_PADDING <- unit(1, "mm")
+  ht_opt$legend_gap <- unit(3, "mm")
+  ht_opt$legend_grid_height <- unit(2, "mm")
+  ht_opt$legend_grid_width <- unit(2, "mm")
+  ht_opt$HEATMAP_LEGEND_PADDING <- unit(1, "mm")
+
+  pdf(file = pdf_file, width = 11, height = 8.5)
+
+  grid.newpage()
+  pushViewport(viewport(gp = gpar(lwd = 0.5)))
+  draw(
+    ht_list,
+    ht_gap = unit(1, "mm"),
+    merge_legends = TRUE,
+    newpage = FALSE,
+    annotation_legend_list = lgd
+  )
+  popViewport()
+
+  dev.off()
+
+  png_file <- gsub(pattern = "pdf", replacement = "png", x = pdf_file)
+
+  png(filename = png_file, width = 11, height = 8.5, units = "in", res = 330)
+  grid.newpage()
+  pushViewport(viewport(gp = gpar(lwd = 0.5)))
+  draw(
+    ht_list,
+    ht_gap = unit(1, "mm"),
+    merge_legends = TRUE,
+    newpage = FALSE,
+    annotation_legend_list = lgd
+  )
+  popViewport()
+
+  dev.off()
+
+  invisible(gc())
+}
+```
+
+
+# Enriched heatmaps
+
+## Replace names
+```{r enriched-heatmaps-data-overlap-12 }
+change_names <- function(n) {
+  n <- gsub(pattern = "active", replacement = "Active", x = n)
+  n <- gsub(pattern = "inActive", replacement = "Inactive", x = n)
+  n <- gsub(pattern = "accUp", replacement = "More Acc", x = n)
+  n <- gsub(pattern = "accDown", replacement = "Less Acc", x = n)
+  n <- gsub(pattern = "rnaUp", replacement = "More Expr", x = n)
+  n <- gsub(pattern = "rnaDown", replacement = "Less Expr", x = n)
+  n <- gsub(pattern = "\\.", replacement = " & ", x = n)
+  n <- gsub(pattern = "More Acc & More Expr", replacement = "Category 1", x = n)
+  n <- gsub(pattern = "More Acc & Less Expr", replacement = "Category 2", x = n)
+  n <- gsub(pattern = "Less Acc & Less Expr", replacement = "Category 3", x = n)
+  n <- gsub(pattern = "Less Acc & More Expr", replacement = "Category 4", x = n)
+  n <- gsub(pattern = "Inactive & More Acc", replacement = "Category 5", x = n)
+  n <- gsub(pattern = "Inactive & Less Acc", replacement = "Category 6", x = n)
+  n <- gsub(pattern = "Acc", replacement = "acc.", x = n)
+  n <- gsub(pattern = "& H3K27me3", replacement = "(H3K27me3)", x = n)
+  n <- gsub(pattern = "& H3K4me3", replacement = "(H3K4me3)", x = n)
+  n <- gsub(pattern = "& H3K27ac", replacement = "(H3K27ac)", x = n)
+  n <- gsub(pattern = "Less acc.$", replacement = "Less acc. (No H3 mark)", x = n)
+  n <- gsub(pattern = "More acc.$", replacement = "More acc. (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 1$", replacement = "Category 1 (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 2$", replacement = "Category 2 (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 3$", replacement = "Category 3 (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 4$", replacement = "Category 4 (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 5$", replacement = "Category 5 (No H3 mark)", x = n)
+  n <- gsub(pattern = "Category 6$", replacement = "Category 6 (No H3 mark)", x = n)
+
+  return(n)
+}
+```
+
+## Without ChIP data
+
+### Distal regions
+```{r enriched-heatmaps-data-overlap-13 }
+wo_distal <- wo[grep(pattern = "distal", x = wo$anno), ]
+wo_k_distal <- gsub(pattern = "distal.", replacement = "", x = wo_distal$anno)
+wo_k_distal <- change_names(n = wo_k_distal)
+wo_k_distal <- trimws(gsub(pattern = "\\(No H3 mark)", replacement = "", x = wo_k_distal))
+
+wo_k_distal <- factor(wo_k_distal, unique(wo_k_distal))
+
+draw_EH(x = wo_distal$Name, k = wo_k_distal, name = "distal", ht = 6.5, type = "wo", log = FALSE, outdir = "without_ChIP", rm = "none")
+draw_EH(x = wo_distal$Name, k = wo_k_distal, name = "distal", ht = 6.5, type = "wo", log = TRUE, outdir = "without_ChIP_log2", rm = "none")
+```
+
+### Proximal regions
+```{r enriched-heatmaps-data-overlap-14 }
+wo_pr <- wo[grep(pattern = "proximal", x = wo$anno), ]
+wo_pr <- split(x = wo_pr, f = wo_pr$anno)
+wo_pr <- wo_pr[lapply(wo_pr, nrow) > 10]
+wo_proximal <- plyr::ldply(wo_pr, data.frame)[, -1]
+wo_k_proximal <- gsub(pattern = "proximal.", replacement = "", x = wo_proximal$anno)
+wo_k_proximal <- change_names(n = wo_k_proximal)
+wo_k_proximal <- trimws(gsub(pattern = "\\(No H3 mark)|Active & ", replacement = "", x = wo_k_proximal))
+
+wo_k_proximal <- factor(wo_k_proximal, sort(unique(wo_k_proximal)))
+
+draw_EH(x = wo_proximal$Name, k = wo_k_proximal, name = "proximal", ht = 7, type = "wo", log = FALSE, outdir = "without_ChIP", rm = "none")
+draw_EH(x = wo_proximal$Name, k = wo_k_proximal, name = "proximal", ht = 7, type = "wo", log = TRUE, outdir = "without_ChIP_log2", rm = "none")
+```
+
+### Proximal active regions
+```{r enriched-heatmaps-data-overlap-15 }
+wo_pr_ac <- wo[grep(pattern = "proximal.active", x = wo$anno), ]
+wo_pr_ac <- split(x = wo_pr_ac, f = wo_pr_ac$anno)
+wo_pr_ac <- wo_pr_ac[lapply(wo_pr_ac, nrow) > 10]
+wo_proximal_active <- plyr::ldply(wo_pr_ac, data.frame)[, -1]
+wo_k_ac <- gsub(pattern = "proximal.active.", replacement = "", x = wo_proximal_active$anno)
+wo_k_ac <- change_names(n = wo_k_ac)
+wo_k_ac <- trimws(gsub(pattern = "\\(No H3 mark)", replacement = "", x = wo_k_ac))
+wo_k_ac <- factor(x = wo_k_ac, levels = c("Category 1", "Category 2", "Category 3", "Category 4"))
+
+
+draw_EH(x = wo_proximal_active$Name, k = wo_k_ac, name = "proximal_active", ht = 5.2, type = "wo", log = FALSE, outdir = "without_ChIP", rm = "none")
+
+draw_EH(x = wo_proximal_active$Name, k = wo_k_ac, name = "proximal_active", ht = 5.2, type = "wo", log = TRUE, outdir = "without_ChIP_log2", rm = "none")
+```
+
+
+### Proximal inactive regions
+```{r enriched-heatmaps-data-overlap-16 }
+wo_pr_inac <- wo[grep(pattern = "proximal.inactive", x = wo$anno), ]
+wo_pr_inac <- split(x = wo_pr_inac, f = wo_pr_inac$anno)
+wo_pr_inac <- wo_pr_inac[lapply(wo_pr_inac, nrow) > 10]
+wo_proximal_inactive <- plyr::ldply(wo_pr_inac, data.frame)[, -1]
+wo_k_inac <- gsub(pattern = "proximal.inactive.", replacement = "", x = wo_proximal_inactive$anno)
+wo_k_inac <- change_names(n = wo_k_inac)
+wo_k_inac <- trimws(gsub(pattern = "\\(No H3 mark)", replacement = "", x = wo_k_inac))
+wo_k_inac <- gsub(pattern = "More acc.", replacement = "Category 5", x = wo_k_inac)
+wo_k_inac <- gsub(pattern = "Less acc.", replacement = "Category 6", x = wo_k_inac)
+
+wo_k_inac <- factor(wo_k_inac, rev(unique(wo_k_inac)))
+
+draw_EH(x = wo_proximal_inactive$Name, k = wo_k_inac, name = "proximal_inactive", ht = 5.2, type = "wo", log = FALSE, outdir = "without_ChIP", rm = "none")
+draw_EH(x = wo_proximal_inactive$Name, k = wo_k_inac, name = "proximal_inactive", ht = 5.2, type = "wo", log = TRUE, outdir = "without_ChIP_log2", rm = "none")
+```
+
+
+## With ChIP data
+
+### Distal regions
+```{r enriched-heatmaps-data-overlap-17 }
+wi_dis <- wi[grep(pattern = "distal", x = wi$anno), ]
+wi_dis <- split(x = wi_dis, f = wi_dis$anno)
+wi_dis <- wi_dis[lapply(wi_dis, nrow) > 10]
+wi_distal <- plyr::ldply(wi_dis, data.frame)[, -1]
+wi_k_distal <- gsub(pattern = "distal.", replacement = "", x = wi_distal$anno)
+wi_k_distal <- change_names(n = wi_k_distal)
+
+wi_k_distal <- factor(wi_k_distal, unique(wi_k_distal)[c(7,5,6,4,3,2,1)])
+
+draw_EH(x = wi_distal$Name, k = wi_k_distal, name = "distal", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
+draw_EH(x = wi_distal$Name, k = wi_k_distal, name = "distal", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
+draw_EH(x = wi_distal$Name, k = wi_k_distal, name = "distal", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "meth")
+draw_EH(x = wi_distal$Name, k = wi_k_distal, name = "distal", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "meth")
+```
+
+### Distal regions accUp
+```{r enriched-heatmaps-data-overlap-18 }
+wi_dis_acup <- wi[grep(pattern = "distal.accUp", x = wi$anno), ]
+wi_dis_acup <- split(x = wi_dis_acup, f = wi_dis_acup$anno)
+wi_dis_acup <- wi_dis_acup[lapply(wi_dis_acup, nrow) > 10]
+wi_distal_acup <- plyr::ldply(wi_dis_acup, data.frame)[, -1]
+wi_k_distal_acup <- gsub(pattern = "distal.", replacement = "", x = wi_distal_acup$anno)
+wi_k_distal_acup <- change_names(n = wi_k_distal_acup)
+
+wi_k_distal_acup <- factor(wi_k_distal_acup, unique(wi_k_distal_acup)[c(4,2,3,1)])
+
+draw_EH(x = wi_distal_acup$Name, k = wi_k_distal_acup, name = "distal_accUp", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
+draw_EH(x = wi_distal_acup$Name, k = wi_k_distal_acup, name = "distal_accUp", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
+draw_EH(x = wi_distal_acup$Name, k = wi_k_distal_acup, name = "distal_accUp", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "meth")
+draw_EH(x = wi_distal_acup$Name, k = wi_k_distal_acup, name = "distal_accUp", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "meth")
+```
+
+### Distal regions accDown
+```{r enriched-heatmaps-data-overlap-19 }
+wi_dis_acdn <- wi[grep(pattern = "distal.accDown", x = wi$anno), ]
+wi_dis_acdn <- split(x = wi_dis_acdn, f = wi_dis_acdn$anno)
+wi_dis_acdn <- wi_dis_acdn[lapply(wi_dis_acdn, nrow) > 10]
+wi_distal_acdn <- plyr::ldply(wi_dis_acdn, data.frame)[, -1]
+wi_k_distal_acdn <- gsub(pattern = "distal.", replacement = "", x = wi_distal_acdn$anno)
+wi_k_distal_acdn <- change_names(wi_k_distal_acdn)
+
+wi_k_distal_acdn <- factor(wi_k_distal_acdn, rev(unique(wi_k_distal_acdn)))
+
+draw_EH(x = wi_distal_acdn$Name, k = wi_k_distal_acdn, name = "distal_accDown", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
+draw_EH(x = wi_distal_acdn$Name, k = wi_k_distal_acdn, name = "distal_accDown", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
+draw_EH(x = wi_distal_acdn$Name, k = wi_k_distal_acdn, name = "distal_accDown", ht = 12, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "meth")
+draw_EH(x = wi_distal_acdn$Name, k = wi_k_distal_acdn, name = "distal_accDown", ht = 12, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "meth")
+```
+
+
+### Proximal regions
+```{r enriched-heatmaps-data-overlap-20 }
+wi_pr <- wi[grep(pattern = "proximal", x = wi$anno), ]
+wi_pr <- split(x = wi_pr, f = wi_pr$anno)
+wi_pr <- wi_pr[lapply(wi_pr, nrow) > 10]
+wi_proximal <- plyr::ldply(wi_pr, data.frame)[, -1]
+wi_k_proximal <- gsub(pattern = "proximal.", replacement = "", x = wi_proximal$anno)
+wi_k_proximal <- change_names(wi_k_proximal)
+wi_k_proximal <- trimws(gsub(pattern = "Active & ", replacement = "", x = wi_k_proximal))
+wi_k_proximal <- factor(wi_k_proximal, sort(unique(wi_k_proximal))[c(2,1,3,6,4,5,7,8,9,12,10,11,13,14,15)])
+
+draw_EH(x = wi_proximal$Name, k = wi_k_proximal, name = "proximal", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
+draw_EH(x = wi_proximal$Name, k = wi_k_proximal, name = "proximal", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
+draw_EH(x = wi_proximal$Name, k = wi_k_proximal, name = "proximal", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "meth")
+draw_EH(x = wi_proximal$Name, k = wi_k_proximal, name = "proximal", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "meth")
+```
+
+### Proximal active regions
+```{r enriched-heatmaps-data-overlap-21 }
+wi_pr_ac <- wi[grep(pattern = "proximal.active", x = wi$anno), ]
+wi_pr_ac <- split(x = wi_pr_ac, f = wi_pr_ac$anno)
+wi_pr_ac <- wi_pr_ac[lapply(wi_pr_ac, nrow) > 10]
+wi_proximal_active <- plyr::ldply(wi_pr_ac, data.frame)[, -1]
+wi_k_ac <- gsub(pattern = "proximal.active.", replacement = "", x = wi_proximal_active$anno)
+wi_k_ac <- change_names(wi_k_ac)
+
+wi_k_ac <- factor(wi_k_ac, sort(unique(wi_k_ac))[c(2,1,3,6,4,5,7,8,9)])
+
+draw_EH(x = wi_proximal_active$Name, k = wi_k_ac, name = "proximal_active", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
+draw_EH(x = wi_proximal_active$Name, k = wi_k_ac, name = "proximal_active", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
+draw_EH(x = wi_proximal_active$Name, k = wi_k_ac, name = "proximal_active", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "meth")
+draw_EH(x = wi_proximal_active$Name, k = wi_k_ac, name = "proximal_active", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "meth")
+```
+
+### Proximal inactive regions
+```{r enriched-heatmaps-data-overlap-22 }
+wi_pr_inac <- wi[grep(pattern = "proximal.inactive", x = wi$anno), ]
+wi_pr_inac <- split(x = wi_pr_inac, f = wi_pr_inac$anno)
+wi_pr_inac <- wi_pr_inac[lapply(wi_pr_inac, nrow) > 10]
+wi_proximal_inactive <- plyr::ldply(wi_pr_inac, data.frame)[, -1]
+wi_k_inac <- gsub(pattern = "proximal.inactive.", replacement = "", x = wi_proximal_inactive$anno)
+wi_k_inac <- change_names(n = wi_k_inac)
+wi_k_inac <- gsub(pattern = "More acc.", replacement = "Category 5", x = wi_k_inac)
+wi_k_inac <- gsub(pattern = "Less acc.", replacement = "Category 6", x = wi_k_inac)
+
+wi_k_inac <- factor(wi_k_inac, sort(unique(wi_k_inac))[c(5,3,4,6,1,2)])
+
+draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "none")
+draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "none")
+draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = FALSE, outdir = "with_ChIP", rm = "meth")
+draw_EH(x = wi_proximal_inactive$Name, k = wi_k_inac, name = "proximal_inactive", ht = 14.5, type = "wi", log = TRUE, outdir = "with_ChIP_log2", rm = "meth")
+```
+
+
+
+# References
+```{r enriched-heatmaps-data-overlap-23 }
+report::cite_packages(sessionInfo())
+```
+
+
+# SessionInfo
+```{r enriched-heatmaps-data-overlap-24 }
+devtools::session_info()
+```
