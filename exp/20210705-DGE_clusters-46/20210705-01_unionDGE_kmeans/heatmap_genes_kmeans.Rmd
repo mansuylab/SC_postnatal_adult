@@ -37,8 +37,9 @@ library(grid)
 library(gridExtra)
 library(future.apply)
 library(parameters)
-library(see)
+# library(see)
 library(dplyr)
+library(ComplexHeatmap)
 ```
 
 # DEA objects and Counts
@@ -211,6 +212,15 @@ pheatmap(mat.new.k5[, o],
   annotation_row = data.frame(nCluster = as.factor(kmeans.new)),
   main = "SC controls union DGE FDR <= 0.05 and abs(LFC) >= 1"
 )
+
+
+library(ComplexHeatmap)
+
+Heatmap(matrix = mat.new.k5[, o],
+        cluster_rows = FALSE, 
+        cluster_columns = FALSE,
+        row_names_gp = gpar(fontsize = 0), 
+        row_split = kmeans.new, column_split = annCol$Group)
 ```
 
 ```{r, echo=FALSE}
@@ -219,7 +229,7 @@ pheatmap(mat.new.k5[, o],
   color = viridis(100), border_color = NA,
   show_rownames = F, show_colnames = T, gaps_row = cumsum(table(kmeans.new)[c(2, 5, 4, 3)]),
   gaps_col = c(6, 12),
-  breaks = c(min(mat.norm), seq(-5, 5, length.out = 95), max(mat.norm)),
+  breaks = c(min(mat.new.k5), seq(-5, 5, length.out = 95), max(mat.new.k5)),
   cluster_rows = F, cluster_cols = F, annotation_col = annCol[, 1:2, drop = F],
   annotation_row = data.frame(nCluster = as.factor(kmeans.new)),
   main = "SC controls union DGE FDR <= 0.05 and abs(LFC) >= 1"
