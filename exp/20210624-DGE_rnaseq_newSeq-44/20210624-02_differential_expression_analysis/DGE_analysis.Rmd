@@ -300,6 +300,212 @@ plgINS::plPCA(
 ```
 
 
+
+
+
+
+# Volcano plots
+## PND15 vs PND8
+```{r, warning=FALSE, message=FALSE}
+res_8_15 <- pnd8.pnd15
+res_8_15$category <- "PND15 vs PND8"
+
+tab <- rbind(res_8_15)
+
+tab_lfc <- tab[abs(tab$logFC) >= 1, ]
+tab_fdr <- tab[tab$adj.P.Val <= 0.05, ]
+tab_lfc_fdr <- tab[abs(tab$logFC) >= 1 & tab$adj.P.Val <= 0.05, ]
+tab$Significant <- "Not significant"
+tab$Significant[tab$adj.P.Val <= 0.05 & abs(tab$logFC) >= 1] <- "Down regulated"
+# tab$Significant[tab$`diffAccessibility-qvalue` <= 0.05 & tab$`diffAccessibility-logFC` >= 1] <- "Positive"
+tab$Significant[tab$Significant == "Down regulated"] <- ifelse(tab$logFC[tab$Significant == "Down regulated"] > 0, "Up regulated", "Down regulated")
+tab$Significant <- factor(x = tab$Significant, levels = unique(tab$Significant))
+colnames(tab)[6] <- "qvalue"
+
+anno <- data.frame(
+  x = c(-7, 7),
+  y = c(6, 6),
+  label = c("n = 146", "n = 517"), 
+  col = c("#0072B5FF", "#BC3C29FF")
+)
+
+
+p1 <- ggplot(tab, aes(x = logFC, y = -log10(qvalue))) +
+  geom_point(aes(color = Significant), size = 2, alpha = 0.5) +
+  scale_color_manual(values = c("#BC3C29FF", "#0072B5FF", "black")) +
+  xlim(
+    -(ceiling(max(abs(tab$logFC)))),
+    ceiling(max(abs(tab$logFC)))
+  ) +
+  ylim(0, max(-log10(tab$qvalue), na.rm = TRUE) + 1) +
+  xlab(bquote(~ Log[2] ~ "FC")) +
+  ylab(bquote(~ -Log[10] ~ adjusted ~ italic(P))) +
+  labs(
+    title = "",
+    subtitle = "", 
+    caption = paste0("Total = ", scales::comma(nrow(tab)), " tested genes")
+  ) +
+  # theme_bw(base_family = "Helvetica") +
+  theme_bw()+
+  theme(
+    legend.title = element_blank(),
+    plot.caption = element_text(size = 12),
+    # legend.justification = "bottom",
+    legend.position = "none",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=10, color = "black"),
+    legend.text = element_text(size=10),
+    strip.text.x = element_text(size = 12, color = "black"),
+    strip.background =element_rect(fill="white")
+  ) + geom_vline(
+    xintercept = c(-1, 1),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  ) +
+  geom_hline(
+    yintercept = -log10(0.05),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  ) +
+    facet_wrap(~category, scales = "free") +
+  guides(
+    colour = guide_legend(
+      order = 2,
+      override.aes = list(
+        size = 5
+      )
+    )
+  ) +
+  scale_shape_manual(
+    values = c(
+      `Not significant` = 19,
+      Positive = 19,
+      Negative = 19
+    ),
+    labels = c(
+      `Not significant` = "Not significant",
+      Positive = "Up regulated",
+      Negative = "Down regulated"
+    )
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  geom_label(
+    data = anno, aes(x = x, y = y, label = label),
+    color = c("#0072B5FF", "#BC3C29FF"),
+    size = 3, angle = 45, fontface = "plain", family = "Helvetica"
+  )
+
+p1
+# anno <- data.frame(
+#   x = c(-10, 10),
+#   y = c(7, 7),
+#   label = c("n = 146", "n = 517", "n = 914", "n = 1579"), 
+#   col = c("#0072B5FF", "#BC3C29FF", "#0072B5FF", "#BC3C29FF")
+# )
+```
+
+## PNW21 vs PND15
+```{r, warning=FALSE, message=FALSE}
+res_15_21 <- pnd15.pnw21
+res_15_21$category <- "PNW21 vs PND15"
+# tab <- rbind(res_8_15, res_15_21)
+
+tab <- rbind(res_15_21)
+
+tab_lfc <- tab[abs(tab$logFC) >= 1, ]
+tab_fdr <- tab[tab$adj.P.Val <= 0.05, ]
+tab_lfc_fdr <- tab[abs(tab$logFC) >= 1 & tab$adj.P.Val <= 0.05, ]
+tab$Significant <- "Not significant"
+tab$Significant[tab$adj.P.Val <= 0.05 & abs(tab$logFC) >= 1] <- "Down regulated"
+# tab$Significant[tab$`diffAccessibility-qvalue` <= 0.05 & tab$`diffAccessibility-logFC` >= 1] <- "Positive"
+tab$Significant[tab$Significant == "Down regulated"] <- ifelse(tab$logFC[tab$Significant == "Down regulated"] > 0, "Up regulated", "Down regulated")
+tab$Significant <- factor(x = tab$Significant, levels = unique(tab$Significant)[c(2,1,3)])
+colnames(tab)[6] <- "qvalue"
+
+anno <- data.frame(
+  x = c(-14, 14),
+  y = c(7, 7),
+  label = c("n = 914", "n = 1579"),
+  col = c("#0072B5FF", "#BC3C29FF")
+)
+
+p2 <- ggplot(tab, aes(x = logFC, y = -log10(qvalue))) +
+  geom_point(aes(color = Significant), size = 2, alpha = 0.5) +
+  scale_color_manual(values = c("#BC3C29FF", "#0072B5FF", "black")) +
+  xlim(
+    -(ceiling(max(abs(tab$logFC)))),
+    ceiling(max(abs(tab$logFC)))
+  ) +
+  ylim(0, max(-log10(tab$qvalue), na.rm = TRUE) + 1) +
+  xlab(bquote(~ Log[2] ~ "FC")) +
+  ylab("") +
+  labs(
+    title = "",
+    subtitle = "", caption = paste0("Total = ", scales::comma(nrow(tab)), " tested genes")
+  ) +
+  # theme_bw(base_family = "Helvetica") +
+  theme_bw()+
+  theme(
+    legend.position = "right",
+    legend.title = element_blank(),
+    plot.caption = element_text(size = 12),
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=10, color = "black"),
+    legend.text = element_text(size=10),
+    strip.text.x = element_text(size = 12, color = "black"),
+    strip.background =element_rect(fill="white")
+  ) + geom_vline(
+    xintercept = c(-1, 1),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  ) +
+  geom_hline(
+    yintercept = -log10(0.05),
+    linetype = "longdash",
+    colour = "black",
+    size = 0.4
+  ) +
+    facet_wrap(~category, scales = "free") +
+  guides(
+    colour = guide_legend(
+      order = 2,
+      override.aes = list(
+        size = 5
+      )
+    )
+  ) +
+  scale_shape_manual(
+    values = c(
+      `Not significant` = 19,
+      Positive = 19,
+      Negative = 19
+    ),
+    labels = c(
+      `Not significant` = "Not significant",
+      Positive = "Up regulated",
+      Negative = "Down regulated"
+    )
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  geom_label(
+    data = anno, aes(x = x, y = y, label = label),
+    color = c("#0072B5FF", "#BC3C29FF"),
+    size = 3, angle = 45, fontface = "plain", family = "Helvetica"
+  )
+
+p2
+```
+
+```{r}
+p1|p2
+```
+
+
+
+
 # References
 ```{r }
 report::cite_packages(session = sessionInfo())
