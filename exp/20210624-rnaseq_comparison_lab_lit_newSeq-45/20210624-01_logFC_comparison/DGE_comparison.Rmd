@@ -44,6 +44,27 @@ lit <- dea.limma
 
 load("input/limma_SC_Controls_lab_newSeq.RData")
 ns <- dea.limma
+
+df1 <- lab$`PND8 vs PND15`
+df2 <- lab$`PND15 vs Adult`
+df3 <- lit$`PND7 vs PND14`
+df4 <- lit$`PND14 vs Adult`
+df5 <- ns$`pnd15 vs pnd8`
+df6 <- ns$`pnw21 vs pnd15`
+
+
+filter_lfc <- function(df){
+  df[abs(df$logFC) >= 1 & df$adj.P.Val <= 0.05, ]
+}
+
+df1 <- filter_lfc(df1)
+df2 <- filter_lfc(df2)
+df3 <- filter_lfc(df3)
+df4 <- filter_lfc(df4)
+df5 <- filter_lfc(df5)
+df6 <- filter_lfc(df6)
+
+
 ```
 
 # logFC comparison
@@ -75,43 +96,75 @@ plot_logFC <- function(lfc1, lfc2, n1, n2) {
   fit <- lm(dat2[genes] ~ dat1[genes])
   fitr <- MASS::rlm(dat2[genes] ~ dat1[genes])
 
-  plot_ly() %>%
-    add_trace(x = dat1[genes], y = dat2[genes], mode = "markers", name = "Genes") %>%
-    add_trace(x = dat1[genes], y = predict(fit), mode = "lines", name = "lm") %>%
-    add_trace(x = dat1[genes], y = predict(fitr), mode = "lines", name = "rlm") %>%
-    layout(
-      xaxis = list(title = n1),
-      yaxis = list(title = n2)
-      # title = paste("SC controls logFC:", n1, "and", n2)
-    )
+  df <- data.frame(dat1 = dat1[genes], dat2 = dat2[genes], row.names = genes)
+  
+  ggplot(data = df, aes(x = dat1, y = dat2)) +
+  geom_point(alpha = 0.5) +
+  theme_bw() +
+   stat_smooth(method=function(formula,data,weights=weight) 
+     MASS::rlm(formula, data, weights=weight, method="MM"), fullrange=TRUE,
+     color = "red") +
+    stat_cor(color = "blue", size = 4, aes(label = ..r.label..)) +
+    ggtitle(label = "", subtitle = "") +
+    xlab(n1) +
+    ylab(n2) +
+    ylim(c(min(df), max(df) + 2))+
+    theme(axis.title=element_text(size=9))
+  
+  # plot_ly() %>%
+  #   add_trace(x = dat1[genes], y = dat2[genes], mode = "markers", name = "Genes") %>%
+  #   add_trace(x = dat1[genes], y = predict(fit), mode = "lines", name = "lm") %>%
+  #   add_trace(x = dat1[genes], y = predict(fitr), mode = "lines", name = "rlm") %>%
+  #   layout(
+  #     xaxis = list(title = n1),
+  #     yaxis = list(title = n2)
+  #     # title = paste("SC controls logFC:", n1, "and", n2)
+  #   )
 }
 ```
 
 ### lit: PND14 vs PND7 & old: PND15 vs PND8
 
 ```{r, warning=FALSE, message=FALSE}
-plot_logFC(lfc1 = lab$`PND8 vs PND15`, lfc2 = lit$`PND7 vs PND14`, n1 = "old: PND15 vs PND8", n2 = "lit: PND14 vs PND7")
+p1 <- plot_logFC(lfc1 = lab$`PND8 vs PND15`, lfc2 = lit$`PND7 vs PND14`, n1 = "Lab (old): PND15 vs PND8", n2 = "Lit: PND14 vs PND7")
 ```
 
 ### lit: PND14 vs PND7 & new: PND15 vs PND8
 
 ```{r, warning=FALSE, message=FALSE}
-plot_logFC(lfc1 = ns$`pnd15 vs pnd8`, lfc2 = lit$`PND7 vs PND14`, n1 = "new: PND15 vs PND8", n2 = "lit: PND14 vs PND7")
+p2 <- plot_logFC(lfc1 = ns$`pnd15 vs pnd8`, lfc2 = lit$`PND7 vs PND14`, n1 = "Lab (new): PND15 vs PND8", n2 = "Lit: PND14 vs PND7")
 ```
 
 ### old: PND15 vs PND8 and new: PND15 vs PND8
 
 ```{r, warning=FALSE, message=FALSE}
-plot_logFC(lfc1 = ns$`pnd15 vs pnd8`, lfc2 = lab$`PND8 vs PND15`, n1 = "new: PND15 vs PND8", n2 = "old: PND15 vs PND8")
+p3 <- plot_logFC(lfc1 = ns$`pnd15 vs pnd8`, lfc2 = lab$`PND8 vs PND15`, n1 = "Lab (new): PND15 vs PND8", n2 = "Lab (old): PND15 vs PND8")
+```
+
+
+## lit: PNW8 vs PND14 and old: PNW21 vs PND15
+
+```{r, warning=FALSE, message=FALSE}
+p4 <- plot_logFC(lfc1 = lab$`PND15 vs Adult`, lfc2 = lit$`PND14 vs Adult`, n1 = "Lab (old): PNW21 (polyA) vs PND15", n2 = "Lit: PNW8 vs PND14")
 ```
 
 
 ## lit: PNW8 vs PND14 and new: PNW21 vs PND15
 
 ```{r, warning=FALSE, message=FALSE}
-plot_logFC(lfc1 = ns$`pnw21 vs pnd15`, lfc2 = lit$`PND14 vs Adult`, n1 = "new: PNW21 vs PND15", n2 = "lit: PNW8 vs PND14")
+p5 <- plot_logFC(lfc1 = ns$`pnw21 vs pnd15`, lfc2 = lit$`PND14 vs Adult`, n1 = "Lab (new): PNW21 (total) vs PND15", n2 = "Lit: PNW8 vs PND14")
 ```
 
+## old: PNW21 vs PND15 and new: PNW21 vs PND15
+
+```{r, warning=FALSE, message=FALSE}
+p6 <- plot_logFC(lfc1 = lab$`PND15 vs Adult`, lfc2 = ns$`pnw21 vs pnd15`, n1 = "Lab (old): PNW21 (polyA) vs PND15", n2 = "Lab (new): PNW21 (total) vs PND15")
+```
+
+
+```{r}
+(p1 |p2|p3)/(p4|p5|p6)
+```
 
 # References
 ```{r }
