@@ -8,7 +8,7 @@
 
 This repository contain code for data analysis for the manuscript:
 
-Irina Lazar-Contes and Deepak K. Tanwar _et.al._: **Transcriptome and epigenome characterization of mouse spermatogonial cells reveals distinct chromatin regulatory landscapes in postnatal and adult testis**
+Lazar-Contes _et.al._: **Dynamics of transcriptional programs and chromatin accessibility in mouse spermatogonial cells from early postnatal to adult life** eLife 12:RP91528 (https://doi.org/10.7554/eLife.91528.3)
 
 This repository contains data analysis code for:
 
