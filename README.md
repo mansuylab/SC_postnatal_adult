@@ -6,9 +6,9 @@
 
 ## Code description
 
-This repository contain code for data analysis for the manuscript:
+This repository contains code for data analysis for the manuscript:
 
-Lazar-Contes _et.al._: **Dynamics of transcriptional programs and chromatin accessibility in mouse spermatogonial cells from early postnatal to adult life** eLife 12:RP91528 (https://doi.org/10.7554/eLife.91528.3)
+Lazar-­Contes, Arzate-­Mejia, Tanwar _et al. eLife_ 2023;12:RP91528. **DOI:** [10.7554/eLife.91528](https://doi.org/10.7554/eLife.91528) **Dynamics of transcriptional programs and chromatin accessibility in mouse spermatogonial cells from early postnatal to adult life**
 
 This repository contains data analysis code for:
 
