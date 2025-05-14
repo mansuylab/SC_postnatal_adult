@@ -8,9 +8,7 @@
 
 This repository contains code for data analysis for the manuscript:
 
-Lazar-Contes, A., Arzate-Mejia, R. G., Tanwar, D., *et al.* (2023).  
-**Dynamics of transcriptional programs and chromatin accessibility in mouse spermatogonial cells from early postnatal to adult life**.  
-*eLife*, 12, RP91528. [https://doi.org/10.7554/eLife.91528.3](https://doi.org/10.7554/eLife.91528.3)
+Lazar-Contes, A., Arzate-Mejia, R. G., Tanwar, D., *et al.* (2023). **Dynamics of transcriptional programs and chromatin accessibility in mouse spermatogonial cells from early postnatal to adult life**. *eLife*, 12, RP91528. [https://doi.org/10.7554/eLife.91528.3](https://doi.org/10.7554/eLife.91528.3)
 
 
 This repository contains data analysis code for:
